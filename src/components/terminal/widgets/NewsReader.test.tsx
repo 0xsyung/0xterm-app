@@ -19,7 +19,8 @@ const fixtures: NewsItem[] = [
     sourceId: "cointelegraph",
     title: "Bitcoin hits new research high",
     url: "https://cointelegraph.com/news/btc",
-    publishedAt: Date.parse("2026-09-14T13:35:00.000Z")
+    publishedAt: Date.parse("2026-09-14T13:35:00.000Z"),
+    imageUrl: "https://s3-images.ctmedia.io/media/btc.jpg"
   },
   {
     id: "2",
@@ -168,5 +169,35 @@ describe("NewsReader", () => {
     fireEvent.keyDown(root, { key: "Enter" });
     expect(openSpy).toHaveBeenCalledWith("https://decrypt.co/eth");
     openSpy.mockRestore();
+  });
+
+  it("Thumb renders img for safe imageUrl; onError falls back to monogram (#126)", () => {
+    const { container } = render(
+      <NewsReader data={baseData} theme={theme} />
+    );
+    const imgs = container.querySelectorAll("img");
+    expect(imgs.length).toBeGreaterThan(0);
+    const leadImg = imgs[0] as HTMLImageElement;
+    expect(leadImg.getAttribute("src")).toBe(
+      "https://s3-images.ctmedia.io/media/btc.jpg"
+    );
+    expect(leadImg.getAttribute("alt")).toBe("");
+    expect(leadImg.className).toMatch(/object-cover/);
+    // Monogram stays under the img (loading / fallback surface)
+    expect(container.textContent).toMatch(/CT/);
+    fireEvent.error(leadImg);
+    expect(container.querySelectorAll("img")).toHaveLength(0);
+    expect(container.textContent).toMatch(/CT/);
+  });
+
+  it("Thumb shows monogram when imageUrl missing", () => {
+    const noImg = fixtures.map((f, i) =>
+      i === 0 ? { ...f, imageUrl: null } : { ...f, imageUrl: undefined }
+    );
+    const { container } = render(
+      <NewsReader data={{ ...baseData, items: noImg }} theme={theme} />
+    );
+    expect(container.querySelectorAll("img")).toHaveLength(0);
+    expect(container.textContent).toMatch(/CT/);
   });
 });

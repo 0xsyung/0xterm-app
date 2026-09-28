@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>Cointelegraph.com News</title>
     <link>https://cointelegraph.com</link>
@@ -10,6 +10,8 @@
       <pubDate>Sun, 13 Sep 2026 11:09:54 +0000</pubDate>
       <description>&lt;img src=x onerror=alert(1)&gt;&lt;p&gt;Should be ignored&lt;/p&gt;</description>
       <content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/">&lt;script&gt;alert(1)&lt;/script&gt;Evil HTML</content:encoded>
+      <media:thumbnail url="https://s3-images.ctmedia.io/media/article-covers/btc-ath.jpg" />
+      <enclosure url="https://s3-images.ctmedia.io/media/article-covers/btc-ath.jpg" type="image/jpeg" length="12345" />
     </item>
     <item>
       <title>Ethereum upgrade timeline</title>
@@ -21,6 +23,13 @@
       <title>Solana DeFi volumes rise</title>
       <guid>https://cointelegraph.com/news/solana-defi</guid>
       <pubDate>Sun, 13 Sep 2026 09:00:00 +0000</pubDate>
+      <media:content url="https://evil.test/pwn.png" medium="image" />
+    </item>
+    <item>
+      <title>Defiant-style enclosure</title>
+      <link>https://cointelegraph.com/news/enclosure-ok</link>
+      <pubDate>Sun, 13 Sep 2026 08:00:00 +0000</pubDate>
+      <enclosure url="https://cdn.sanity.io/images/demo/cover.png" type="image/png" length="1000" />
     </item>
   </channel>
 </rss>
