@@ -68,3 +68,60 @@ export const NEWS_FOOTER_RSS2JSON =
   " via rss2json (allowlisted feeds only).";
 
 export const RSS2JSON_ENDPOINT = "https://api.rss2json.com/v1/api.json";
+
+/**
+ * Thumbnail host allowlist (#126). https only; unknown host → treat as missing.
+ * Derived from live feed enclosure/thumbnail hosts for the four publishers.
+ */
+const NEWS_THUMB_HOST_SUFFIXES = [
+  "ctmedia.io", // Cointelegraph CDN (e.g. s3-images.ctmedia.io)
+  "cointelegraph.com",
+  "coindesk.com",
+  "decrypt.co", // cdn.decrypt.co, img.decrypt.co
+  "thedefiant.io",
+  "cdn.sanity.io" // CoinDesk + The Defiant media CDN
+] as const;
+
+/** True when hostname is an exact or subdomain match of a thumb suffix. */
+export const isAllowedNewsThumbHost = (host: string): boolean => {
+  const h = String(host || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.$/, "");
+  if (!h) return false;
+  for (const suffix of NEWS_THUMB_HOST_SUFFIXES) {
+    if (h === suffix || h.endsWith(`.${suffix}`)) return true;
+  }
+  return false;
+};
+
+/**
+ * Sanitize a candidate news thumbnail URL.
+ * https only; reject javascript/data/relative/http; host must be allowlisted.
+ * Returns the normalized href or null.
+ */
+export const sanitizeNewsImageUrl = (
+  raw: string | null | undefined
+): string | null => {
+  const s = String(raw ?? "")
+    .trim()
+    // rss2json / RSS sometimes leave HTML entities in query strings
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'");
+  if (!s) return null;
+  // Reject schemeless / relative / dangerous schemes early
+  if (/^(javascript|data|blob|file|vbscript):/i.test(s)) return null;
+  if (!/^https:\/\//i.test(s)) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:") return null;
+    const host = u.hostname.toLowerCase();
+    if (!isAllowedNewsThumbHost(host)) return null;
+    // Drop fragment; keep query (CDN crop params)
+    u.hash = "";
+    return u.href;
+  } catch {
+    return null;
+  }
+};

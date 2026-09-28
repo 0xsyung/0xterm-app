@@ -11,6 +11,7 @@ import {
   NEWS_FOOTER_BASE,
   NEWS_FOOTER_RSS2JSON,
   RSS2JSON_ENDPOINT,
+  sanitizeNewsImageUrl,
   type NewsAllowItem,
   type NewsCategory,
   type NewsSourceId
@@ -21,6 +22,8 @@ export {
   NEWS_ALLOWLIST,
   NEWS_FOOTER_BASE,
   NEWS_FOOTER_RSS2JSON,
+  isAllowedNewsThumbHost,
+  sanitizeNewsImageUrl,
   type NewsAllowItem,
   type NewsCategory,
   type NewsSourceId
@@ -38,6 +41,8 @@ export type NewsItem = {
   title: string;
   url: string;
   publishedAt: number | null;
+  /** Sanitized https thumb from feed; null/omitted → monogram (#126). */
+  imageUrl?: string | null;
 };
 
 export type NewsPrefs = {
@@ -211,6 +216,97 @@ const firstChild = (parent: Element, local: string): Element | null => {
 };
 
 
+const attrUrl = (el: Element | null): string => {
+  if (!el) return "";
+  return (
+    el.getAttribute("url") ||
+    el.getAttribute("href") ||
+    ""
+  ).trim();
+};
+
+const isImageMime = (type: string): boolean => {
+  const t = type.trim().toLowerCase();
+  return t === "image/*" || t.startsWith("image/");
+};
+
+/**
+ * Pull a feed image URL from RSS item/entry: media:content / media:thumbnail /
+ * enclosure type=image/*. Returns sanitized https URL or null (#126).
+ */
+export const extractRssImageUrl = (node: Element): string | null => {
+  // media:thumbnail first (explicit cover)
+  for (const tag of ["thumbnail", "media:thumbnail"]) {
+    const list = node.getElementsByTagName(tag);
+    for (const el of Array.from(list)) {
+      const safe = sanitizeNewsImageUrl(attrUrl(el));
+      if (safe) return safe;
+    }
+  }
+  // media:content — skip video; accept image / bare url-bearing media
+  for (const tag of ["content", "media:content"]) {
+    const list = node.getElementsByTagName(tag);
+    for (const el of Array.from(list)) {
+      // skip atom <content> text bodies (no url attr)
+      const url = attrUrl(el);
+      if (!url) continue;
+      const medium = (el.getAttribute("medium") || "").toLowerCase();
+      const type = (el.getAttribute("type") || "").toLowerCase();
+      if (medium === "video" || type.startsWith("video/")) continue;
+      if (medium && medium !== "image" && !isImageMime(type)) continue;
+      const safe = sanitizeNewsImageUrl(url);
+      if (safe) return safe;
+    }
+  }
+  // enclosure type=image/*
+  const enclosures = node.getElementsByTagName("enclosure");
+  for (const el of Array.from(enclosures)) {
+    const type = el.getAttribute("type") || "";
+    if (!isImageMime(type)) continue;
+    const safe = sanitizeNewsImageUrl(attrUrl(el));
+    if (safe) return safe;
+  }
+  return null;
+};
+
+/** rss2json: item.thumbnail or enclosure.link when image-like (#126). */
+export const extractRss2JsonImageUrl = (raw: {
+  thumbnail?: unknown;
+  enclosure?: unknown;
+}): string | null => {
+  const candidates: string[] = [];
+  if (raw.thumbnail != null && String(raw.thumbnail).trim()) {
+    candidates.push(String(raw.thumbnail));
+  }
+  const enc = raw.enclosure;
+  if (enc && typeof enc === "object") {
+    const e = enc as {
+      link?: unknown;
+      type?: unknown;
+      thumbnail?: unknown;
+    };
+    if (e.thumbnail != null && String(e.thumbnail).trim()) {
+      candidates.push(String(e.thumbnail));
+    }
+    const link = String(e.link ?? "").trim();
+    const type = String(e.type ?? "");
+    if (link) {
+      if (
+        isImageMime(type) ||
+        !type ||
+        /\.(jpe?g|png|gif|webp|avif)(\?|#|$)/i.test(link)
+      ) {
+        candidates.push(link);
+      }
+    }
+  }
+  for (const c of candidates) {
+    const safe = sanitizeNewsImageUrl(c);
+    if (safe) return safe;
+  }
+  return null;
+};
+
 /**
  * Parse RSS / rss2json pubDates to epoch ms.
  * rss2json strips TZ and emits `YYYY-MM-DD HH:mm:ss` in UTC wall time; naive
@@ -277,19 +373,23 @@ export const parseRss = (
       publishedAt = parseNewsDate(dateRaw);
     }
 
+    const imageUrl = extractRssImageUrl(node);
+
     out.push({
       id: newsItemId(sourceId, link),
       sourceId,
       title,
       url: link,
-      publishedAt
+      publishedAt,
+      imageUrl
     });
   }
   return out;
 };
 
 /**
- * Parse rss2json JSON. Take only title/link/pubDate/author — ignore description/content.
+ * Parse rss2json JSON. Take title/link/pubDate + sanitized thumbnail (#126).
+ * Ignore description/content HTML.
  */
 export const parseRss2Json = (
   json: unknown,
@@ -306,6 +406,8 @@ export const parseRss2Json = (
       title?: unknown;
       link?: unknown;
       pubDate?: unknown;
+      thumbnail?: unknown;
+      enclosure?: unknown;
     };
     const title = sanitizeHeadline(String(it.title ?? ""));
     if (!title) continue;
@@ -315,12 +417,14 @@ export const parseRss2Json = (
     if (it.pubDate) {
       publishedAt = parseNewsDate(String(it.pubDate));
     }
+    const imageUrl = extractRss2JsonImageUrl(it);
     out.push({
       id: newsItemId(sourceId, link),
       sourceId,
       title,
       url: link,
-      publishedAt
+      publishedAt,
+      imageUrl
     });
   }
   return out;
@@ -585,13 +689,8 @@ export const _resetNewsCache = (): void => {
   feedCache.clear();
 };
 
-const isCorsTypeError = (e: unknown): boolean => {
-  if (e instanceof TypeError) return true;
-  const msg = String((e as any)?.message || e || "");
-  return /Failed to fetch|NetworkError|CORS|Load failed/i.test(msg);
-};
-
-async function fetchDirectRss(
+/** Retained for unit tests / future same-origin proxy (#126). */
+export async function fetchDirectRss(
   url: string,
   fetchImpl: typeof fetch
 ): Promise<string> {
@@ -612,19 +711,10 @@ async function fetchViaRss2json(
   if (!isAllowedNewsUrl(allowlistedUrl)) {
     throw new Error("NEWS_BAD_URL");
   }
-  const withCount = `${RSS2JSON_ENDPOINT}?rss_url=${encodeURIComponent(allowlistedUrl)}&count=20`;
-  let res = await fetchImpl(withCount, { mode: "cors", credentials: "omit" });
-  let json: any = await res.json().catch(() => null);
-  // Free tier may reject `count` without a key — retry without count (still our URL).
-  if (
-    json &&
-    json.status === "error" &&
-    /api key|count/i.test(String(json.message || ""))
-  ) {
-    const bare = `${RSS2JSON_ENDPOINT}?rss_url=${encodeURIComponent(allowlistedUrl)}`;
-    res = await fetchImpl(bare, { mode: "cors", credentials: "omit" });
-    json = await res.json().catch(() => null);
-  }
+  // #126: bare ?rss_url= only — never &count=20 (free tier 422 without API key).
+  const bare = `${RSS2JSON_ENDPOINT}?rss_url=${encodeURIComponent(allowlistedUrl)}`;
+  const res = await fetchImpl(bare, { mode: "cors", credentials: "omit" });
+  const json: any = await res.json().catch(() => null);
   if (!json || json.status !== "ok") {
     throw new Error(String(json?.message || "rss2json failed"));
   }
@@ -649,27 +739,18 @@ async function fetchOneFeed(
   let items: NewsItem[] = [];
   let ok = false;
 
+  // #126: prefer rss2json first/only for allowlisted feeds so the browser does
+  // not log doomed CORS failures on publisher RSS (no ACAO). parseRss +
+  // fetchDirectRss remain for unit tests / future same-origin proxy.
   try {
-    const xml = await fetchDirectRss(item.rssUrl, fetchImpl);
-    items = parseRss(xml, item.id);
+    const json = await fetchViaRss2json(item.rssUrl, fetchImpl);
+    items = parseRss2Json(json, item.id);
+    usedRss2json = true;
     ok = true;
-  } catch (e) {
-    // Locked: rss2json hop only on TypeError / CORS fail for allowlisted URLs.
-    if (isCorsTypeError(e)) {
-      try {
-        const json = await fetchViaRss2json(item.rssUrl, fetchImpl);
-        items = parseRss2Json(json, item.id);
-        usedRss2json = true;
-        ok = true;
-      } catch {
-        ok = false;
-        items = [];
-        usedRss2json = false;
-      }
-    } else {
-      ok = false;
-      items = [];
-    }
+  } catch {
+    ok = false;
+    items = [];
+    usedRss2json = false;
   }
 
   feedCache.set(item.rssUrl, {

@@ -27,12 +27,19 @@ export type NewsReaderData = NewsWidgetData;
 
 function Thumb({
   sourceId,
-  theme
+  theme,
+  imageUrl
 }: {
   sourceId: NewsSourceId;
   theme: ThemeConfig;
+  imageUrl?: string | null;
 }) {
   const thumb = newsThumbStyle(sourceId, theme);
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => {
+    setImgFailed(false);
+  }, [imageUrl]);
+  const showImg = Boolean(imageUrl) && !imgFailed;
   return (
     <div
       className={`relative w-full aspect-video border ${theme.border} overflow-hidden flex items-center justify-center`}
@@ -45,6 +52,14 @@ function Thumb({
       >
         {thumb.monogram}
       </span>
+      {showImg ? (
+        <img
+          src={imageUrl as string}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -193,7 +208,7 @@ export default function NewsReader({
             : undefined
         }
       >
-        <Thumb sourceId={item.sourceId} theme={theme} />
+        <Thumb sourceId={item.sourceId} theme={theme} imageUrl={item.imageUrl} />
         <CategoryTag label={cat} theme={theme} />
         <div
           className={`${theme.primary} normal-case font-bold leading-snug ${

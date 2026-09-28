@@ -24,6 +24,8 @@ import {
   parseRss,
   parseRss2Json,
   sanitizeHeadline,
+  sanitizeNewsImageUrl,
+  isAllowedNewsThumbHost,
   categoryOf,
   estimateReadTime,
   filterByCategory,
@@ -32,7 +34,7 @@ import {
   type NewsItem
 } from "./news";
 import { formatLocalHm, formatLocalHms } from "./localTime";
-import { NEWS_ALLOWLIST } from "./newsAllowlist";
+import { NEWS_ALLOWLIST, RSS2JSON_ENDPOINT } from "./newsAllowlist";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtureXml = readFileSync(
@@ -132,17 +134,31 @@ describe("dedupByUrl", () => {
 describe("parseRss", () => {
   it("parses Cointelegraph-shaped RSS; ignores description HTML; drops bad links", () => {
     const items = parseRss(fixtureXml, "cointelegraph");
-    expect(items.length).toBe(2);
+    expect(items.length).toBe(3);
     expect(items[0].title).toContain("Bitcoin hits");
     expect(items[0].title).not.toMatch(/<b>|onerror/i);
     expect(items[0].url).toBe("https://cointelegraph.com/news/bitcoin-ath");
     expect(items.some((i) => i.url.startsWith("javascript:"))).toBe(false);
     expect(items.some((i) => /solana/i.test(i.title))).toBe(true);
   });
+
+  it("parses media:thumbnail / enclosure image; rejects unknown thumb hosts (#126)", () => {
+    const items = parseRss(fixtureXml, "cointelegraph");
+    const btc = items.find((i) => i.url.includes("bitcoin-ath"));
+    expect(btc?.imageUrl).toBe(
+      "https://s3-images.ctmedia.io/media/article-covers/btc-ath.jpg"
+    );
+    const sol = items.find((i) => /solana/i.test(i.title));
+    expect(sol?.imageUrl).toBeNull();
+    const enc = items.find((i) => i.url.includes("enclosure-ok"));
+    expect(enc?.imageUrl).toBe(
+      "https://cdn.sanity.io/images/demo/cover.png"
+    );
+  });
 });
 
 describe("parseRss2Json", () => {
-  it("reads title/link/pubDate only", () => {
+  it("reads title/link/pubDate + sanitized thumbnail (#126)", () => {
     const json = {
       status: "ok",
       items: [
@@ -150,6 +166,7 @@ describe("parseRss2Json", () => {
           title: "Hello <em>ETH</em>",
           link: "https://decrypt.co/1",
           pubDate: "Sun, 13 Sep 2026 11:00:00 +0000",
+          thumbnail: "https://cdn.decrypt.co/wp-content/uploads/eth.png",
           description: "<script>alert(1)</script>",
           content: "<img src=x onerror=alert(1)>"
         },
@@ -157,14 +174,37 @@ describe("parseRss2Json", () => {
           title: "Bad",
           link: "javascript:alert(1)",
           pubDate: "Sun, 13 Sep 2026 10:00:00 +0000"
+        },
+        {
+          title: "CoinDesk enclosure",
+          link: "https://www.coindesk.com/a",
+          pubDate: "Sun, 13 Sep 2026 09:00:00 +0000",
+          thumbnail: "",
+          enclosure: {
+            link: "https://cdn.sanity.io/images/s3y3vcno/production/x.jpg?fm=jpg&amp;w=1920",
+            type: "image/*"
+          }
+        },
+        {
+          title: "Evil thumb",
+          link: "https://decrypt.co/evil-thumb",
+          pubDate: "Sun, 13 Sep 2026 08:00:00 +0000",
+          thumbnail: "https://evil.test/pwn.png"
         }
       ]
     };
     const items = parseRss2Json(json, "decrypt");
-    expect(items).toHaveLength(1);
+    expect(items).toHaveLength(3);
     expect(items[0].title).toBe("Hello ETH");
     expect(items[0].url).toBe("https://decrypt.co/1");
     expect(items[0].publishedAt).not.toBeNull();
+    expect(items[0].imageUrl).toBe(
+      "https://cdn.decrypt.co/wp-content/uploads/eth.png"
+    );
+    expect(items[1].imageUrl).toBe(
+      "https://cdn.sanity.io/images/s3y3vcno/production/x.jpg?fm=jpg&w=1920"
+    );
+    expect(items[2].imageUrl).toBeNull();
   });
 });
 
@@ -208,54 +248,54 @@ describe("buildNewsFooter", () => {
 
 
 describe("fetchNewsHeadlines", () => {
-  it("uses direct RSS when fetch succeeds", async () => {
-    const xml = fixtureXml;
+  it("uses bare rss2json first — no count=20, no direct publisher CORS (#126)", async () => {
+    const urls: string[] = [];
     const fetchImpl = async (url: string) => {
       const u = String(url);
-      if (u.includes("rss2json")) throw new Error("should not hop");
-      return {
-        ok: true,
-        text: async () => xml,
-        json: async () => ({})
-      } as Response;
-    };
-    const r = await fetchNewsHeadlines(fetchImpl as any, { force: true });
-    expect(r.error).toBeUndefined();
-    expect(r.usedRss2json).toBe(false);
-    expect(r.items.length).toBeGreaterThan(0);
-  });
-
-  it("hops to rss2json on TypeError/CORS only", async () => {
-    const fetchImpl = async (url: string) => {
-      const u = String(url);
+      urls.push(u);
       if (u.includes("rss2json")) {
+        expect(u).not.toMatch(/count=/);
+        expect(u.startsWith(`${RSS2JSON_ENDPOINT}?rss_url=`)).toBe(true);
         return {
           ok: true,
           json: async () => ({
             status: "ok",
             items: [
               {
-                title: "Hopped BTC story",
-                link: "https://cointelegraph.com/news/hop",
-                pubDate: "Sun, 13 Sep 2026 11:00:00 +0000"
+                title: "Bare BTC story",
+                link: "https://cointelegraph.com/news/bare",
+                pubDate: "Sun, 13 Sep 2026 11:00:00 +0000",
+                thumbnail: "https://s3-images.ctmedia.io/cover.jpg"
               }
             ]
           }),
           text: async () => ""
         } as Response;
       }
-      throw new TypeError("Failed to fetch");
+      throw new Error(`unexpected direct fetch: ${u}`);
     };
     const r = await fetchNewsHeadlines(fetchImpl as any, { force: true });
+    expect(r.error).toBeUndefined();
     expect(r.usedRss2json).toBe(true);
-    expect(r.items.some((i) => /Hopped BTC/i.test(i.title))).toBe(true);
+    expect(r.items.some((i) => /Bare BTC/i.test(i.title))).toBe(true);
+    expect(r.items.find((i) => /Bare BTC/i.test(i.title))?.imageUrl).toBe(
+      "https://s3-images.ctmedia.io/cover.jpg"
+    );
+    expect(urls.every((u) => u.startsWith(`${RSS2JSON_ENDPOINT}?rss_url=`))).toBe(
+      true
+    );
+    expect(urls.some((u) => /count=20/.test(u))).toBe(false);
+    // Never hit publisher RSS origins as the request URL (rss_url= query is fine)
+    expect(
+      urls.some(
+        (u) =>
+          !u.includes("rss2json") &&
+          /cointelegraph\.com|decrypt\.co|coindesk\.com|thedefiant\.io/.test(u)
+      )
+    ).toBe(false);
   });
 
   it("returns NEWS_TRANSPORT when all sources fail", async () => {
-    const fetchImpl = async () => {
-      throw new TypeError("Failed to fetch");
-    };
-    // also make rss2json fail
     const fetchImpl2 = async (url: string) => {
       if (String(url).includes("rss2json")) {
         return {
@@ -273,18 +313,62 @@ describe("fetchNewsHeadlines", () => {
 
   it("reuses rate cache within 30s", async () => {
     let calls = 0;
-    const fetchImpl = async () => {
+    const fetchImpl = async (url: string) => {
       calls++;
+      if (!String(url).includes("rss2json")) {
+        throw new Error("no direct");
+      }
       return {
         ok: true,
-        text: async () => fixtureXml,
-        json: async () => ({})
+        text: async () => "",
+        json: async () => ({
+          status: "ok",
+          items: [
+            {
+              title: "Cached",
+              link: "https://decrypt.co/cached",
+              pubDate: "Sun, 13 Sep 2026 11:00:00 +0000"
+            }
+          ]
+        })
       } as Response;
     };
     await fetchNewsHeadlines(fetchImpl as any, { force: true });
     const n = calls;
     await fetchNewsHeadlines(fetchImpl as any);
     expect(calls).toBe(n); // no extra fetches
+  });
+});
+
+describe("sanitizeNewsImageUrl / isAllowedNewsThumbHost (#126)", () => {
+  it("allows publisher/CDN https hosts", () => {
+    expect(isAllowedNewsThumbHost("s3-images.ctmedia.io")).toBe(true);
+    expect(isAllowedNewsThumbHost("cdn.decrypt.co")).toBe(true);
+    expect(isAllowedNewsThumbHost("img.decrypt.co")).toBe(true);
+    expect(isAllowedNewsThumbHost("www.coindesk.com")).toBe(true);
+    expect(isAllowedNewsThumbHost("cdn.sanity.io")).toBe(true);
+    expect(isAllowedNewsThumbHost("images.thedefiant.io")).toBe(true);
+    expect(isAllowedNewsThumbHost("evil.test")).toBe(false);
+    expect(isAllowedNewsThumbHost("sanity.io")).toBe(false);
+  });
+
+  it("rejects non-https / relative / unknown host", () => {
+    expect(sanitizeNewsImageUrl("https://cdn.decrypt.co/a.png")).toBe(
+      "https://cdn.decrypt.co/a.png"
+    );
+    expect(
+      sanitizeNewsImageUrl(
+        "https://cdn.sanity.io/x.jpg?fm=jpg&amp;w=1920"
+      )
+    ).toBe("https://cdn.sanity.io/x.jpg?fm=jpg&w=1920");
+    expect(sanitizeNewsImageUrl("http://cdn.decrypt.co/a.png")).toBeNull();
+    expect(sanitizeNewsImageUrl("javascript:alert(1)")).toBeNull();
+    expect(sanitizeNewsImageUrl("data:image/png;base64,xx")).toBeNull();
+    expect(sanitizeNewsImageUrl("/relative/path.png")).toBeNull();
+    expect(sanitizeNewsImageUrl("//cdn.decrypt.co/a.png")).toBeNull();
+    expect(sanitizeNewsImageUrl("https://evil.test/a.png")).toBeNull();
+    expect(sanitizeNewsImageUrl("")).toBeNull();
+    expect(sanitizeNewsImageUrl(null)).toBeNull();
   });
 });
 
