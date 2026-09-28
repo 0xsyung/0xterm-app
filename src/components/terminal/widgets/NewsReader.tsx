@@ -180,7 +180,6 @@ export default function NewsReader({
     const active = focused && idx === activeIdx;
     const cat = categoryOf(item.sourceId);
     const isLead = variant === "lead";
-    const showExcerpt = variant === "lead" || variant === "grid";
     return (
       <button
         key={item.id}
@@ -219,13 +218,6 @@ export default function NewsReader({
         >
           {item.title}
         </div>
-        {showExcerpt && (
-          <div
-            className={`${theme.muted} text-xs normal-case leading-snug line-clamp-2`}
-          >
-            {item.title}
-          </div>
-        )}
         <MetaLine item={item} theme={theme} />
       </button>
     );
