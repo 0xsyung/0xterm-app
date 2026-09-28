@@ -71,6 +71,31 @@ describe("WorkspaceStrip", () => {
     );
   });
 
+  it("NEWS opens panel path (not bare onCommand)", () => {
+    const onCommand = vi.fn();
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceStrip
+        theme={theme}
+        mode="invest"
+        onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /NEWS/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("news");
+    expect(onCommand).not.toHaveBeenCalled();
+  });
+
+  it("NEWS hint is panel-oriented", () => {
+    render(
+      <WorkspaceStrip theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+    );
+    expect(screen.getByRole("button", { name: /NEWS/i }).textContent).toMatch(
+      /open news panel/i
+    );
+  });
+
   it("renders forensic tiles with kyt", () => {
     const onCommand = vi.fn();
     render(<WorkspaceStrip theme={theme} mode="forensic" onCommand={onCommand} />);
