@@ -375,6 +375,9 @@ import SwapPanel, {
   type SwapRunArgs,
   type SwapRunResult
 } from "./widgets/SwapPanel";
+import NewsPanel, {
+  type NewsPanelPinData
+} from "./widgets/NewsPanel";
 import {
   applyPostCountPoll,
   applyThreadPoll,
@@ -8157,6 +8160,22 @@ export default function TerminalShell({
                         return { ok: false, error: entry.text };
                       }
                       return { ok: false, error: "Swap failed." };
+                    }}
+                  />
+                </div>
+              ) : openPanel === "news" ? (
+                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
+                  <NewsPanel
+                    theme={theme}
+                    onClose={() => setOpenPanel(null)}
+                    onPin={(data: NewsPanelPinData) => {
+                      const log: LogEntry = {
+                        id: generateId(),
+                        type: "news",
+                        title: data.tag ? `NEWS ${data.tag.toUpperCase()}` : "NEWS",
+                        payload: data
+                      };
+                      onPin(log);
                     }}
                   />
                 </div>

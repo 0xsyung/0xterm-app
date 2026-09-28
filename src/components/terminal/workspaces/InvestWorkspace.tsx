@@ -28,7 +28,7 @@ const ACTIONS: WorkspaceAction[] = [
   { cmd: "snapshot", label: "SNAPSHOT", hint: "record baseline" },
   { cmd: "pnl", label: "PNL", hint: "vs last snapshot" },
   { cmd: "ticker", label: "TICKER", hint: "watchlist board" },
-  { cmd: "news", label: "NEWS", hint: "headlines" },
+  { cmd: "news", label: "NEWS", hint: "open news panel", panel: "news" },
   { cmd: "createpool", label: "CREATE POOL", hint: "createpool <tA> <tB>" },
   { cmd: "getpool", label: "GET POOL", hint: "getpool <tA> <tB>" },
   { cmd: "addliq", label: "ADD LIQUIDITY", hint: "addliq <tA> <tB> <amtA> <amtB>" },
