@@ -46,15 +46,13 @@ describe("traceTx", () => {
       structLogs: [{ pc: 0, op: "STOP", gas: "1", depth: 1, stack: [], memory: "" }],
     }));
     await traceTx({ client: { request } as never, txHash: HASH } as never);
+    const expectedOpts = { ...TRACE_STRUCT_LOG_OPTS };
+    expect(expectedOpts).not.toHaveProperty("tracer");
     expect(request).toHaveBeenCalledTimes(1);
-    const arg = request.mock.calls[0]![0] as {
-      method: string;
-      params: [string, Record<string, unknown>];
-    };
-    expect(arg.method).toBe("debug_traceTransaction");
-    expect(arg.params[0]).toBe(HASH);
-    expect(arg.params[1]).toEqual({ ...TRACE_STRUCT_LOG_OPTS });
-    expect(arg.params[1]).not.toHaveProperty("tracer");
+    expect(request).toHaveBeenCalledWith({
+      method: "debug_traceTransaction",
+      params: [HASH, expectedOpts],
+    });
   });
 
   it("maps empty / missing structLogs after success to sim.trace_no_trace", async () => {
