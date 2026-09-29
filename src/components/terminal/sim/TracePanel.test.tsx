@@ -37,6 +37,11 @@ describe("TracePanel", () => {
     expect(screen.getByTestId("trace-run")).toBeTruthy();
   });
 
+  it("shows debug-capable RPC one-liner (#136)", () => {
+    render(<TracePanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
+    expect(screen.getByText(/debug_traceTransaction — needs a debug-capable RPC/i)).toBeTruthy();
+  });
+
   it("RUN is disabled until TXHASH is a valid hash", () => {
     render(<TracePanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
     expect(screen.getByTestId("trace-run").hasAttribute("disabled")).toBe(true);
