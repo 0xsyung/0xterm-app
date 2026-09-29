@@ -13,8 +13,8 @@ import type { WorkspaceAction } from "./WorkspaceTile";
 const ACTIONS: WorkspaceAction[] = [
   { cmd: "kyt", label: "KYT", hint: "kyt <address>" },
   { cmd: "kya", label: "KYA", hint: "kya <address>" },
-  { cmd: "sim", label: "SIM", hint: "sim <tx>" },
-  { cmd: "trace", label: "TRACE", hint: "trace <tx>" },
+  { cmd: "sim", label: "SIM", hint: "sim <to> <data>", panel: "sim" },
+  { cmd: "trace", label: "TRACE", hint: "trace <txhash>", panel: "trace" },
   { cmd: "is", label: "CHECK TOKEN", hint: "is <erc20|erc721> <address>" },
   { cmd: "info", label: "TOKEN INFO", hint: "info <address>" },
   { cmd: "price", label: "PRICE", hint: "read helper" },

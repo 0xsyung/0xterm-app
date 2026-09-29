@@ -318,6 +318,14 @@ import { decodeDigLogs, truncateAddress } from "./dig/encode";
 import { formatGas } from "./dig/gas";
 import SimWidget from "./sim/SimWidget";
 import TraceWidget from "./sim/TraceWidget";
+import SimPanel, {
+  type SimRunArgs,
+  type SimRunResult
+} from "./sim/SimPanel";
+import TracePanel, {
+  type TraceRunArgs,
+  type TraceRunResult
+} from "./sim/TracePanel";
 import { simulateTx } from "./sim/simulate";
 import { traceTx, isTxHash } from "./sim/trace";
 import { simErrorText } from "./sim/errors";
@@ -8303,6 +8311,50 @@ export default function TerminalShell({
                   <NewsPanel
                     theme={theme}
                     onClose={() => setOpenPanel(null)}
+                  />
+                </div>
+              ) : openPanel === "sim" ? (
+                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
+                  <SimPanel
+                    theme={theme}
+                    onClose={() => setOpenPanel(null)}
+                    onRun={async (args: SimRunArgs): Promise<SimRunResult> => {
+                      const line = `sim ${args.to} ${args.data}`;
+                      const result = await commands.sim(line.split(/\s+/), line);
+                      if (!result) {
+                        return { ok: false, error: "No result from sim." };
+                      }
+                      const entry = Array.isArray(result) ? result[0] : result;
+                      if (entry?.type === "component" && entry.component) {
+                        return { ok: true, component: entry.component };
+                      }
+                      if (entry?.type === "text" && typeof entry.text === "string") {
+                        return { ok: false, error: entry.text };
+                      }
+                      return { ok: false, error: "Sim failed." };
+                    }}
+                  />
+                </div>
+              ) : openPanel === "trace" ? (
+                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
+                  <TracePanel
+                    theme={theme}
+                    onClose={() => setOpenPanel(null)}
+                    onRun={async (args: TraceRunArgs): Promise<TraceRunResult> => {
+                      const line = `trace ${args.txHash}`;
+                      const result = await commands.trace(line.split(/\s+/), line);
+                      if (!result) {
+                        return { ok: false, error: "No result from trace." };
+                      }
+                      const entry = Array.isArray(result) ? result[0] : result;
+                      if (entry?.type === "component" && entry.component) {
+                        return { ok: true, component: entry.component };
+                      }
+                      if (entry?.type === "text" && typeof entry.text === "string") {
+                        return { ok: false, error: entry.text };
+                      }
+                      return { ok: false, error: "Trace failed." };
+                    }}
                   />
                 </div>
               ) : showWorkspace ? (
