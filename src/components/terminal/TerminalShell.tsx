@@ -8108,6 +8108,16 @@ export default function TerminalShell({
             });
           }
         }}
+        walletAddress={address ?? null}
+        isWalletConnected={isConnected}
+        onWalletOpen={() => {
+          // Same AppKit path as CLI connect (#134) — multi-wallet modal, not MetaMask-only.
+          if (isConnected) {
+            void open({ view: "Account" });
+          } else {
+            void open({ view: "Connect" });
+          }
+        }}
       />
 
       {/* Single global F1–F12 listener (#28) */}
