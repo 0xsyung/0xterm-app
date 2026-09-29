@@ -20,6 +20,8 @@ import BillboardWidget from "./BillboardWidget";
 import ChatWidget from "./ChatWidget";
 import PortfolioWidget from "./PortfolioWidget";
 import type { PortfolioHolding } from "./PortfolioWidget";
+import SimWidget from "../sim/SimWidget";
+import TraceWidget from "../sim/TraceWidget";
 
 const theme = THEMES.matrix;
 const ALL_THEMES = Object.values(THEMES);
@@ -75,6 +77,31 @@ describe("widget shells are w-full (issue #5 width)", () => {
         render(
           <PortfolioWidget holdings={[holding()]} theme={theme} />
         ).container.firstElementChild as HTMLElement
+    ],
+    [
+      "SimWidget",
+      () =>
+        render(
+          <SimWidget
+            theme={theme}
+            to={("0x" + "1".repeat(40)) as any}
+            data={"0x1234"}
+            chain={{ name: "Sepolia", id: 11155111 } as any}
+            sim={{ ok: true, gas: 12345n, gasHex: "0x3039" }}
+          />
+        ).container.firstElementChild as HTMLElement
+    ],
+    [
+      "TraceWidget",
+      () =>
+        render(
+          <TraceWidget
+            theme={theme}
+            txHash={("0x" + "1".repeat(64)) as any}
+            chain={{ name: "Sepolia", id: 11155111 } as any}
+            steps={[{ pc: 0, op: "STOP", gas: "100", depth: 1, stack: [], memory: "" }]}
+          />
+        ).container.firstElementChild as HTMLElement
     ]
   ];
 
@@ -129,6 +156,30 @@ describe("widgets mount under all 8 themes (issue #5 theme loop)", () => {
         />
       );
       render(<BalanceWidget balance="0" symbol="ETH" theme={t} />);
+    });
+  }
+});
+
+describe("sim widgets mount under all 8 themes (issue #18)", () => {
+  for (const t of ALL_THEMES) {
+    it(`SimWidget + TraceWidget render under ${t.name}`, () => {
+      render(
+        <SimWidget
+          theme={t}
+          to={("0x" + "1".repeat(40)) as any}
+          data={"0x1234"}
+          chain={{ name: "Sepolia", id: 11155111 } as any}
+          sim={{ ok: true, gas: 12345n, gasHex: "0x3039" }}
+        />
+      );
+      render(
+        <TraceWidget
+          theme={t}
+          txHash={("0x" + "1".repeat(64)) as any}
+          chain={{ name: "Sepolia", id: 11155111 } as any}
+          steps={[{ pc: 0, op: "STOP", gas: "100", depth: 1, stack: [], memory: "" }]}
+        />
+      );
     });
   }
 });

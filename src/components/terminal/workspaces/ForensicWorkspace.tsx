@@ -8,13 +8,13 @@
 
 import type { ThemeConfig } from "../types";
 import { WorkspaceTile } from "./WorkspaceTile";
-import type { WorkspaceAction } from "./WorkspaceTile";
+import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
 
 const ACTIONS: WorkspaceAction[] = [
   { cmd: "kyt", label: "KYT", hint: "kyt <address>" },
   { cmd: "kya", label: "KYA", hint: "kya <address>" },
-  { cmd: "sim", label: "SIM", hint: "sim <tx>" },
-  { cmd: "trace", label: "TRACE", hint: "trace <tx>" },
+  { cmd: "sim", label: "SIM", hint: "sim <to> <data>", panel: "sim" },
+  { cmd: "trace", label: "TRACE", hint: "trace <txhash>", panel: "trace" },
   { cmd: "is", label: "CHECK TOKEN", hint: "is <erc20|erc721> <address>" },
   { cmd: "info", label: "TOKEN INFO", hint: "info <address>" },
   { cmd: "price", label: "PRICE", hint: "read helper" },
@@ -24,15 +24,23 @@ const ACTIONS: WorkspaceAction[] = [
 
 export function ForensicWorkspace({
   theme,
-  onCommand
+  onCommand,
+  onOpenPanel
 }: {
   theme: ThemeConfig;
   onCommand: (cmd: string) => void;
+  onOpenPanel?: (panel: WorkspacePanelId) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {ACTIONS.map((a) => (
-        <WorkspaceTile key={a.cmd} theme={theme} action={a} onCommand={onCommand} />
+        <WorkspaceTile
+          key={a.cmd}
+          theme={theme}
+          action={a}
+          onCommand={onCommand}
+          onOpenPanel={onOpenPanel}
+        />
       ))}
     </div>
   );

@@ -39,7 +39,7 @@ export const MODE_BLURB: Record<TerminalMode, string> = {
 export const MODE_BOOT_HINT: Record<TerminalMode, string> = {
   invest: "type help · mode · connect · price",
   dev: "type help · mode · dig · is",
-  forensic: "type help · mode · kyt · kya",
+  forensic: "type help · mode · sim · trace · kyt · kya",
   console: "type help · any command"
 };
 
@@ -794,6 +794,16 @@ export const HELP_ROWS: HelpRow[] = [
     command: "info <address>",
     description: "Print metadata of an ERC20 or ERC721/NFT token contract",
     modes: ["shared"]
+  },
+  {
+    command: "sim <to> <data>",
+    description: "Dry-run a transaction via eth_call (read-only, shows revert + gas)",
+    modes: ["forensic"]
+  },
+  {
+    command: "trace <txhash>",
+    description: "Render an opcode trace via debug_traceTransaction",
+    modes: ["forensic"]
   }
 ];
 

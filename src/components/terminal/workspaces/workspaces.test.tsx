@@ -103,6 +103,38 @@ describe("WorkspaceStrip", () => {
     expect(onCommand).toHaveBeenCalledWith("kyt");
   });
 
+  it("SIM opens panel path (not bare onCommand)", () => {
+    const onCommand = vi.fn();
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceStrip
+        theme={theme}
+        mode="forensic"
+        onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /SIM/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("sim");
+    expect(onCommand).not.toHaveBeenCalled();
+  });
+
+  it("TRACE opens panel path (not bare onCommand)", () => {
+    const onCommand = vi.fn();
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceStrip
+        theme={theme}
+        mode="forensic"
+        onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /TRACE/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("trace");
+    expect(onCommand).not.toHaveBeenCalled();
+  });
+
   it("renders dev tiles with dig new", () => {
     const onCommand = vi.fn();
     render(<WorkspaceStrip theme={theme} mode="dev" onCommand={onCommand} />);
