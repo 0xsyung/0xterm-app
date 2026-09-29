@@ -375,9 +375,7 @@ import SwapPanel, {
   type SwapRunArgs,
   type SwapRunResult
 } from "./widgets/SwapPanel";
-import NewsPanel, {
-  type NewsPanelPinData
-} from "./widgets/NewsPanel";
+import NewsPanel from "./widgets/NewsPanel";
 import {
   applyPostCountPoll,
   applyThreadPoll,
@@ -8168,15 +8166,6 @@ export default function TerminalShell({
                   <NewsPanel
                     theme={theme}
                     onClose={() => setOpenPanel(null)}
-                    onPin={(data: NewsPanelPinData) => {
-                      const log: LogEntry = {
-                        id: generateId(),
-                        type: "news",
-                        title: data.tag ? `NEWS ${data.tag.toUpperCase()}` : "NEWS",
-                        payload: data
-                      };
-                      onPin(log);
-                    }}
                   />
                 </div>
               ) : showWorkspace ? (
