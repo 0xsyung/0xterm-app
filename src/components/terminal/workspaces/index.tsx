@@ -30,7 +30,13 @@ export function WorkspaceStrip({
 }) {
   if (mode === "console") return null;
   if (mode === "forensic") {
-    return <ForensicWorkspace theme={theme} onCommand={onCommand} />;
+    return (
+      <ForensicWorkspace
+        theme={theme}
+        onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
+      />
+    );
   }
   if (mode === "dev") {
     return <DevWorkspace theme={theme} onCommand={onCommand} />;
