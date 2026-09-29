@@ -86,7 +86,7 @@ describe("TerminalPrompt", () => {
   it("shows forensic MODE chip and mode-aware boot copy", () => {
     render(<TerminalPrompt {...makeProps({ mode: "forensic" })} />);
     expect(screen.getByRole("button", { name: /Mode FORENSIC/i })).toBeTruthy();
-    expect(screen.getByText(/type help · mode · kyt · kya/)).toBeTruthy();
+    expect(screen.getByText(/type help · mode · sim · trace · kyt · kya/)).toBeTruthy();
   });
 
   it("shows console MODE chip and raw-terminal boot copy", () => {

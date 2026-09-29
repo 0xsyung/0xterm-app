@@ -314,8 +314,13 @@ import {
   setLastDigPanel,
   setLastDigReceipt
 } from "./dig/session";
-import { decodeDigLogs } from "./dig/encode";
+import { decodeDigLogs, truncateAddress } from "./dig/encode";
 import { formatGas } from "./dig/gas";
+import SimWidget from "./sim/SimWidget";
+import TraceWidget from "./sim/TraceWidget";
+import { simulateTx } from "./sim/simulate";
+import { traceTx, isTxHash } from "./sim/trace";
+import { simErrorText } from "./sim/errors";
 import PinnedPanel from "./PinnedPanel";
 import SocialPanel from "./SocialPanel";
 import FloatingChat from "./widgets/FloatingChat";
@@ -5626,6 +5631,134 @@ export default function TerminalShell({
         title: `CALDATA ${encoded.fnName}`
       };
     },
+    sim: async (args) => {
+      // sim <to> <data> — eth_call dry-run (read-only, never sends) (#18)
+      if (!args[1] || !args[2])
+        return {
+          id: generateId(),
+          type: "text",
+          text: simErrorText("usage")
+        };
+      const chainObj = activeChainId
+        ? SUPPORTED_CHAINS.find((c) => c.id === activeChainId)
+        : undefined;
+      if (!chainObj)
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: simErrorText("no_chain")
+        };
+      let to: Address;
+      try {
+        to = getAddress(args[1]);
+      } catch {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: simErrorText("bad_to")
+        };
+      }
+      const data = `0x${args[2].replace(/^0x/, "")}` as `0x${string}`;
+      if (!/^0x[0-9a-fA-F]*$/.test(data))
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: simErrorText("bad_data")
+        };
+      let client: PublicClient;
+      try {
+        client = getClient(chainObj);
+      } catch (e: any) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: formatViemError(e)
+        };
+      }
+      const account = isConnected && address ? (address as Address) : undefined;
+      const sim = await simulateTx({ client, to, data, account });
+      const widget = (
+        <SimWidget
+          theme={theme}
+          to={to}
+          data={data}
+          chain={chainObj}
+          account={account}
+          accountIsZero={!account}
+          sim={sim}
+        />
+      );
+      return {
+        id: generateId(),
+        type: "component",
+        component: widget,
+        title: `SIM ${truncateAddress(to)}`
+      };
+    },
+    trace: async (args) => {
+      // trace <txhash> — structLogger opcode trace (read-only) (#18)
+      if (!args[1])
+        return {
+          id: generateId(),
+          type: "text",
+          text: simErrorText("trace_usage")
+        };
+      if (!isTxHash(args[1]))
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: simErrorText("trace_bad_hash")
+        };
+      const chainObj = activeChainId
+        ? SUPPORTED_CHAINS.find((c) => c.id === activeChainId)
+        : undefined;
+      if (!chainObj)
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: simErrorText("no_chain")
+        };
+      let client: PublicClient;
+      try {
+        client = getClient(chainObj);
+      } catch (e: any) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: formatViemError(e)
+        };
+      }
+      const traced = await traceTx({ client, txHash: args[1] as `0x${string}` });
+      if (!traced.ok)
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: simErrorText("trace_no_trace")
+        };
+      const widget = (
+        <TraceWidget
+          theme={theme}
+          txHash={args[1] as `0x${string}`}
+          chain={chainObj}
+          steps={traced.steps}
+          truncated={traced.truncated}
+        />
+      );
+      return {
+        id: generateId(),
+        type: "component",
+        component: widget,
+        title: `TRACE ${truncateAddress(args[1])}`
+      };
+    },
     balance: async (args) => await buildBalance(args),
     portfolio: async (args) => {
       if (!isConnected || !address)
@@ -7761,6 +7894,10 @@ export default function TerminalShell({
             if (activeChainId && rpcProviders[activeChainId]) {
               candidates.push(...Object.keys(rpcProviders[activeChainId]));
             }
+          }
+        } else if (command === "sim") {
+          if (currentArgIdx === 1) {
+            candidates = ["swap", "tenderly", "set", "help"];
           }
 
           // 7. Liquidity & Pool Fee Tiers (Arg 3)
