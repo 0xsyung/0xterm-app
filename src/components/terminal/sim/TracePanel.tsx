@@ -105,7 +105,7 @@ export default function TracePanel({
       </div>
 
       <div className={`text-[9px] ${theme.muted}`}>
-        debug_traceTransaction — read-only opcode trace.
+        debug_traceTransaction — needs a debug-capable RPC (not the public default).
       </div>
 
       <label className="flex flex-col gap-1">

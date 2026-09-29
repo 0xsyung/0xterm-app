@@ -2807,7 +2807,7 @@ export default function TerminalShell({
               method: "debug_traceTransaction" as never,
               params: [
                 txHash,
-                { tracer: "structLogger", disableStorage: false, disableMemory: false }
+                { disableMemory: true, disableStorage: true }
               ] as never
             });
             const structLogs =
@@ -5709,7 +5709,7 @@ export default function TerminalShell({
       };
     },
     trace: async (args) => {
-      // trace <txhash> — structLogger opcode trace (read-only) (#18)
+      // trace <txhash> — opcode trace via default struct-logger (read-only) (#18 / #136)
       if (!args[1])
         return {
           id: generateId(),
@@ -5750,7 +5750,9 @@ export default function TerminalShell({
           id: generateId(),
           type: "text",
           warn: true,
-          text: simErrorText("trace_no_trace")
+          text: simErrorText(
+            traced.code === "sim.trace_no_engine" ? "trace_no_engine" : "trace_no_trace"
+          )
         };
       const widget = (
         <TraceWidget

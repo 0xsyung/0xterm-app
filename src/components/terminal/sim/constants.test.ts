@@ -1,6 +1,6 @@
 /**
  * @file constants.test.ts
- * @description sim constants — inclusion footer + autocomplete honesty (#18 / #132)
+ * @description sim constants — inclusion footer + autocomplete + trace copy (#18 / #132 / #136)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -22,5 +22,26 @@ describe("SIM_AUTOCOMPLETE_ARG1", () => {
     expect(lower).not.toContain("tenderly");
     expect(lower).not.toContain("set");
     expect(lower).toContain("help");
+  });
+});
+
+
+describe("SIM_ERROR.trace_* (#136)", () => {
+  it("trace_no_engine guides to alchemy/quicknode", () => {
+    expect(SIM_ERROR.trace_no_engine).toContain("sim.trace_no_engine");
+    expect(SIM_ERROR.trace_no_engine).toMatch(/rpc alchemy/i);
+    expect(SIM_ERROR.trace_no_engine).toMatch(/rpc quicknode/i);
+  });
+
+  it("trace_no_trace is empty-structLogs only", () => {
+    expect(SIM_ERROR.trace_no_trace).toBe(
+      "[!] sim.trace_no_trace — debug_traceTransaction returned no usable structLogs."
+    );
+  });
+
+  it("trace_usage mentions debug-capable RPC", () => {
+    expect(SIM_ERROR.trace_usage).toMatch(/debug-capable RPC/i);
+    expect(SIM_ERROR.trace_usage).toMatch(/Alchemy/);
+    expect(SIM_ERROR.trace_usage).not.toMatch(/structLogger/);
   });
 });
