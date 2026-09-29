@@ -11,6 +11,7 @@ import type { Address, Chain } from "viem";
 import type { ThemeConfig } from "../types";
 import { truncateAddress } from "../dig/encode";
 import { SIM_ZERO_ACCOUNT, type SimOutcome } from "./simulate";
+import { SIM_ERROR } from "./constants";
 
 export default function SimWidget({
   to,
@@ -102,6 +103,13 @@ export default function SimWidget({
           </button>
         </div>
       )}
+
+      <div
+        className={`pt-1 ${theme.muted} text-[9px] normal-case`}
+        data-testid="sim-not-inclusion"
+      >
+        {SIM_ERROR.not_inclusion}
+      </div>
     </div>
   );
 }

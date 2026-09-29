@@ -317,6 +317,7 @@ import {
 import { decodeDigLogs, truncateAddress } from "./dig/encode";
 import { formatGas } from "./dig/gas";
 import SimWidget from "./sim/SimWidget";
+import { SIM_AUTOCOMPLETE_ARG1 } from "./sim/constants";
 import TraceWidget from "./sim/TraceWidget";
 import SimPanel, {
   type SimRunArgs,
@@ -7905,7 +7906,8 @@ export default function TerminalShell({
           }
         } else if (command === "sim") {
           if (currentArgIdx === 1) {
-            candidates = ["swap", "tenderly", "set", "help"];
+            // v1 wired grammar is `sim <to> <data>` only — drop unwired swap/tenderly/set (#18 / PR #132)
+            candidates = [...SIM_AUTOCOMPLETE_ARG1];
           }
 
           // 7. Liquidity & Pool Fee Tiers (Arg 3)

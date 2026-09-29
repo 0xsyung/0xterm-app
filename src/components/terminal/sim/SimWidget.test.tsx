@@ -122,4 +122,21 @@ describe("SimWidget", () => {
     expect(screen.queryByTestId("sim-ok")).toBeNull();
     expect(screen.queryByTestId("sim-error")).toBeNull();
   });
+
+  it("shows the sim.not_inclusion footer on every card", () => {
+    render(
+      <SimWidget
+        theme={theme}
+        to={TO}
+        data={DATA}
+        chain={{ name: "Sepolia", id: 11155111 } as any}
+        sim={{ ok: true, gas: 1n, gasHex: "0x1" }}
+      />
+    );
+    const footer = screen.getByTestId("sim-not-inclusion");
+    expect(footer.textContent).toMatch(/Simulation is not inclusion/i);
+    expect(footer.textContent).toMatch(/Confirm in wallet before sending/i);
+    expect(footer.className).toContain(theme.muted);
+  });
+
 });

@@ -24,6 +24,12 @@ export const SIM_ERROR = {
     "[!] sim.trace_bad_hash — <txhash> must be 0x + 64 hex chars.",
   trace_no_trace:
     "[!] sim.trace_no_trace — RPC returned no debug_traceTransaction data.",
+  /** Footer copy (not an error) — #18 / catalog. */
+  not_inclusion:
+    "Simulation is not inclusion. Confirm in wallet before sending.",
 } as const;
 
 export type SimErrorCode = keyof typeof SIM_ERROR;
+
+/** Autocomplete for `sim` arg1 — live/help only; no unwired verbs (#18 / #132). */
+export const SIM_AUTOCOMPLETE_ARG1 = ["help"] as const;
