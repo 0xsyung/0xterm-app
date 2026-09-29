@@ -1,6 +1,6 @@
 /**
  * @file TerminalHeader.tsx
- * @description Terminal header — logo + NETWORK + single nav strip + CONSOLE-only F-row (#117/#121)
+ * @description Terminal header — brand-clock + nav + wallet cluster (NETWORK + CONNECT) (#117/#121/#134)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -21,7 +21,16 @@ function formatClock(d: Date) {
   return formatLocalHms(d);
 }
 
+/** Truncate 0x address to `0x` + 4 + `…` + 4 (#134). */
+export function truncateAddress(addr: string): string {
+  if (addr.length < 10) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
 const FILL_FG = "#000000";
+
+const TOUCH =
+  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
 
 /**
  * Single strip: INVEST · DEV · FORENSIC · CONSOLE · SOCIAL · SETTINGS.
@@ -66,7 +75,7 @@ function NavStrip({
               onModeChange?.(m);
               onPrimaryTabChange?.("terminal");
             }}
-            className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] text-[10px] shrink-0 ${radius} ${
+            className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
               active
                 ? "border border-transparent font-bold"
                 : `border ${theme.border} ${theme.muted} bg-transparent`
@@ -105,7 +114,7 @@ function NavStrip({
             role="tab"
             aria-selected={active}
             onClick={() => onPrimaryTabChange?.(t.id)}
-            className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] text-[10px] shrink-0 ${radius} ${
+            className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
               active
                 ? "border border-transparent font-bold"
                 : `border ${theme.border} ${theme.muted} bg-transparent`
@@ -136,7 +145,7 @@ function NavStrip({
   );
 }
 
-/** Header NETWORK control — not a mode chip (#121). */
+/** Header NETWORK control — chrome from #121; home is wallet cluster (#134). */
 function NetworkControl({
   theme,
   activeChainId,
@@ -150,8 +159,6 @@ function NetworkControl({
   const rootRef = useRef<HTMLDivElement>(null);
   const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
   const label = chain ? chainShortName(chain) : "NETWORK";
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
 
   useEffect(() => {
     if (!open) return;
@@ -180,7 +187,7 @@ function NetworkControl({
         aria-expanded={open}
         aria-label="Network"
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${touch} ${
+        className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${TOUCH} ${
           chain
             ? `${theme.border} ${theme.primary} bg-transparent`
             : `${theme.border} ${theme.muted} bg-transparent`
@@ -198,7 +205,7 @@ function NetworkControl({
         <div
           role="listbox"
           aria-label="Networks"
-          className={`absolute left-0 top-full mt-1 z-50 min-w-[10rem] max-h-[60vh] overflow-y-auto border ${theme.border} ${theme.cardBg} shadow-lg`}
+          className={`absolute right-0 top-full mt-1 z-50 min-w-[10rem] max-h-[60vh] overflow-y-auto border ${theme.border} ${theme.cardBg} shadow-lg`}
           data-testid="header-network-menu"
         >
           {SUPPORTED_CHAINS.map((c) => {
@@ -214,7 +221,7 @@ function NetworkControl({
                   onChainSwitch?.(c.id);
                   setOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-left uppercase tracking-widest text-[10px] cursor-pointer border-0 ${touch} ${
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-left uppercase tracking-widest text-[10px] cursor-pointer border-0 ${TOUCH} ${
                   active ? "font-bold" : `${theme.muted} bg-transparent`
                 }`}
                 style={
@@ -234,6 +241,42 @@ function NetworkControl({
   );
 }
 
+/** Header CONNECT / account chip — AppKit multi-wallet via parent open() (#134). */
+function ConnectControl({
+  theme,
+  address,
+  isConnected,
+  onWalletOpen
+}: {
+  theme: ThemeConfig;
+  address?: string | null;
+  isConnected?: boolean;
+  onWalletOpen?: () => void;
+}) {
+  const connected = !!(isConnected && address);
+  const label = connected ? truncateAddress(address!) : "CONNECT";
+  const testId = connected ? "header-account" : "header-connect";
+  const aria = connected
+    ? `Account ${truncateAddress(address!)}`
+    : "Connect wallet";
+
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      aria-label={aria}
+      onClick={() => onWalletOpen?.()}
+      className={`inline-flex items-center justify-center gap-1 px-2.5 tracking-widest text-[10px] cursor-pointer border font-mono tabular-nums ${TOUCH} ${theme.border} ${theme.primary} bg-transparent ${
+        connected
+          ? "normal-case max-w-[11ch] truncate"
+          : "uppercase"
+      }`}
+    >
+      <span className={connected ? "truncate" : undefined}>{label}</span>
+    </button>
+  );
+}
+
 export default function TerminalHeader({
   theme,
   onCommand,
@@ -244,7 +287,10 @@ export default function TerminalHeader({
   socialBadge = 0,
   bindings,
   activeChainId = null,
-  onChainSwitch
+  onChainSwitch,
+  walletAddress = null,
+  isWalletConnected = false,
+  onWalletOpen
 }: {
   theme: ThemeConfig;
   onCommand?: (cmd: string) => void;
@@ -259,6 +305,12 @@ export default function TerminalHeader({
   activeChainId?: number | null;
   /** Same path as handleChainSwitch / network cmd (#121). */
   onChainSwitch?: (chainId: number) => void;
+  /** Connected wallet address for account chip (#134). */
+  walletAddress?: string | null;
+  /** Whether a wallet is connected (#134). */
+  isWalletConnected?: boolean;
+  /** Opens AppKit Connect / Account view — same path as CLI connect (#134). */
+  onWalletOpen?: () => void;
 }) {
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
@@ -297,47 +349,61 @@ export default function TerminalHeader({
       className={`absolute top-0 left-0 right-0 z-30 flex items-center gap-x-4 gap-y-1 flex-wrap pl-[calc(0.75rem_+_env(safe-area-inset-left))] pr-[calc(0.75rem_+_env(safe-area-inset-right))] max-md:items-start max-md:py-1 ${theme.primary} ${HEADER_H}`}
       style={{ borderBottom: `2px solid ${theme.phosphor}` }}
     >
-      <div className="flex items-center gap-3 flex-wrap min-w-0 max-md:w-full uppercase text-[10px] tracking-widest">
-        {/* Row 1 cluster: logo + wordmark + clock + NETWORK (#121). */}
+      {/* Left cluster: logo + wordmark + clock only (#134). */}
+      <div
+        className="flex items-center gap-3 shrink-0 min-w-0 uppercase text-[10px] tracking-widest"
+        data-testid="brand-clock"
+      >
         <div
-          className="flex items-center gap-3 shrink-0 min-w-0"
-          data-testid="brand-clock-network"
+          className="flex items-center gap-2 shrink-0"
+          data-testid="brand-cluster"
         >
-          <div
-            className="flex items-center gap-2 shrink-0"
-            data-testid="brand-cluster"
-          >
-            <img
-              src="/logo.svg"
-              alt="0xTERM"
-              width={32}
-              height={32}
-              className="w-8 h-8 max-md:w-7 max-md:h-7 pointer-coarse:w-7 pointer-coarse:h-7 shrink-0"
-              draggable={false}
-              data-testid="header-logo"
-            />
-            <span className={`font-bold max-md:hidden ${theme.primary}`}>
-              0xTERM
-            </span>
-          </div>
-          <span className="tabular-nums">{clock}</span>
-          <NetworkControl
-            theme={theme}
-            activeChainId={activeChainId}
-            onChainSwitch={onChainSwitch}
+          <img
+            src="/logo.svg"
+            alt="0xTERM"
+            width={32}
+            height={32}
+            className="w-8 h-8 max-md:w-7 max-md:h-7 pointer-coarse:w-7 pointer-coarse:h-7 shrink-0"
+            draggable={false}
+            data-testid="header-logo"
           />
+          <span className={`font-bold max-md:hidden ${theme.primary}`}>
+            0xTERM
+          </span>
         </div>
-        {(onModeChange || onPrimaryTabChange) && (
-          <NavStrip
-            theme={theme}
-            mode={mode}
-            onModeChange={onModeChange}
-            primaryTab={primaryTab}
-            onPrimaryTabChange={onPrimaryTabChange}
-            socialBadge={socialBadge}
-          />
-        )}
+        <span className="tabular-nums">{clock}</span>
       </div>
+
+      {/* Nav strip after brand-clock (#117/#121). */}
+      {(onModeChange || onPrimaryTabChange) && (
+        <NavStrip
+          theme={theme}
+          mode={mode}
+          onModeChange={onModeChange}
+          primaryTab={primaryTab}
+          onPrimaryTabChange={onPrimaryTabChange}
+          socialBadge={socialBadge}
+        />
+      )}
+
+      {/* Far-right wallet cluster: NETWORK then CONNECT (#134). */}
+      <div
+        className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end"
+        data-testid="wallet-cluster"
+      >
+        <NetworkControl
+          theme={theme}
+          activeChainId={activeChainId}
+          onChainSwitch={onChainSwitch}
+        />
+        <ConnectControl
+          theme={theme}
+          address={walletAddress}
+          isConnected={isWalletConnected}
+          onWalletOpen={onWalletOpen}
+        />
+      </div>
+
       {showFRow && (
         <div
           className="flex items-center gap-3 flex-wrap uppercase text-[10px] tracking-widest max-md:w-full max-md:justify-between"
