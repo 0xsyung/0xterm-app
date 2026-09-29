@@ -95,7 +95,8 @@ export default function NewsReader({
   onPin,
   pinned,
   autoFocus = false,
-  onFocusPrompt
+  onFocusPrompt,
+  embedded = false
 }: {
   data: NewsReaderData;
   theme: ThemeConfig;
@@ -103,6 +104,8 @@ export default function NewsReader({
   pinned?: boolean;
   autoFocus?: boolean;
   onFocusPrompt?: () => void;
+  /** Panel embed (#130): drop vertical margin island; denser MORE grid. */
+  embedded?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(false);
@@ -239,7 +242,11 @@ export default function NewsReader({
       tabIndex={0}
       data-retain-focus=""
       data-testid="news-reader"
-      className={`relative group my-3 p-2 md:p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow} text-xs space-y-3 outline-none ${theme.font}`}
+      className={`relative group ${embedded ? "my-0 flex-1 min-h-0" : "my-3"} p-2 md:p-3 ${
+        embedded
+          ? ""
+          : `border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow}`
+      } text-xs space-y-3 outline-none ${theme.font}`}
       onFocus={() => setFocused(true)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
@@ -356,7 +363,13 @@ export default function NewsReader({
               >
                 MORE
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div
+                className={
+                  embedded
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3"
+                    : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"
+                }
+              >
                 {grid.map((it, i) =>
                   renderCard(it, 1 + supportingCount + i, "grid")
                 )}

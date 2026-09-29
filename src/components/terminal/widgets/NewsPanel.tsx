@@ -20,16 +20,6 @@ import {
 } from "../news";
 import NewsReader from "./NewsReader";
 
-export type NewsPanelPinData = {
-  kind: "news";
-  tag: string;
-  widgetId: string;
-  items: NewsItem[];
-  fetchedAt: number;
-  usedRss2json: boolean;
-  missing: NewsSourceId[];
-};
-
 type NewsPanelData = {
   items: NewsItem[];
   fetchedAt: number;
@@ -39,12 +29,10 @@ type NewsPanelData = {
 
 export default function NewsPanel({
   theme,
-  onClose,
-  onPin
+  onClose
 }: {
   theme: ThemeConfig;
   onClose: () => void;
-  onPin?: (data: NewsPanelPinData) => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +104,7 @@ export default function NewsPanel({
 
   return (
     <div
-      className={`w-full max-w-[560px] flex flex-col gap-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
+      className={`w-full min-h-full flex flex-col gap-3 p-3 md:p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
       data-testid="news-panel"
       role="dialog"
       aria-label="News"
@@ -128,27 +116,6 @@ export default function NewsPanel({
           NEWS
         </span>
         <div className="flex items-center gap-2">
-          {onPin && data && page.length > 0 && (
-            <button
-              type="button"
-              onClick={() =>
-                onPin({
-                  kind: "news",
-                  tag,
-                  widgetId: newsPinKey(tag),
-                  items: page,
-                  fetchedAt: data.fetchedAt,
-                  usedRss2json: data.usedRss2json,
-                  missing: data.missing
-                })
-              }
-              title="Pin to right panel"
-              aria-label="Pin news panel"
-              className={`uppercase text-[9px] px-1 py-0.5 border ${theme.border} ${theme.cardBg} ${theme.primary} cursor-pointer ${touch}`}
-            >
-              ▣
-            </button>
-          )}
           <button
             type="button"
             onClick={() => void refresh()}
@@ -179,7 +146,12 @@ export default function NewsPanel({
           {error}
         </div>
       ) : (
-        <NewsReader data={readerData} theme={theme} onPin={undefined} />
+        <NewsReader
+          data={readerData}
+          theme={theme}
+          onPin={undefined}
+          embedded
+        />
       )}
     </div>
   );

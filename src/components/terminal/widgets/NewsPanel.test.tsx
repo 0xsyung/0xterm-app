@@ -65,23 +65,36 @@ describe("NewsPanel", () => {
     });
   });
 
-  it("pins a news manifest when ▣ clicked", async () => {
+  it("has no pin control on the panel header (#130)", async () => {
     vi.spyOn(news, "fetchNewsHeadlines").mockResolvedValue({
       items: fixtures,
       usedRss2json: false,
       missing: []
     });
-    const onPin = vi.fn();
-    render(<NewsPanel theme={theme} onClose={vi.fn()} onPin={onPin} />);
+    render(<NewsPanel theme={theme} onClose={vi.fn()} />);
     await waitFor(() => {
       expect(screen.getAllByText("Bitcoin hits new research high").length).toBeGreaterThan(0);
     });
-    fireEvent.click(screen.getByRole("button", { name: "Pin news panel" }));
-    expect(onPin).toHaveBeenCalledTimes(1);
-    const data = onPin.mock.calls[0][0];
-    expect(data.kind).toBe("news");
-    expect(data.widgetId).toBe("news:all");
-    expect(data.items.length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Pin news panel" })).toBeNull();
+    expect(screen.queryByTitle("Pin to right panel")).toBeNull();
+    const panel = screen.getByTestId("news-panel");
+    expect(panel.textContent).not.toContain("▣");
+    // Header chrome: NEWS + refresh + close only
+    expect(screen.getByRole("button", { name: "Refresh news" })).toBeTruthy();
+    expect(screen.getByTestId("news-panel-close")).toBeTruthy();
+  });
+
+  it("panel shell is full-width with no max-w cap (#130)", async () => {
+    vi.spyOn(news, "fetchNewsHeadlines").mockResolvedValue({
+      items: fixtures,
+      usedRss2json: false,
+      missing: []
+    });
+    render(<NewsPanel theme={theme} onClose={vi.fn()} />);
+    const panel = screen.getByTestId("news-panel");
+    expect(panel.className).toMatch(/\bw-full\b/);
+    expect(panel.className).toMatch(/\bmin-h-full\b/);
+    expect(panel.className).not.toMatch(/max-w-/);
   });
 
   it("close button fires onClose", () => {
