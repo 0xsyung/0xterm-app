@@ -1,6 +1,6 @@
 /**
  * @file SocialPanel.tsx
- * @description Social surface: Inbox + Board sub-tabs (#63). No pin affordances.
+ * @description Social surface: Inbox + Board sub-tabs (#63/#140). No pin affordances.
  * Shared inbox list/thread views live in inbox/InboxViews (#82).
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -16,6 +16,7 @@ import type { BillboardPost } from "./widgets/BillboardWidget";
 import {
   InboxThreadList,
   InboxThreadMessages,
+  NewConversationForm,
   type InboxSenderSummary,
   type InboxThreadView
 } from "./inbox/InboxViews";
@@ -101,7 +102,9 @@ export default function SocialPanel({
   isConnected,
   loadSenders,
   loadThread,
-  loadBoard
+  loadBoard,
+  sendMessage,
+  startConversation
 }: {
   theme: ThemeConfig;
   subTab: SocialSubTab;
@@ -114,12 +117,17 @@ export default function SocialPanel({
   loadSenders: () => Promise<InboxSenderSummary[]>;
   loadThread: (peer: Address) => Promise<InboxThreadView>;
   loadBoard: () => Promise<BoardView | null>;
+  /** Reply composer — same path FloatingChat uses. */
+  sendMessage?: (peer: Address, text: string) => Promise<void>;
+  /** NEW conversation — resolve + send via existing chat path; returns peer Address. */
+  startConversation?: (peer: string, message: string) => Promise<Address>;
 }) {
   const [senders, setSenders] = useState<InboxSenderSummary[] | null>(null);
   const [inboxError, setInboxError] = useState<string | null>(null);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [thread, setThread] = useState<InboxThreadView | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const [board, setBoard] = useState<BoardView | null>(null);
   const [boardError, setBoardError] = useState<string | null>(null);
@@ -182,6 +190,27 @@ export default function SocialPanel({
     }
   };
 
+  const handleStart = async (peerInput: string, message: string) => {
+    if (!startConversation) throw new Error("Send unavailable.");
+    const addr = await startConversation(peerInput, message);
+    void refreshSenders();
+    await openThread(addr);
+    return addr;
+  };
+
+  const handleSend = async (text: string) => {
+    if (!thread || !sendMessage) return;
+    setSending(true);
+    try {
+      await sendMessage(thread.peer, text);
+      const t = await loadThread(thread.peer);
+      setThread(t);
+      void refreshSenders();
+    } finally {
+      setSending(false);
+    }
+  };
+
   const goBoardPage = async (newOffset: number) => {
     if (!board?.onLoadPage || boardLoading) return;
     setBoardLoading(true);
@@ -202,6 +231,7 @@ export default function SocialPanel({
   const total = board?.total ?? 0;
   const hasPrev = boardOffset > 0;
   const hasNext = boardOffset + boardItems.length < total;
+  const canCompose = isConnected && !!channelLabel && !!startConversation;
 
   return (
     <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden pt-2">
@@ -256,22 +286,36 @@ export default function SocialPanel({
               senders.length === 0 &&
               !inboxLoading &&
               !thread && (
-                <div className={theme.muted}>
-                  No messages yet. Send with{" "}
-                  <span className={theme.primary}>
-                    chat &lt;address|ens&gt; &lt;message&gt;
-                  </span>
-                  .
+                <div className="space-y-2">
+                  <div className={theme.muted}>No conversations</div>
+                  {canCompose && (
+                    <NewConversationForm
+                      theme={theme}
+                      onStart={handleStart}
+                      defaultOpen
+                      radius={radius}
+                    />
+                  )}
                 </div>
               )}
             {senders && senders.length > 0 && !thread && !threadLoading && (
-              <InboxThreadList
-                theme={theme}
-                senders={senders}
-                onOpenThread={(peer) => void openThread(peer)}
-                emptyLabel="No conversations"
-                radius={radius}
-              />
+              <div className="space-y-2">
+                {canCompose && (
+                  <NewConversationForm
+                    theme={theme}
+                    onStart={handleStart}
+                    defaultOpen={false}
+                    radius={radius}
+                  />
+                )}
+                <InboxThreadList
+                  theme={theme}
+                  senders={senders}
+                  onOpenThread={(peer) => void openThread(peer)}
+                  emptyLabel="No conversations"
+                  radius={radius}
+                />
+              </div>
             )}
             {threadLoading && <div className={theme.muted}>Decrypting…</div>}
             {thread && (
@@ -280,6 +324,8 @@ export default function SocialPanel({
                 thread={thread}
                 onBack={() => setThread(null)}
                 emptyLabel="No messages in this conversation."
+                onSend={sendMessage ? (t) => handleSend(t) : undefined}
+                sending={sending}
               />
             )}
           </>

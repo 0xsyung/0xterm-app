@@ -1,6 +1,6 @@
 /**
  * @file ForensicWorkspace.tsx
- * @description Forensic mode action-tile launcher (#80)
+ * @description Forensic mode action-tile launcher (#80/#140)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -11,15 +11,15 @@ import { WorkspaceTile } from "./WorkspaceTile";
 import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
 
 const ACTIONS: WorkspaceAction[] = [
-  { cmd: "kyt", label: "KYT", hint: "kyt <address>" },
-  { cmd: "kya", label: "KYA", hint: "kya <address>" },
-  { cmd: "sim", label: "SIM", hint: "sim <to> <data>", panel: "sim" },
-  { cmd: "trace", label: "TRACE", hint: "trace <txhash>", panel: "trace" },
-  { cmd: "is", label: "CHECK TOKEN", hint: "is <erc20|erc721> <address>" },
-  { cmd: "info", label: "TOKEN INFO", hint: "info <address>" },
-  { cmd: "price", label: "PRICE", hint: "read helper" },
-  { cmd: "portfolio", label: "PORTFOLIO", hint: "read helper" },
-  { cmd: "balance", label: "BALANCE", hint: "read helper" }
+  { cmd: "kyt", label: "KYT", hint: "screen address" },
+  { cmd: "kya", label: "KYA", hint: "screen address" },
+  { cmd: "sim", label: "SIM", hint: "open sim panel", panel: "sim" },
+  { cmd: "trace", label: "TRACE", hint: "open trace panel", panel: "trace" },
+  { cmd: "is", label: "CHECK TOKEN", hint: "check token standard" },
+  { cmd: "info", label: "TOKEN INFO", hint: "token details" },
+  { cmd: "price", label: "PRICE", hint: "read-only helper" },
+  { cmd: "portfolio", label: "PORTFOLIO", hint: "read-only helper" },
+  { cmd: "balance", label: "BALANCE", hint: "read-only helper" }
 ];
 
 export function ForensicWorkspace({

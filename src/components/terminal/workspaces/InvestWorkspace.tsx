@@ -1,6 +1,6 @@
 /**
  * @file InvestWorkspace.tsx
- * @description Invest mode action-tile launcher (#80/#117)
+ * @description Invest mode action-tile launcher (#80/#117/#140)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -23,16 +23,16 @@ const ACTIONS: WorkspaceAction[] = [
     hint: "open swap panel",
     panel: "swap"
   },
-  { cmd: "balance", label: "BALANCE", hint: "balance <token>" },
+  { cmd: "balance", label: "BALANCE", hint: "check token balance" },
   { cmd: "portfolio", label: "PORTFOLIO", hint: "all chains + P/L" },
   { cmd: "snapshot", label: "SNAPSHOT", hint: "record baseline" },
   { cmd: "pnl", label: "PNL", hint: "vs last snapshot" },
   { cmd: "ticker", label: "TICKER", hint: "watchlist board" },
   { cmd: "news", label: "NEWS", hint: "open news panel", panel: "news" },
-  { cmd: "createpool", label: "CREATE POOL", hint: "createpool <tA> <tB>" },
-  { cmd: "getpool", label: "GET POOL", hint: "getpool <tA> <tB>" },
-  { cmd: "addliq", label: "ADD LIQUIDITY", hint: "addliq <tA> <tB> <amtA> <amtB>" },
-  { cmd: "networks", label: "NETWORKS", hint: "list chains" }
+  { cmd: "createpool", label: "CREATE POOL", hint: "create a pool" },
+  { cmd: "getpool", label: "GET POOL", hint: "look up a pool" },
+  { cmd: "addliq", label: "ADD LIQUIDITY", hint: "add liquidity" },
+  { cmd: "networks", label: "NETWORKS", hint: "list networks" }
 ];
 
 export function InvestWorkspace({

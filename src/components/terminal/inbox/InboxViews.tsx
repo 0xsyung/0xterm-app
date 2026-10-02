@@ -1,6 +1,6 @@
 /**
  * @file InboxViews.tsx
- * @description Shared Social Inbox thread-list + thread-view (#82) — used by SocialPanel and FloatingChat.
+ * @description Shared Social Inbox thread-list + thread-view (#82/#140) — used by SocialPanel and FloatingChat.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -78,13 +78,135 @@ export function InboxThreadList({
   );
 }
 
+export type NewConversationFormProps = {
+  theme: ThemeConfig;
+  /** Send via existing chat path; resolve peer and return Address to open thread. */
+  onStart: (peer: string, message: string) => Promise<Address>;
+  /** When true, form fields are visible immediately (empty inbox). */
+  defaultOpen?: boolean;
+  radius?: string;
+};
+
+/**
+ * NEW conversation composer (#140 Slice A) — peer + message + SEND.
+ * Soft CLI hint under the form; does not invent a parallel send protocol.
+ */
+export function NewConversationForm({
+  theme,
+  onStart,
+  defaultOpen = true,
+  radius = "rounded-none"
+}: NewConversationFormProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [peer, setPeer] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    const p = peer.trim();
+    const m = message.trim();
+    if (!p || !m || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      await onStart(p, m);
+      setPeer("");
+      setMessage("");
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message?: unknown }).message || "Send failed")
+          : "Send failed";
+      setError(msg);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2" data-testid="new-conversation-form">
+      <button
+        type="button"
+        data-testid="new-conversation-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={`inline-flex items-center justify-center px-3 uppercase tracking-widest text-[10px] font-bold border ${theme.border} cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] ${radius} ${
+          open ? theme.primary : theme.muted
+        }`}
+      >
+        NEW
+      </button>
+      {open && (
+        <div className="space-y-1.5">
+          {error && (
+            <div className={`text-[10px] ${theme.muted}`} data-testid="new-conversation-error">
+              {error}
+            </div>
+          )}
+          <input
+            type="text"
+            value={peer}
+            onChange={(e) => setPeer(e.target.value)}
+            placeholder="0x… or ENS"
+            disabled={sending}
+            data-testid="new-conversation-peer"
+            aria-label="Peer address or ENS"
+            className={`w-full px-2 py-1.5 text-xs bg-transparent outline-none border ${theme.border} ${theme.text} pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px]`}
+            spellCheck={false}
+            autoComplete="off"
+          />
+          <div className="flex gap-1.5 items-stretch">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void submit();
+                }
+              }}
+              placeholder="Message…"
+              disabled={sending}
+              data-testid="new-conversation-message"
+              aria-label="Message"
+              className={`flex-1 min-w-0 px-2 py-1.5 text-xs bg-transparent outline-none border ${theme.border} ${theme.text} pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px]`}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={sending || !peer.trim() || !message.trim()}
+              data-testid="new-conversation-send"
+              aria-label="Send"
+              className={`px-3 uppercase text-[10px] tracking-widest border ${theme.border} cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] ${
+                sending || !peer.trim() || !message.trim()
+                  ? "opacity-40 cursor-default"
+                  : theme.primary
+              }`}
+            >
+              SEND
+            </button>
+          </div>
+          <div className={`text-[9px] ${theme.muted}`} data-testid="new-conversation-cli-hint">
+            or: chat &lt;address|ens&gt; &lt;message&gt;
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export type InboxThreadMessagesProps = {
   theme: ThemeConfig;
   thread: InboxThreadView;
   onBack?: () => void;
   /** Empty thread copy. Floater: "No messages yet". */
   emptyLabel?: string;
-  /** Optional send composer (floater). Social Inbox omits — send via `chat`. */
+  /** Optional send composer (floater + Social Inbox #140). */
   onSend?: (text: string) => Promise<void> | void;
   sending?: boolean;
 };

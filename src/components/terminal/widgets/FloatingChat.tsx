@@ -1,6 +1,6 @@
 /**
  * @file FloatingChat.tsx
- * @description LinkedIn-style floating messenger bubble + overlay (#82). Skins-only.
+ * @description LinkedIn-style floating messenger bubble + overlay (#82/#140). Skins-only.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -14,9 +14,11 @@ import { formatBadgeCount } from "../socialUnread";
 import {
   InboxThreadList,
   InboxThreadMessages,
+  NewConversationForm,
   type InboxSenderSummary,
   type InboxThreadView
 } from "../inbox/InboxViews";
+import type { WorkspacePanelId } from "../workspaces/WorkspaceTile";
 
 function errMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "message" in err) {
@@ -36,6 +38,8 @@ export type FloatingChatProps = {
   /** Pixels from shell bottom to clear above prompt (≥12px gap applied here). */
   promptClearancePx: number;
   primaryTab: PrimaryTab;
+  /** Open tool panel id — collapse expanded chat when a large panel opens (#140 A3). */
+  openPanel?: WorkspacePanelId | null;
   loadSenders: () => Promise<InboxSenderSummary[]>;
   loadThread: (peer: Address) => Promise<InboxThreadView>;
   /** Advance/clear inbox baseline (same as opening Social Inbox). */
@@ -43,6 +47,8 @@ export type FloatingChatProps = {
   /** Notify shell so poller keeps badge clear while open. */
   onOpenChange?: (open: boolean) => void;
   sendMessage?: (peer: Address, text: string) => Promise<void>;
+  /** NEW conversation — resolve + send via existing chat path; returns peer Address. */
+  startConversation?: (peer: string, message: string) => Promise<Address>;
   onFocusPrompt?: () => void;
 };
 
@@ -53,6 +59,15 @@ const PANEL_MIN_H = 360;
 const BUBBLE = 48;
 const GAP = 12;
 
+/** Large panels that should collapse expanded CHAT when opened (#140 A3). */
+const LARGE_PANELS: ReadonlySet<WorkspacePanelId> = new Set([
+  "news",
+  "price",
+  "swap",
+  "sim",
+  "trace"
+]);
+
 export default function FloatingChat({
   theme,
   themeKey,
@@ -61,11 +76,13 @@ export default function FloatingChat({
   isConnected,
   promptClearancePx,
   primaryTab,
+  openPanel = null,
   loadSenders,
   loadThread,
   onAckInbox,
   onOpenChange,
   sendMessage,
+  startConversation,
   onFocusPrompt
 }: FloatingChatProps) {
   const [open, setOpen] = useState(false);
@@ -76,6 +93,8 @@ export default function FloatingChat({
   const [threadLoading, setThreadLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const prevTabRef = useRef(primaryTab);
+  const prevPanelRef = useRef(openPanel);
 
   const radius =
     themeKey === "macintosh" || (theme.rounded && theme.rounded !== "rounded-none")
@@ -100,6 +119,29 @@ export default function FloatingChat({
     },
     [onAckInbox, onFocusPrompt, onOpenChange, primaryTab]
   );
+
+  // A3: leaving SOCIAL → collapse expanded CHAT to bubble.
+  useEffect(() => {
+    const prev = prevTabRef.current;
+    prevTabRef.current = primaryTab;
+    if (prev === "social" && primaryTab !== "social" && open) {
+      setExpanded(false);
+    }
+  }, [primaryTab, open, setExpanded]);
+
+  // A3: opening NEWS / Price / Swap / Sim / Trace → collapse CHAT if expanded.
+  useEffect(() => {
+    const prev = prevPanelRef.current;
+    prevPanelRef.current = openPanel;
+    if (
+      openPanel &&
+      openPanel !== prev &&
+      LARGE_PANELS.has(openPanel) &&
+      open
+    ) {
+      setExpanded(false);
+    }
+  }, [openPanel, open, setExpanded]);
 
   const refreshSenders = useCallback(async () => {
     setInboxLoading(true);
@@ -174,7 +216,16 @@ export default function FloatingChat({
     }
   };
 
+  const handleStart = async (peerInput: string, message: string) => {
+    if (!startConversation) throw new Error("Send unavailable.");
+    const addr = await startConversation(peerInput, message);
+    void refreshSenders();
+    await openThread(addr);
+    return addr;
+  };
+
   const title = channelLabel ? `CHAT · ${channelLabel}` : "CHAT";
+  const canCompose = isConnected && !!channelLabel && !!startConversation;
 
   const panelStyle: React.CSSProperties = {
     bottom: bubbleBottom,
@@ -238,15 +289,44 @@ export default function FloatingChat({
             {isConnected &&
               channelLabel &&
               senders &&
+              senders.length === 0 &&
               !thread &&
               !threadLoading && (
-                <InboxThreadList
-                  theme={theme}
-                  senders={senders}
-                  onOpenThread={(peer) => void openThread(peer)}
-                  emptyLabel="No conversations"
-                  radius={radius}
-                />
+                <div className="space-y-2">
+                  <div className={theme.muted}>No conversations</div>
+                  {canCompose && (
+                    <NewConversationForm
+                      theme={theme}
+                      onStart={handleStart}
+                      defaultOpen
+                      radius={radius}
+                    />
+                  )}
+                </div>
+              )}
+            {isConnected &&
+              channelLabel &&
+              senders &&
+              senders.length > 0 &&
+              !thread &&
+              !threadLoading && (
+                <div className="space-y-2 overflow-y-auto min-h-0 flex-1">
+                  {canCompose && (
+                    <NewConversationForm
+                      theme={theme}
+                      onStart={handleStart}
+                      defaultOpen={false}
+                      radius={radius}
+                    />
+                  )}
+                  <InboxThreadList
+                    theme={theme}
+                    senders={senders}
+                    onOpenThread={(peer) => void openThread(peer)}
+                    emptyLabel="No conversations"
+                    radius={radius}
+                  />
+                </div>
               )}
             {threadLoading && <div className={theme.muted}>Decrypting…</div>}
             {thread && (

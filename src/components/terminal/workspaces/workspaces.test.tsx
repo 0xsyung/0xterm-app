@@ -185,3 +185,81 @@ describe("WorkspaceTile", () => {
     expect(onCommand).not.toHaveBeenCalled();
   });
 });
+
+
+describe("Tile hints (#140 A4)", () => {
+  it("INVEST tiles use plain action copy (no angle-bracket CLI stubs)", () => {
+    render(
+      <WorkspaceStrip theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+    );
+    expect(screen.getByRole("button", { name: /BALANCE/i }).textContent).toMatch(
+      /check token balance/i
+    );
+    expect(screen.getByRole("button", { name: /CREATE POOL/i }).textContent).toMatch(
+      /create a pool/i
+    );
+    expect(screen.getByRole("button", { name: /GET POOL/i }).textContent).toMatch(
+      /look up a pool/i
+    );
+    expect(screen.getByRole("button", { name: /ADD LIQUIDITY/i }).textContent).toMatch(
+      /add liquidity/i
+    );
+    expect(screen.getByRole("button", { name: /NETWORKS/i }).textContent).toMatch(
+      /list networks/i
+    );
+    expect(screen.getByRole("button", { name: /BALANCE/i }).textContent).not.toMatch(/</);
+    expect(screen.getByRole("button", { name: /CREATE POOL/i }).textContent).not.toMatch(/</);
+  });
+
+  it("DEV tiles use plain action copy", () => {
+    render(<WorkspaceStrip theme={theme} mode="dev" onCommand={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /SOLC VER/i }).textContent).toMatch(
+      /solc version/i
+    );
+    expect(screen.getByRole("button", { name: /^ABI/i }).textContent).toMatch(/show ABI/i);
+    expect(screen.getByRole("button", { name: /ATTACH/i }).textContent).toMatch(
+      /attach address/i
+    );
+    expect(screen.getByRole("button", { name: /SESSION/i }).textContent).toMatch(
+      /list session/i
+    );
+    expect(screen.getByRole("button", { name: /CHECK TOKEN/i }).textContent).toMatch(
+      /check token standard/i
+    );
+    expect(screen.getByRole("button", { name: /ATTACH/i }).textContent).not.toMatch(/</);
+  });
+
+  it("FORENSIC tiles use plain action copy", () => {
+    render(
+      <WorkspaceStrip theme={theme} mode="forensic" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+    );
+    expect(screen.getByRole("button", { name: /^SIM/i }).textContent).toMatch(
+      /open sim panel/i
+    );
+    expect(screen.getByRole("button", { name: /TRACE/i }).textContent).toMatch(
+      /open trace panel/i
+    );
+    expect(screen.getByRole("button", { name: /^KYT/i }).textContent).toMatch(
+      /screen address/i
+    );
+    expect(screen.getByRole("button", { name: /^KYA/i }).textContent).toMatch(
+      /screen address/i
+    );
+    expect(screen.getByRole("button", { name: /TOKEN INFO/i }).textContent).toMatch(
+      /token details/i
+    );
+    expect(screen.getByRole("button", { name: /^PRICE/i }).textContent).toMatch(
+      /read-only helper/i
+    );
+    expect(screen.getByRole("button", { name: /PORTFOLIO/i }).textContent).toMatch(
+      /read-only helper/i
+    );
+    expect(screen.getByRole("button", { name: /BALANCE/i }).textContent).toMatch(
+      /read-only helper/i
+    );
+    expect(screen.getByRole("button", { name: /^KYT/i }).textContent).not.toMatch(/</);
+    expect(screen.getByRole("button", { name: /^PRICE/i }).textContent).not.toMatch(
+      /^.*read helper$/
+    );
+  });
+});
