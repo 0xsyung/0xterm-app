@@ -1,6 +1,6 @@
 /**
  * @file DevWorkspace.tsx
- * @description Dev (dig) mode action-tile launcher (#80)
+ * @description Dev (dig) mode action-tile launcher (#80/#140)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -15,14 +15,14 @@ const ACTIONS: WorkspaceAction[] = [
   { cmd: "dig open", label: "OPEN", hint: "pick a .sol file" },
   { cmd: "dig edit", label: "EDIT", hint: "reopen last source" },
   { cmd: "dig compile", label: "COMPILE", hint: "in-browser solc" },
-  { cmd: "dig ver", label: "SOLC VER", hint: "dig ver [0.8.37]" },
-  { cmd: "dig abi", label: "ABI", hint: "dig abi [Contract]" },
+  { cmd: "dig ver", label: "SOLC VER", hint: "solc version" },
+  { cmd: "dig abi", label: "ABI", hint: "show ABI" },
   { cmd: "dig opcodes", label: "OPCODES", hint: "disassemble" },
   { cmd: "dig deploy", label: "DEPLOY", hint: "VM or wallet" },
-  { cmd: "dig at", label: "ATTACH", hint: "dig at <address>" },
+  { cmd: "dig at", label: "ATTACH", hint: "attach address" },
   { cmd: "dig debug", label: "DEBUG", hint: "step-debug last tx" },
-  { cmd: "dig ls", label: "SESSION", hint: "dig ls" },
-  { cmd: "is", label: "CHECK TOKEN", hint: "is <erc20|erc721> <address>" }
+  { cmd: "dig ls", label: "SESSION", hint: "list session" },
+  { cmd: "is", label: "CHECK TOKEN", hint: "check token standard" }
 ];
 
 export function DevWorkspace({

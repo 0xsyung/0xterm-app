@@ -377,6 +377,7 @@ import {
 } from "./mode";
 import type { BillboardPost } from "./widgets/BillboardWidget";
 import { WorkspaceStrip } from "./workspaces";
+import { ModeEmptyState } from "./workspaces/ModeEmptyState";
 import type { WorkspacePanelId } from "./workspaces/WorkspaceTile";
 import PricePanel, {
   buildPriceCli,
@@ -8221,6 +8222,14 @@ export default function TerminalShell({
                 if (!chain || !contract) return null;
                 return fetchBillboard(getClient(chain), contract as Address, 5);
               }}
+              sendMessage={async (peer, text) => {
+                await handleCommand(`chat ${peer} ${text}`);
+              }}
+              startConversation={async (peerInput, message) => {
+                const addr = await resolveChatRecipient(peerInput);
+                await handleCommand(`chat ${peerInput} ${message}`);
+                return addr;
+              }}
             />
           </div>
         ) : primaryTab === "settings" ? (
@@ -8372,25 +8381,36 @@ export default function TerminalShell({
                   />
                 </div>
               ) : showWorkspace ? (
-                <div className="shrink-0 flex items-start gap-2 pb-2">
-                  <span
-                    className={`uppercase text-[10px] tracking-widest pt-1 ${theme.muted}`}
-                  >
-                    LAUNCH
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <WorkspaceStrip
-                      theme={theme}
-                      mode={terminalMode}
-                      onCommand={(cmd) => {
-                        void handleCommand(cmd);
-                      }}
-                      onOpenPanel={(panel) => {
-                        setOpenPanel(panel);
-                        setShowWorkspace(true);
-                      }}
-                    />
+                <div
+                  className={
+                    pinned.length === 0
+                      ? "flex flex-col flex-1 min-h-0 min-w-0"
+                      : "shrink-0"
+                  }
+                >
+                  <div className="shrink-0 flex items-start gap-2 pb-2">
+                    <span
+                      className={`uppercase text-[10px] tracking-widest pt-1 ${theme.muted}`}
+                    >
+                      LAUNCH
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <WorkspaceStrip
+                        theme={theme}
+                        mode={terminalMode}
+                        onCommand={(cmd) => {
+                          void handleCommand(cmd);
+                        }}
+                        onOpenPanel={(panel) => {
+                          setOpenPanel(panel);
+                          setShowWorkspace(true);
+                        }}
+                      />
+                    </div>
                   </div>
+                  {pinned.length === 0 && (
+                    <ModeEmptyState theme={theme} mode={terminalMode} />
+                  )}
                 </div>
               ) : (
                 <div className="shrink-0 pb-2">
@@ -8528,6 +8548,7 @@ export default function TerminalShell({
         isConnected={!!isConnected && !!address}
         promptClearancePx={promptClearancePx}
         primaryTab={primaryTab}
+        openPanel={openPanel}
         onAckInbox={() => {
           setInboxUnread(0);
           void catchUpChatBaseline();
@@ -8584,6 +8605,11 @@ export default function TerminalShell({
         }}
         sendMessage={async (peer, text) => {
           await handleCommand(`chat ${peer} ${text}`);
+        }}
+        startConversation={async (peerInput, message) => {
+          const addr = await resolveChatRecipient(peerInput);
+          await handleCommand(`chat ${peerInput} ${message}`);
+          return addr;
         }}
         onFocusPrompt={() => {
           inputRef.current?.focus();

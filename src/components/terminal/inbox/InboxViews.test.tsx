@@ -4,11 +4,12 @@
  * @description Shared inbox list/thread extract helpers (#82)
  */
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { THEMES } from "../constants";
 import {
   InboxThreadList,
   InboxThreadMessages,
+  NewConversationForm,
   shortAddr,
   type InboxThreadView
 } from "./InboxViews";
@@ -106,5 +107,53 @@ describe("InboxThreadMessages", () => {
     fireEvent.change(input, { target: { value: "yo" } });
     fireEvent.click(screen.getByLabelText("Send"));
     expect(onSend).toHaveBeenCalledWith("yo");
+  });
+});
+
+describe("NewConversationForm (#140 A2)", () => {
+  it("renders NEW, peer, message, SEND, and CLI hint when open", () => {
+    render(
+      <NewConversationForm
+        theme={theme}
+        onStart={vi.fn()}
+        defaultOpen
+      />
+    );
+    expect(screen.getByTestId("new-conversation-form")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-toggle").textContent).toMatch(/NEW/i);
+    expect(screen.getByTestId("new-conversation-peer")).toBeTruthy();
+    expect(screen.getByPlaceholderText("0x… or ENS")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-message")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-send").textContent).toMatch(/SEND/i);
+    expect(screen.getByTestId("new-conversation-cli-hint").textContent).toMatch(
+      /or: chat/
+    );
+  });
+
+  it("starts collapsed when defaultOpen is false", () => {
+    render(
+      <NewConversationForm
+        theme={theme}
+        onStart={vi.fn()}
+        defaultOpen={false}
+      />
+    );
+    expect(screen.getByTestId("new-conversation-toggle")).toBeTruthy();
+    expect(screen.queryByTestId("new-conversation-peer")).toBeNull();
+  });
+
+  it("calls onStart with peer + message and clears fields", async () => {
+    const onStart = vi.fn().mockResolvedValue(peer);
+    render(
+      <NewConversationForm theme={theme} onStart={onStart} defaultOpen />
+    );
+    fireEvent.change(screen.getByTestId("new-conversation-peer"), {
+      target: { value: peer }
+    });
+    fireEvent.change(screen.getByTestId("new-conversation-message"), {
+      target: { value: "hello" }
+    });
+    fireEvent.click(screen.getByTestId("new-conversation-send"));
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith(peer, "hello"));
   });
 });

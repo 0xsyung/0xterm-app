@@ -54,7 +54,8 @@ describe("SocialPanel inbox tab", () => {
     expect(screen.getByText(/Connect a wallet to read chat\./)).toBeTruthy();
   });
 
-  it("shows empty-senders copy when connected with a channel", async () => {
+  it("shows NEW conversation UI when empty inbox (channel + wallet ready)", async () => {
+    const startConversation = vi.fn().mockResolvedValue(ALICE);
     render(
       <SocialPanel
         theme={theme}
@@ -65,13 +66,55 @@ describe("SocialPanel inbox tab", () => {
         channelLabel="0xterm.eth"
         isConnected
         loadSenders={vi.fn(async () => [])}
-        loadThread={vi.fn()}
+        loadThread={vi.fn(async () => ({
+          messages: [],
+          peer: ALICE as `0x${string}`,
+          self: BOB as `0x${string}`
+        }))}
         loadBoard={vi.fn()}
+        startConversation={startConversation}
+        sendMessage={vi.fn()}
       />
     );
-    await waitFor(() =>
-      expect(screen.getByText(/No messages yet\. Send with/)).toBeTruthy()
+    await waitFor(() => expect(screen.getByText("No conversations")).toBeTruthy());
+    expect(screen.getByTestId("new-conversation-form")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-peer")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-send")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-cli-hint").textContent).toMatch(/or: chat/);
+  });
+
+  it("thread view exposes composer when sendMessage provided", async () => {
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+    const loadThread = vi.fn(async () => ({
+      messages: [
+        { from: ALICE, timestamp: 1700000000, iv: "0x1234", ciphertext: "0x5678", decrypted: "hi" }
+      ],
+      peer: ALICE as `0x${string}`,
+      self: BOB as `0x${string}`,
+      peerLabel: "Alice"
+    }));
+    render(
+      <SocialPanel
+        theme={theme}
+        subTab="inbox"
+        onSubTabChange={vi.fn()}
+        inboxUnread={0}
+        boardUnread={0}
+        channelLabel="0xterm.eth"
+        isConnected
+        loadSenders={vi.fn(async () => [{ peer: ALICE as `0x${string}`, count: 2, label: "Alice" }])}
+        loadThread={loadThread}
+        loadBoard={vi.fn()}
+        sendMessage={sendMessage}
+        startConversation={vi.fn()}
+      />
     );
+    await waitFor(() => expect(screen.getByText("Alice")).toBeTruthy());
+    fireEvent.click(screen.getByText("Alice"));
+    await waitFor(() => expect(screen.getByLabelText("Message")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "reply" } });
+    fireEvent.click(screen.getByLabelText("Send"));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalled());
   });
 
   it("lists senders and opens a thread on click", async () => {

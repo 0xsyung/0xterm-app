@@ -134,3 +134,82 @@ describe("FloatingChat (#82)", () => {
     expect(container.querySelector("[data-retain-focus]")).toBeNull();
   });
 });
+
+describe("FloatingChat collapse (#140 A3)", () => {
+  it("collapses expanded panel when leaving SOCIAL tab", async () => {
+    const { container, rerender, onOpenChange, onAckInbox, onFocusPrompt, loadSenders, loadThread } =
+      renderFloater({ primaryTab: "social" });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeTruthy()
+    );
+    rerender(
+      <div style={{ position: "relative", height: 800, width: 1280 }}>
+        <FloatingChat
+          theme={theme}
+          themeKey="matrix"
+          inboxUnread={0}
+          channelLabel="sepolia-chat"
+          isConnected
+          promptClearancePx={100}
+          primaryTab="terminal"
+          loadSenders={loadSenders}
+          loadThread={loadThread}
+          onAckInbox={onAckInbox}
+          onOpenChange={onOpenChange}
+          onFocusPrompt={onFocusPrompt}
+        />
+      </div>
+    );
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeNull()
+    );
+    expect(container.querySelector("[data-floating-chat-bubble]")).toBeTruthy();
+  });
+
+  it("collapses when a large tool panel opens (news)", async () => {
+    const { container, rerender, onOpenChange, onAckInbox, onFocusPrompt, loadSenders, loadThread } =
+      renderFloater({ primaryTab: "terminal", openPanel: null });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeTruthy()
+    );
+    rerender(
+      <div style={{ position: "relative", height: 800, width: 1280 }}>
+        <FloatingChat
+          theme={theme}
+          themeKey="matrix"
+          inboxUnread={0}
+          channelLabel="sepolia-chat"
+          isConnected
+          promptClearancePx={100}
+          primaryTab="terminal"
+          openPanel="news"
+          loadSenders={loadSenders}
+          loadThread={loadThread}
+          onAckInbox={onAckInbox}
+          onOpenChange={onOpenChange}
+          onFocusPrompt={onFocusPrompt}
+        />
+      </div>
+    );
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeNull()
+    );
+  });
+
+  it("shows NEW conversation UI on empty inbox", async () => {
+    const loadSenders = vi.fn().mockResolvedValue([]);
+    const startConversation = vi.fn();
+    const { container } = renderFloater({
+      loadSenders,
+      startConversation,
+      channelLabel: "sepolia-chat",
+      isConnected: true
+    });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    await waitFor(() => expect(screen.getByText("No conversations")).toBeTruthy());
+    expect(screen.getByTestId("new-conversation-form")).toBeTruthy();
+    expect(screen.getByTestId("new-conversation-peer")).toBeTruthy();
+  });
+});
