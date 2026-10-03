@@ -40,26 +40,46 @@ function Thumb({
     setImgFailed(false);
   }, [imageUrl]);
   const showImg = Boolean(imageUrl) && !imgFailed;
+  const monogram = (
+    <span
+      className="font-bold text-lg md:text-xl tracking-wider select-none"
+      style={{ color: thumb.monogramColor }}
+    >
+      {thumb.monogram}
+    </span>
+  );
+  // No image: monogram fallback unchanged (#126) — full frame, source wash.
+  if (!showImg) {
+    return (
+      <div
+        className={`relative w-full max-w-full aspect-video border ${theme.border} overflow-hidden flex items-center justify-center`}
+        style={{ background: thumb.background }}
+        aria-hidden
+        data-testid="news-thumb"
+      >
+        {monogram}
+      </div>
+    );
+  }
+  // White heroes: 1px border + card bg, ~4px card mat so white does not meet the edge.
   return (
     <div
-      className={`relative w-full aspect-video border ${theme.border} overflow-hidden flex items-center justify-center`}
-      style={{ background: thumb.background }}
+      className={`relative w-full max-w-full aspect-video border ${theme.border} ${theme.cardBg} p-1`}
       aria-hidden
+      data-testid="news-thumb"
     >
-      <span
-        className="font-bold text-lg md:text-xl tracking-wider select-none"
-        style={{ color: thumb.monogramColor }}
+      <div
+        className="relative w-full h-full overflow-hidden flex items-center justify-center"
+        style={{ background: thumb.background }}
       >
-        {thumb.monogram}
-      </span>
-      {showImg ? (
+        {monogram}
         <img
           src={imageUrl as string}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full max-w-full object-cover"
           onError={() => setImgFailed(true)}
         />
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -242,7 +262,7 @@ export default function NewsReader({
       tabIndex={0}
       data-retain-focus=""
       data-testid="news-reader"
-      className={`relative group ${embedded ? "my-0 flex-1 min-h-0" : "my-3"} p-2 md:p-3 ${
+      className={`relative group ${embedded ? "my-0" : "my-3"} p-2 md:p-3 ${
         embedded
           ? ""
           : `border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow}`

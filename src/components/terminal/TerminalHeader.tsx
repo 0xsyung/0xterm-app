@@ -185,7 +185,8 @@ function NetworkControl({
         data-testid="header-network"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Network"
+        aria-label={chain ? `Network ${label} ${chain.id}` : "Network"}
+        title={chain ? `${label} ${chain.id}` : "Network"}
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${TOUCH} ${
           chain
@@ -194,11 +195,6 @@ function NetworkControl({
         }`}
       >
         <span className="truncate max-w-[7rem]">{label}</span>
-        {chain && (
-          <span className={`${theme.muted} font-normal normal-case tracking-normal`}>
-            {chain.id}
-          </span>
-        )}
         <span aria-hidden>▾</span>
       </button>
       {open && (

@@ -103,4 +103,29 @@ describe("NewsPanel", () => {
     fireEvent.click(screen.getByTestId("news-panel-close"));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("close glyph is 18px phosphor with 28px hit and 44px coarse (#140 B1)", () => {
+    render(<NewsPanel theme={theme} onClose={vi.fn()} />);
+    const close = screen.getByTestId("news-panel-close");
+    expect(close.getAttribute("aria-label")).toBe("Close news panel");
+    expect(close.className).toMatch(/text-\[18px\]/);
+    expect(close.className).toContain(theme.primary);
+    expect(close.className).not.toContain(theme.muted);
+    expect(close.className).toMatch(/min-h-\[28px\]/);
+    expect(close.className).toMatch(/min-w-\[28px\]/);
+    expect(close.className).toMatch(/pointer-coarse:min-h-\[44px\]/);
+    expect(close.className).toMatch(/pointer-coarse:min-w-\[44px\]/);
+    expect(close.className).toMatch(/max-md:min-h-\[44px\]/);
+    expect(close.className).toMatch(/max-md:min-w-\[44px\]/);
+    expect(close.className).toMatch(/\[@media\(hover:none\)\]:min-h-\[44px\]/);
+    expect(close.className).toMatch(/\[@media\(hover:none\)\]:min-w-\[44px\]/);
+    const refresh = screen.getByRole("button", { name: "Refresh news" });
+    expect(refresh.className).not.toMatch(/text-\[18px\]/);
+    const panel = screen.getByTestId("news-panel");
+    expect(panel.className).toMatch(/\bp-3\b/);
+    expect(panel.className).toMatch(/md:p-4/);
+    expect(panel.className).not.toMatch(/overflow-hidden/);
+    expect(panel.className).not.toMatch(/(?:^|\s)-m/);
+    expect(screen.getByTestId("news-panel-end-pad")).toBeTruthy();
+  });
 });

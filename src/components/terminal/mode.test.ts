@@ -19,6 +19,7 @@ import {
   modeChoiceCommands,
   modeStatusText,
   modeSwitchAck,
+  scrollbackOnConsoleEnter,
   resolveModeId,
   saveMode,
   wrongModeMessage
@@ -312,5 +313,22 @@ describe("MODE_LABEL chip copy", () => {
     expect(MODE_LABEL.invest).toBe("INVEST");
     expect(MODE_LABEL.dev).toBe("DEV");
     expect(MODE_LABEL.forensic).toBe("FORENSIC");
+  });
+});
+
+describe("console enter scrollback (#140 B2)", () => {
+  it("replaces visible scrollback with one mode ack and leaves history alone", () => {
+    const history = ["price eth", "help"];
+    const stale = [
+      "old output",
+      "[✓] Profile loaded for wallet 0xabc...def1 (Theme: Matrix)"
+    ];
+    const ack = modeSwitchAck("console");
+    const next = scrollbackOnConsoleEnter(ack);
+    expect(next).toEqual([ack]);
+    expect(next.join("\n")).not.toMatch(/Profile loaded/);
+    expect(next).toHaveLength(1);
+    expect(history).toEqual(["price eth", "help"]);
+    expect(stale[0]).toBe("old output");
   });
 });
