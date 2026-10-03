@@ -101,7 +101,31 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
 
   it("shows muted NETWORK placeholder when chain unset", () => {
     render(<TerminalHeader {...baseProps} activeChainId={null} />);
-    expect(screen.getByTestId("header-network").textContent).toMatch(/NETWORK/);
+    const chip = screen.getByTestId("header-network");
+    expect(chip.textContent).toMatch(/NETWORK/);
+    expect(chip.textContent).toMatch(/▾/);
+    expect(chip.textContent).not.toMatch(/\d/);
+  });
+
+  it("chip shows short name only; id stays in the menu (#140 B3)", () => {
+    render(
+      <TerminalHeader
+        {...baseProps}
+        activeChainId={11155111}
+        onChainSwitch={vi.fn()}
+      />
+    );
+    const chip = screen.getByTestId("header-network");
+    expect(chip.textContent).toMatch(/SEPOLIA/);
+    expect(chip.textContent).toMatch(/▾/);
+    expect(chip.textContent).not.toMatch(/11155111/);
+    expect(chip.textContent).not.toMatch(/\d/);
+    expect(chip.getAttribute("title")).toContain("11155111");
+    expect(chip.getAttribute("aria-label")).toContain("11155111");
+    fireEvent.click(chip);
+    const row = screen.getByTestId("header-network-option-11155111");
+    expect(row.textContent).toMatch(/SEPOLIA/);
+    expect(row.textContent).toContain("11155111");
   });
 
   it("NETWORK is visible on SOCIAL / SETTINGS (not a mode chip)", () => {

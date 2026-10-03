@@ -183,6 +183,12 @@ describe("NewsReader", () => {
     );
     expect(leadImg.getAttribute("alt")).toBe("");
     expect(leadImg.className).toMatch(/object-cover/);
+    expect(leadImg.className).toMatch(/max-w-full/);
+    const frame = leadImg.closest("[data-testid='news-thumb']") as HTMLElement;
+    expect(frame.className).toMatch(/aspect-video/);
+    expect(frame.className).toMatch(/\bp-1\b/);
+    expect(frame.className).toContain(theme.cardBg);
+    expect(frame.className).toMatch(/\bborder\b/);
     // Monogram stays under the img (loading / fallback surface)
     expect(container.textContent).toMatch(/CT/);
     fireEvent.error(leadImg);
@@ -199,5 +205,8 @@ describe("NewsReader", () => {
     );
     expect(container.querySelectorAll("img")).toHaveLength(0);
     expect(container.textContent).toMatch(/CT/);
+    const frame = container.querySelector("[data-testid='news-thumb']") as HTMLElement;
+    expect(frame.className).not.toMatch(/\bp-1\b/);
+    expect(frame.className).toMatch(/aspect-video/);
   });
 });

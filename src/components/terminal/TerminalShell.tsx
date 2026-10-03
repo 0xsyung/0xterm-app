@@ -370,6 +370,7 @@ import {
   modeChoiceCommands,
   modeStatusText,
   modeSwitchAck,
+  scrollbackOnConsoleEnter,
   resolveModeId,
   saveMode,
   wrongModeMessage,
@@ -2660,16 +2661,22 @@ export default function TerminalShell({
     setSuggestions([]);
     setSuggestionIdx(-1);
     if (!opts?.silent) {
-      setLogs((prev) =>
-        [
-          ...prev,
-          {
-            id: generateId(),
-            type: "text",
-            text: modeSwitchAck(next)
-          } as LogEntry
-        ].slice(-MAX_LOGS)
-      );
+      const ack = {
+        id: generateId(),
+        type: "text",
+        text: modeSwitchAck(next)
+      } as LogEntry;
+      // #140 B2 — entering CONSOLE wipes visible scrollback only (banner +
+      // hint live on the prompt). History is not cleared. Profile restore
+      // on wallet connect is unchanged and is not replayed here.
+      const enteringConsole =
+        next === "console" &&
+        (terminalMode !== "console" || primaryTab !== "terminal");
+      if (enteringConsole) {
+        setLogs(scrollbackOnConsoleEnter(ack));
+      } else {
+        setLogs((prev) => [...prev, ack].slice(-MAX_LOGS));
+      }
     }
   };
 
@@ -8330,7 +8337,7 @@ export default function TerminalShell({
                   />
                 </div>
               ) : openPanel === "news" ? (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
+                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-8">
                   <NewsPanel
                     theme={theme}
                     onClose={() => setOpenPanel(null)}

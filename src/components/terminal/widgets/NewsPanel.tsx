@@ -129,7 +129,8 @@ export default function NewsPanel({
             type="button"
             onClick={onClose}
             aria-label="Close news panel"
-            className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
+            title="Close news panel"
+            className={`inline-flex items-center justify-center cursor-pointer bg-transparent border-0 p-0 text-[18px] leading-none min-h-[28px] min-w-[28px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] max-md:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px] ${theme.primary}`}
             data-testid="news-panel-close"
           >
             ×
@@ -153,6 +154,8 @@ export default function NewsPanel({
           embedded
         />
       )}
+      {/* Bottom pad so the footer row stays reachable in the scroll column. */}
+      <div className="h-4 shrink-0" aria-hidden data-testid="news-panel-end-pad" />
     </div>
   );
 }

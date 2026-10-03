@@ -297,6 +297,16 @@ export function modeSwitchAck(mode: TerminalMode): string {
   return `[✓] Mode → ${MODE_LABEL[mode]} — ${MODE_BLURB[mode]}`;
 }
 
+/**
+ * Visible scrollback when the CONSOLE surface is entered (#140 B2).
+ * Replaces prior lines (stale scrollback and any profile-load ack).
+ * Command history is a separate buffer and is not an argument here.
+ * `clear` stays a scrollback-only wipe with no ack.
+ */
+export function scrollbackOnConsoleEnter<T>(ack: T): T[] {
+  return [ack];
+}
+
 export function modeStatusText(mode: TerminalMode): string {
   const lines = [
     `Mode: ${MODE_LABEL[mode]} — ${MODE_BLURB[mode]}`,

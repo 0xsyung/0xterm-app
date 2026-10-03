@@ -47,6 +47,27 @@ function SectionLabel({
   );
 }
 
+function SettingsGroupHeading({
+  theme,
+  title,
+  hint
+}: {
+  theme: ThemeConfig;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <div data-testid={`settings-group-${title.toLowerCase()}`}>
+      <div
+        className={`uppercase tracking-widest text-[11px] font-bold ${theme.primary}`}
+      >
+        {title}
+      </div>
+      <div className={`text-[10px] leading-snug ${theme.muted}`}>{hint}</div>
+    </div>
+  );
+}
+
 function PhosphorChip({
   theme,
   label,
@@ -514,6 +535,12 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         <div className={`${theme.muted} text-[11px]`}>{statusMsg}</div>
       )}
 
+      <div className="space-y-3">
+        <SettingsGroupHeading
+          theme={theme}
+          title="NETWORK"
+          hint="Endpoints and explorer keys for these chains."
+        />
       {/* 1. RPC */}
       <section className="space-y-1.5">
         <SectionLabel theme={theme}>RPC / API providers</SectionLabel>
@@ -728,7 +755,14 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           </div>
         )}
       </section>
+      </div>
 
+      <div className="space-y-3">
+        <SettingsGroupHeading
+          theme={theme}
+          title="WALLET"
+          hint="Tokens and chat channels saved on this wallet."
+        />
       {/* 2. Tokens */}
       <section className="space-y-1.5">
         <SectionLabel theme={theme}>Custom tokens</SectionLabel>
@@ -886,36 +920,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         )}
       </section>
 
-      {/* 3. Theme */}
-      <section className="space-y-1.5">
-        <SectionLabel theme={theme}>Theme</SectionLabel>
-        <div className="flex flex-wrap gap-1">
-          {THEME_ORDER.map((key) => {
-            const active = currentThemeKey === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onThemeChange(key)}
-                className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] rounded-none border ${
-                  active
-                    ? "border-transparent font-bold"
-                    : `${theme.border} ${theme.muted} bg-transparent`
-                }`}
-                style={
-                  active
-                    ? { background: theme.phosphor, color: FILL_FG }
-                    : undefined
-                }
-                title={THEMES[key].name}
-              >
-                {key}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {/* 4. Channels */}
       <section className="space-y-1.5">
         <SectionLabel theme={theme}>Channels</SectionLabel>
@@ -1028,6 +1032,43 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           <PhosphorChip theme={theme} label="Add" onClick={addChannel} />
         </div>
       </section>
+      </div>
+
+      <div className="space-y-3">
+        <SettingsGroupHeading
+          theme={theme}
+          title="TERMINAL"
+          hint="Look, start mode, and backup."
+        />
+      {/* 3. Theme */}
+      <section className="space-y-1.5">
+        <SectionLabel theme={theme}>Theme</SectionLabel>
+        <div className="flex flex-wrap gap-1">
+          {THEME_ORDER.map((key) => {
+            const active = currentThemeKey === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onThemeChange(key)}
+                className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] rounded-none border ${
+                  active
+                    ? "border-transparent font-bold"
+                    : `${theme.border} ${theme.muted} bg-transparent`
+                }`}
+                style={
+                  active
+                    ? { background: theme.phosphor, color: FILL_FG }
+                    : undefined
+                }
+                title={THEMES[key].name}
+              >
+                {key}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* 5. Default mode */}
       <section className="space-y-1.5">
@@ -1115,6 +1156,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           )}
         </div>
       </section>
+      </div>
+
     </div>
   );
 }
