@@ -33,7 +33,9 @@ const TOUCH =
   "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
 
 /**
- * Single strip: INVEST · DEV · FORENSIC · CONSOLE · SOCIAL · SETTINGS.
+ * Left strip: INVEST · DEV · FORENSIC · SOCIAL · CONSOLE; SETTINGS sits
+ * far-right with NETWORK · CONNECT (#140). SOCIAL sticks to the mode chips
+ * (no separator); the · separates the mode+social group from CONSOLE.
  * Only one chip active across the whole strip (mode OR social OR settings).
  * Mode chips clear primary-tab "terminal" surface; SOCIAL/SETTINGS are peers.
  */
@@ -63,7 +65,7 @@ function NavStrip({
       aria-label="Surface"
       data-testid="nav-strip"
     >
-      {MODE_ORDER.map((m) => {
+      {MODE_ORDER.filter((m) => m !== "console").map((m) => {
         const active = surfaceIsMode && mode === m;
         return (
           <button
@@ -91,6 +93,14 @@ function NavStrip({
         );
       })}
 
+      <SocialTab
+        theme={theme}
+        badge={badge}
+        radius={radius}
+        active={primaryTab === "social"}
+        onClick={() => onPrimaryTabChange?.("social")}
+      />
+
       <span
         className={`px-1 select-none ${theme.muted}`}
         aria-hidden
@@ -99,49 +109,120 @@ function NavStrip({
         ·
       </span>
 
-      {(
-        [
-          { id: "social" as const, label: "SOCIAL" },
-          { id: "settings" as const, label: "SETTINGS" }
-        ] as const
-      ).map((t) => {
-        const active = primaryTab === t.id;
-        const showBadge = t.id === "social" && badge;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onPrimaryTabChange?.(t.id)}
-            className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
-              active
-                ? "border border-transparent font-bold"
-                : `border ${theme.border} ${theme.muted} bg-transparent`
-            }`}
-            style={
-              active
-                ? { background: theme.phosphor, color: FILL_FG }
-                : undefined
-            }
-          >
-            {t.label}
-            {showBadge && (
-              <span
-                className={`inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 text-[9px] leading-none font-bold ${radius}`}
-                style={{
-                  background: active ? FILL_FG : theme.phosphor,
-                  color: active ? theme.phosphor : FILL_FG
-                }}
-                aria-label={`${badge} unread`}
-              >
-                {badge}
-              </span>
-            )}
-          </button>
-        );
-      })}
+      <ConsoleTab
+        theme={theme}
+        radius={radius}
+        active={surfaceIsMode && mode === "console"}
+        onClick={() => {
+          onModeChange?.("console");
+          onPrimaryTabChange?.("terminal");
+        }}
+      />
     </div>
+  );
+}
+
+/** SOCIAL primary-tab chip (#140) — sticks to mode chips, no separator. */
+function SocialTab({
+  theme,
+  badge,
+  radius,
+  active,
+  onClick
+}: {
+  theme: ThemeConfig;
+  badge: string | null;
+  radius: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
+        active
+          ? "border border-transparent font-bold"
+          : `border ${theme.border} ${theme.muted} bg-transparent`
+      }`}
+      style={active ? { background: theme.phosphor, color: FILL_FG } : undefined}
+    >
+      SOCIAL
+      {badge && (
+        <span
+          className={`inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 text-[9px] leading-none font-bold ${radius}`}
+          style={{
+            background: active ? FILL_FG : theme.phosphor,
+            color: active ? theme.phosphor : FILL_FG
+          }}
+          aria-label={`${badge} unread`}
+        >
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** CONSOLE mode chip (#140) — moved to the right, sticks to SETTINGS. */
+function ConsoleTab({
+  theme,
+  radius,
+  active,
+  onClick
+}: {
+  theme: ThemeConfig;
+  radius: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
+        active
+          ? "border border-transparent font-bold"
+          : `border ${theme.border} ${theme.muted} bg-transparent`
+      }`}
+      style={active ? { background: theme.phosphor, color: FILL_FG } : undefined}
+    >
+      CONSOLE
+    </button>
+  );
+}
+
+/** SETTINGS primary-tab chip (#140) — far-right, sticks to NETWORK. */
+function SettingsTab({
+  theme,
+  radius,
+  active,
+  onClick
+}: {
+  theme: ThemeConfig;
+  radius: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
+        active
+          ? "border border-transparent font-bold"
+          : `border ${theme.border} ${theme.muted} bg-transparent`
+      }`}
+      style={active ? { background: theme.phosphor, color: FILL_FG } : undefined}
+    >
+      SETTINGS
+    </button>
   );
 }
 
@@ -382,11 +463,17 @@ export default function TerminalHeader({
         />
       )}
 
-      {/* Far-right wallet cluster: NETWORK then CONNECT (#134). */}
+      {/* Far-right wallet cluster: SETTINGS · NETWORK · CONNECT (#134/#140). */}
       <div
         className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end"
         data-testid="wallet-cluster"
       >
+        <SettingsTab
+          theme={theme}
+          radius="rounded-none"
+          active={primaryTab === "settings"}
+          onClick={() => onPrimaryTabChange?.("settings")}
+        />
         <NetworkControl
           theme={theme}
           activeChainId={activeChainId}

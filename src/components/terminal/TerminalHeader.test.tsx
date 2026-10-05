@@ -52,7 +52,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(screen.queryByTestId("brand-clock-network")).toBeNull();
   });
 
-  it("wallet cluster is NETWORK then CONNECT with ml-auto (#134)", () => {
+  it("wallet cluster is SETTINGS · NETWORK · CONNECT with ml-auto (#134/#140)", () => {
     render(
       <TerminalHeader {...baseProps} activeChainId={8453} onChainSwitch={vi.fn()} />
     );
@@ -60,17 +60,22 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(cluster.className).toMatch(/ml-auto/);
     expect(cluster.className).toMatch(/gap-2/);
     const kids = Array.from(cluster.children);
-    // NetworkControl wraps button in a relative div; Connect is a button
+    expect(within(cluster).getByRole("tab", { name: "SETTINGS" })).toBeTruthy();
     expect(within(cluster).getByTestId("header-network")).toBeTruthy();
     expect(within(cluster).getByTestId("header-connect")).toBeTruthy();
+    const settingsEl = within(cluster).getByRole("tab", { name: "SETTINGS" });
     const networkEl = within(cluster).getByTestId("header-network");
     const connectEl = within(cluster).getByTestId("header-connect");
-    // NETWORK precedes CONNECT in DOM order
+    // SETTINGS precedes NETWORK precedes CONNECT in DOM order
+    expect(
+      settingsEl.compareDocumentPosition(networkEl) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(
       networkEl.compareDocumentPosition(connectEl) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(kids.length).toBe(2);
+    expect(kids.length).toBe(3);
   });
 
   it("renders NETWORK control in wallet cluster; options = SUPPORTED_CHAINS", () => {
@@ -195,16 +200,26 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(truncateAddress("0x1234")).toBe("0x1234");
   });
 
-  it("renders a single nav strip with modes + SOCIAL + SETTINGS and no TERMINAL peer", () => {
+  it("renders nav strip modes + SOCIAL + CONSOLE; SETTINGS sits in wallet cluster (#140)", () => {
     render(<TerminalHeader {...baseProps} />);
-    expect(screen.getByTestId("nav-strip")).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "INVEST" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "DEV" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "FORENSIC" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "CONSOLE" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "SOCIAL" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "SETTINGS" })).toBeTruthy();
+    const strip = screen.getByTestId("nav-strip");
+    expect(within(strip).getByRole("tab", { name: "INVEST" })).toBeTruthy();
+    expect(within(strip).getByRole("tab", { name: "DEV" })).toBeTruthy();
+    expect(within(strip).getByRole("tab", { name: "FORENSIC" })).toBeTruthy();
+    expect(within(strip).getByRole("tab", { name: "SOCIAL" })).toBeTruthy();
+    expect(within(strip).getByRole("tab", { name: "CONSOLE" })).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "TERMINAL" })).toBeNull();
+    // SETTINGS is no longer in the nav strip — it sits in the wallet cluster.
+    expect(within(strip).queryByRole("tab", { name: "SETTINGS" })).toBeNull();
+    expect(
+      within(screen.getByTestId("wallet-cluster")).getByRole("tab", {
+        name: "SETTINGS"
+      })
+    ).toBeTruthy();
+    // SOCIAL sticks to the mode chips: only one separator, after SOCIAL.
+    const dots = strip.querySelectorAll("[data-testid=nav-separator]");
+    expect(dots.length).toBe(1);
+    expect(dots[0].textContent).toBe("·");
     expect(screen.getByTestId("nav-separator").textContent).toBe("·");
   });
 
