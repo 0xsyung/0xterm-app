@@ -46,7 +46,7 @@ export function WorkspaceToolTabs({
               }
               onCommand(a.cmd);
             }}
-            className={`flex flex-col items-start gap-0.5 px-2.5 py-1.5 border uppercase tracking-widest text-[10px] cursor-pointer ${touch} ${
+            className={`flex items-center px-2.5 py-1.5 border uppercase tracking-widest text-[10px] cursor-pointer ${touch} ${
               active
                 ? "border-transparent font-bold"
                 : `${theme.border} ${theme.muted} bg-transparent`
@@ -56,7 +56,6 @@ export function WorkspaceToolTabs({
             }
           >
             <span className={active ? undefined : theme.primary}>{a.label}</span>
-            <span className="opacity-70 normal-case">{a.hint}</span>
           </button>
         );
       })}
