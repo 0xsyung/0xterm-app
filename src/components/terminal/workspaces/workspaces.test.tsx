@@ -158,7 +158,8 @@ describe("WorkspaceSurface (#145)", () => {
     expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /PORTFOLIO/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /DEX/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /NETWORK/i })).toBeTruthy();
+    // NETWORK sub-tab removed — the network selector already covers it.
+    expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
     // MARKET is the default sub-tab: PRICE/SWAP/NEWS visible, PORTFOLIO tools hidden.
     expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^SNAPSHOT/i })).toBeNull();
@@ -267,9 +268,6 @@ describe("Tile hints (#140 A4)", () => {
     );
     expect(screen.getByRole("button", { name: /ADD LIQUIDITY/i }).textContent).toMatch(
       /add liquidity/i
-    );
-    expect(screen.getByRole("button", { name: /NETWORKS/i }).textContent).toMatch(
-      /list networks/i
     );
     expect(screen.getByRole("button", { name: /BALANCE/i }).textContent).not.toMatch(/</);
     expect(screen.getByRole("button", { name: /CREATE POOL/i }).textContent).not.toMatch(/</);
