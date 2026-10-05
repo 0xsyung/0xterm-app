@@ -31,11 +31,14 @@ export function canRunTrace(args: { txHash: string; running?: boolean }): boolea
 export default function TracePanel({
   theme,
   onClose,
-  onRun
+  onRun,
+  frameless = false
 }: {
   theme: ThemeConfig;
   onClose: () => void;
   onRun: (args: TraceRunArgs) => Promise<TraceRunResult>;
+  /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
+  frameless?: boolean;
 }) {
   const [txHash, setTxHash] = useState("");
   const [running, setRunning] = useState(false);
@@ -82,7 +85,9 @@ export default function TracePanel({
 
   return (
     <div
-      className={`w-full max-w-[390px] flex flex-col gap-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
+      className={`w-full flex flex-col gap-3 ${
+        frameless ? "" : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
+      }`}
       data-testid="trace-panel"
       role="dialog"
       aria-label="Trace"

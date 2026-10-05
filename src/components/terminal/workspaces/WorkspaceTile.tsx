@@ -10,12 +10,19 @@ import type { ThemeConfig } from "../types";
 
 export type WorkspacePanelId = "price" | "swap" | "news" | "sim" | "trace";
 
+/** Sub-tab ids per workspace mode (#145). */
+export type InvestSubTab = "MARKET" | "PORTFOLIO" | "DEX" | "NETWORK";
+export type DevSubTab = "SOURCE" | "BUILD" | "SHIP";
+export type ForensicSubTab = "SCREEN" | "SIM" | "TRACE" | "READ";
+
 export type WorkspaceAction = {
   cmd: string;
   label: string;
   hint: string;
   /** When set, tile opens a tool panel instead of firing a bare command (#117). */
   panel?: WorkspacePanelId;
+  /** Workspace frame sub-tab this action groups under (#145). */
+  tab: string;
 };
 
 export function WorkspaceTile({

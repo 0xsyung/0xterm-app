@@ -54,11 +54,14 @@ export function canRunSim(args: {
 export default function SimPanel({
   theme,
   onClose,
-  onRun
+  onRun,
+  frameless = false
 }: {
   theme: ThemeConfig;
   onClose: () => void;
   onRun: (args: SimRunArgs) => Promise<SimRunResult>;
+  /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
+  frameless?: boolean;
 }) {
   const [to, setTo] = useState("");
   const [data, setData] = useState("");
@@ -105,7 +108,9 @@ export default function SimPanel({
 
   return (
     <div
-      className={`w-full max-w-[390px] flex flex-col gap-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
+      className={`w-full flex flex-col gap-3 ${
+        frameless ? "" : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
+      }`}
       data-testid="sim-panel"
       role="dialog"
       aria-label="Sim"

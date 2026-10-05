@@ -377,8 +377,7 @@ import {
   type TerminalMode
 } from "./mode";
 import type { BillboardPost } from "./widgets/BillboardWidget";
-import { WorkspaceStrip } from "./workspaces";
-import { ModeEmptyState } from "./workspaces/ModeEmptyState";
+import { WorkspaceSurface } from "./workspaces";
 import type { WorkspacePanelId } from "./workspaces/WorkspaceTile";
 import PricePanel, {
   buildPriceCli,
@@ -701,10 +700,7 @@ export default function TerminalShell({
   );
   const [suggestionIdx, setSuggestionIdx] = useState(-1);
 
-  // Workspace launcher (#80): tile strip collapses on first command; a slim
-  // re-open bar returns it. Console never shows the strip.
-  const [showWorkspace, setShowWorkspace] = useState(true);
-  // Tool panel overlay for workspace modes (#117/#119) — PRICE / SWAP.
+  // Tool panel open inside the workspace frame (#145) — PRICE / SWAP / NEWS / SIM / TRACE.
   const [openPanel, setOpenPanel] = useState<WorkspacePanelId | null>(null);
 
   // Pending interactive confirmation (e.g. register an unverified contract).
@@ -2649,9 +2645,7 @@ export default function TerminalShell({
     setTerminalMode(next);
     saveMode(typeof window !== "undefined" ? window.localStorage : null, next);
     savePreference("mode", next);
-    // #80 — entering a workspace mode re-opens its launcher.
-    if (next !== "console") setShowWorkspace(true);
-    // #117 — mode switch closes any open tool panel.
+    // #145 — mode switch closes any open inline tool panel.
     setOpenPanel(null);
     // Clear CHOICES / pending token picks belonging to the old mode
     if (pendingTokenPick) {
@@ -7590,9 +7584,6 @@ export default function TerminalShell({
     const trimmed = cmd.trim();
     if (!trimmed) return;
 
-    // #80 — first command dismisses the workspace launcher (re-open via bar).
-    if (showWorkspace) setShowWorkspace(false);
-
     const args0 = trimmed.split(/\s+/).filter(Boolean);
     const cmd0 = args0[0]?.toLowerCase();
     // #19 — a seed/key typed after `feedback ` must never persist in the input
@@ -8081,6 +8072,130 @@ export default function TerminalShell({
     }
   };
 
+  // #145 — panel wiring reused for the inline (frameless) panels inside the
+  // workspace frame. Each panel keeps its own Escape-close; onClose returns
+  // to the active sub-tab's tile grid.
+  const renderInlinePanel = (panel: WorkspacePanelId): React.ReactNode => {
+    const close = () => setOpenPanel(null);
+    switch (panel) {
+      case "price":
+        return (
+          <PricePanel
+            theme={theme}
+            commonTokens={Object.keys(COMMON_TOKENS[activeChainId || 0] || {})}
+            activeChainId={activeChainId}
+            activeDexId={activeDexId}
+            dexes={DEX_REGISTRY[activeChainId || 0] || []}
+            onDexChange={(dexId) => {
+              setActiveDexId(dexId);
+              savePreference("dexId", dexId);
+            }}
+            onClose={close}
+            onRun={async (args: PriceRunArgs): Promise<PriceRunResult> => {
+              const line = buildPriceCli(args);
+              const result = await commands.price(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from price." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.componentData?.kind === "price") {
+                return {
+                  ok: true,
+                  data: entry.componentData as PriceCardData
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Price lookup failed." };
+            }}
+            onPin={(data) => {
+              const log: LogEntry = {
+                id: generateId(),
+                type: "component",
+                title: `PRICE ${data.symbolA || data.tokenSymbol || "?"}/${data.symbolB || data.quoteSymbol || "?"}`,
+                componentData: data
+              };
+              onPin(log);
+            }}
+            frameless
+          />
+        );
+      case "swap":
+        return (
+          <SwapPanel
+            theme={theme}
+            commonTokens={Object.keys(COMMON_TOKENS[activeChainId || 0] || {})}
+            onClose={close}
+            onRun={async (args: SwapRunArgs): Promise<SwapRunResult> => {
+              const line = buildSwapCli(args);
+              const result = await commands.swap(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from swap." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "component" && entry.component) {
+                return { ok: true, component: entry.component };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Swap failed." };
+            }}
+            frameless
+          />
+        );
+      case "news":
+        return <NewsPanel theme={theme} onClose={close} frameless />;
+      case "sim":
+        return (
+          <SimPanel
+            theme={theme}
+            onClose={close}
+            onRun={async (args: SimRunArgs): Promise<SimRunResult> => {
+              const line = `sim ${args.to} ${args.data}`;
+              const result = await commands.sim(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from sim." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "component" && entry.component) {
+                return { ok: true, component: entry.component };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Sim failed." };
+            }}
+            frameless
+          />
+        );
+      case "trace":
+        return (
+          <TracePanel
+            theme={theme}
+            onClose={close}
+            onRun={async (args: TraceRunArgs): Promise<TraceRunResult> => {
+              const line = `trace ${args.txHash}`;
+              const result = await commands.trace(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from trace." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "component" && entry.component) {
+                return { ok: true, component: entry.component };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Trace failed." };
+            }}
+            frameless
+          />
+        );
+    }
+  };
+
   return (
     <div
       className={`relative z-10 w-full h-full flex flex-col cursor-text overflow-hidden transition-all duration-300 ${theme.bg} ${theme.text} ${theme.font}`}
@@ -8270,166 +8385,25 @@ export default function TerminalShell({
         ) : (
           /* Log + pin: band-driven — stack (phone/short-landscape) vs two-column (tablet/desktop). Never overlay. */
           <>
-            {terminalMode !== "console" &&
-              (openPanel === "price" ? (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
-                  <PricePanel
-                    theme={theme}
-                    commonTokens={Object.keys(COMMON_TOKENS[activeChainId || 0] || {})}
-                    activeChainId={activeChainId}
-                    activeDexId={activeDexId}
-                    dexes={DEX_REGISTRY[activeChainId || 0] || []}
-                    onDexChange={(dexId) => {
-                      setActiveDexId(dexId);
-                      savePreference("dexId", dexId);
-                    }}
-                    onClose={() => setOpenPanel(null)}
-                    onRun={async (args: PriceRunArgs): Promise<PriceRunResult> => {
-                      const line = buildPriceCli(args);
-                      const result = await commands.price(line.split(/\s+/), line);
-                      if (!result) {
-                        return { ok: false, error: "No result from price." };
-                      }
-                      const entry = Array.isArray(result) ? result[0] : result;
-                      if (entry?.componentData?.kind === "price") {
-                        return {
-                          ok: true,
-                          data: entry.componentData as PriceCardData
-                        };
-                      }
-                      if (entry?.type === "text" && typeof entry.text === "string") {
-                        return { ok: false, error: entry.text };
-                      }
-                      return { ok: false, error: "Price lookup failed." };
-                    }}
-                    onPin={(data) => {
-                      const log: LogEntry = {
-                        id: generateId(),
-                        type: "component",
-                        title: `PRICE ${data.symbolA || data.tokenSymbol || "?"}/${data.symbolB || data.quoteSymbol || "?"}`,
-                        componentData: data
-                      };
-                      onPin(log);
-                    }}
-                  />
-                </div>
-              ) : openPanel === "swap" ? (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
-                  <SwapPanel
-                    theme={theme}
-                    commonTokens={Object.keys(COMMON_TOKENS[activeChainId || 0] || {})}
-                    onClose={() => setOpenPanel(null)}
-                    onRun={async (args: SwapRunArgs): Promise<SwapRunResult> => {
-                      const line = buildSwapCli(args);
-                      const result = await commands.swap(line.split(/\s+/), line);
-                      if (!result) {
-                        return { ok: false, error: "No result from swap." };
-                      }
-                      const entry = Array.isArray(result) ? result[0] : result;
-                      if (entry?.type === "component" && entry.component) {
-                        return { ok: true, component: entry.component };
-                      }
-                      if (entry?.type === "text" && typeof entry.text === "string") {
-                        return { ok: false, error: entry.text };
-                      }
-                      return { ok: false, error: "Swap failed." };
-                    }}
-                  />
-                </div>
-              ) : openPanel === "news" ? (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-8">
-                  <NewsPanel
-                    theme={theme}
-                    onClose={() => setOpenPanel(null)}
-                  />
-                </div>
-              ) : openPanel === "sim" ? (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
-                  <SimPanel
-                    theme={theme}
-                    onClose={() => setOpenPanel(null)}
-                    onRun={async (args: SimRunArgs): Promise<SimRunResult> => {
-                      const line = `sim ${args.to} ${args.data}`;
-                      const result = await commands.sim(line.split(/\s+/), line);
-                      if (!result) {
-                        return { ok: false, error: "No result from sim." };
-                      }
-                      const entry = Array.isArray(result) ? result[0] : result;
-                      if (entry?.type === "component" && entry.component) {
-                        return { ok: true, component: entry.component };
-                      }
-                      if (entry?.type === "text" && typeof entry.text === "string") {
-                        return { ok: false, error: entry.text };
-                      }
-                      return { ok: false, error: "Sim failed." };
-                    }}
-                  />
-                </div>
-              ) : openPanel === "trace" ? (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto pb-2">
-                  <TracePanel
-                    theme={theme}
-                    onClose={() => setOpenPanel(null)}
-                    onRun={async (args: TraceRunArgs): Promise<TraceRunResult> => {
-                      const line = `trace ${args.txHash}`;
-                      const result = await commands.trace(line.split(/\s+/), line);
-                      if (!result) {
-                        return { ok: false, error: "No result from trace." };
-                      }
-                      const entry = Array.isArray(result) ? result[0] : result;
-                      if (entry?.type === "component" && entry.component) {
-                        return { ok: true, component: entry.component };
-                      }
-                      if (entry?.type === "text" && typeof entry.text === "string") {
-                        return { ok: false, error: entry.text };
-                      }
-                      return { ok: false, error: "Trace failed." };
-                    }}
-                  />
-                </div>
-              ) : showWorkspace ? (
-                <div
-                  className={
-                    pinned.length === 0
-                      ? "flex flex-col flex-1 min-h-0 min-w-0"
-                      : "shrink-0"
-                  }
-                >
-                  <div className="shrink-0 flex items-start gap-2 pb-2">
-                    <span
-                      className={`uppercase text-[10px] tracking-widest pt-1 ${theme.muted}`}
-                    >
-                      LAUNCH
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <WorkspaceStrip
-                        theme={theme}
-                        mode={terminalMode}
-                        onCommand={(cmd) => {
-                          void handleCommand(cmd);
-                        }}
-                        onOpenPanel={(panel) => {
-                          setOpenPanel(panel);
-                          setShowWorkspace(true);
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {pinned.length === 0 && (
-                    <ModeEmptyState theme={theme} mode={terminalMode} />
-                  )}
-                </div>
-              ) : (
-                <div className="shrink-0 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowWorkspace(true)}
-                    className={`uppercase text-[10px] tracking-widest cursor-pointer border ${theme.border} ${theme.cardBg} px-2 py-0.5 pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px]`}
-                  >
-                    ▦ Workspace
-                  </button>
-                </div>
-              ))}
+            {terminalMode !== "console" && (
+              <div className="flex-1 min-h-0 min-w-0">
+                <WorkspaceSurface
+                  key={terminalMode}
+                  theme={theme}
+                  mode={terminalMode}
+                  onCommand={(cmd) => {
+                    void handleCommand(cmd);
+                  }}
+                  onOpenPanel={(panel) => {
+                    setOpenPanel(panel);
+                  }}
+                  onSubTabChange={() => {
+                    setOpenPanel(null);
+                  }}
+                  inlinePanel={openPanel ? renderInlinePanel(openPanel) : undefined}
+                />
+              </div>
+            )}
             {/* #117 — prompt + log are CONSOLE-only; workspace modes keep tiles/panels (+ pins). */}
             {terminalMode === "console" ? (
             <div className={pinGridClass(band, pinned.length > 0)}>
