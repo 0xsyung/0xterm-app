@@ -73,12 +73,15 @@ export function WorkspaceSurface({
   mode,
   onCommand,
   onOpenPanel,
+  onSubTabChange,
   inlinePanel
 }: {
   theme: ThemeConfig;
   mode: TerminalMode;
   onCommand: (cmd: string) => void;
   onOpenPanel?: (panel: WorkspacePanelId) => void;
+  /** Fired when the user switches sub-tabs — shell clears any open inline panel (#145). */
+  onSubTabChange?: (tab: string) => void;
   inlinePanel?: React.ReactNode;
 }) {
   const subTabs = mode === "console" ? undefined : SUB_TABS[mode];
@@ -86,12 +89,17 @@ export function WorkspaceSurface({
 
   if (!subTabs) return null;
 
+  const handleSubTabChange = (tab: string) => {
+    setActiveSubTab(tab);
+    onSubTabChange?.(tab);
+  };
+
   return (
     <WorkspaceFrame
       theme={theme}
       subTabs={subTabs}
       activeSubTab={activeSubTab}
-      onSubTabChange={setActiveSubTab}
+      onSubTabChange={handleSubTabChange}
     >
       {inlinePanel ?? (
         <WorkspaceBody

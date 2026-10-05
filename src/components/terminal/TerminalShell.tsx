@@ -8397,6 +8397,9 @@ export default function TerminalShell({
                   onOpenPanel={(panel) => {
                     setOpenPanel(panel);
                   }}
+                  onSubTabChange={() => {
+                    setOpenPanel(null);
+                  }}
                   inlinePanel={openPanel ? renderInlinePanel(openPanel) : undefined}
                 />
               </div>

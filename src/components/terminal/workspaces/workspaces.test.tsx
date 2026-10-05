@@ -188,6 +188,23 @@ describe("WorkspaceSurface (#145)", () => {
     expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
   });
 
+  it("switching sub-tab while an inline panel is open notifies onSubTabChange (shell clears panel)", () => {
+    const onSubTabChange = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        onSubTabChange={onSubTabChange}
+        inlinePanel={<div data-testid="inline-price">inline price</div>}
+      />
+    );
+    expect(screen.getByTestId("inline-price")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /DEX/i }));
+    expect(onSubTabChange).toHaveBeenCalledWith("DEX");
+  });
+
   it("renders nothing in console (raw terminal)", () => {
     const { container } = render(
       <WorkspaceSurface theme={theme} mode="console" onCommand={vi.fn()} />
