@@ -33,11 +33,11 @@ const TOUCH =
   "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
 
 /**
- * Left strip: INVEST · DEV · FORENSIC · SOCIAL · CONSOLE; SETTINGS sits
- * far-right with NETWORK · CONNECT (#140). SOCIAL sticks to the mode chips
- * (no separator); the · separates the mode+social group from CONSOLE.
- * Only one chip active across the whole strip (mode OR social OR settings).
- * Mode chips clear primary-tab "terminal" surface; SOCIAL/SETTINGS are peers.
+ * Left strip: INVEST · DEV · FORENSIC · SOCIAL (no separator between the
+ * mode chips and SOCIAL). CONSOLE · SETTINGS sit far-right with NETWORK ·
+ * CONNECT (#140). Only one chip active across the whole strip (mode OR
+ * social OR settings). Mode chips clear primary-tab "terminal" surface;
+ * SOCIAL/SETTINGS are peers.
  */
 function NavStrip({
   theme,
@@ -99,24 +99,6 @@ function NavStrip({
         radius={radius}
         active={primaryTab === "social"}
         onClick={() => onPrimaryTabChange?.("social")}
-      />
-
-      <span
-        className={`px-1 select-none ${theme.muted}`}
-        aria-hidden
-        data-testid="nav-separator"
-      >
-        ·
-      </span>
-
-      <ConsoleTab
-        theme={theme}
-        radius={radius}
-        active={surfaceIsMode && mode === "console"}
-        onClick={() => {
-          onModeChange?.("console");
-          onPrimaryTabChange?.("terminal");
-        }}
       />
     </div>
   );
@@ -463,11 +445,20 @@ export default function TerminalHeader({
         />
       )}
 
-      {/* Far-right wallet cluster: SETTINGS · NETWORK · CONNECT (#134/#140). */}
+      {/* Far-right wallet cluster: CONSOLE · SETTINGS · NETWORK · CONNECT (#134/#140). */}
       <div
         className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end"
         data-testid="wallet-cluster"
       >
+        <ConsoleTab
+          theme={theme}
+          radius="rounded-none"
+          active={primaryTab === "terminal" && mode === "console"}
+          onClick={() => {
+            onModeChange?.("console");
+            onPrimaryTabChange?.("terminal");
+          }}
+        />
         <SettingsTab
           theme={theme}
           radius="rounded-none"
