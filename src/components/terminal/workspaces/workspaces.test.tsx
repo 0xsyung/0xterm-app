@@ -8,7 +8,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { THEMES } from "../constants";
-import { WorkspaceStrip } from "./index";
+import { WorkspaceStrip, WorkspaceSurface } from "./index";
 import { WorkspaceTile } from "./WorkspaceTile";
 
 const theme = THEMES.matrix;
@@ -150,13 +150,59 @@ describe("WorkspaceStrip", () => {
   });
 });
 
+describe("WorkspaceSurface (#145)", () => {
+  it("shows sub-tab row and groups tiles by the active sub-tab", () => {
+    render(
+      <WorkspaceSurface theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+    );
+    expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /PORTFOLIO/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /DEX/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /NETWORK/i })).toBeTruthy();
+    // MARKET is the default sub-tab: PRICE/SWAP/NEWS visible, PORTFOLIO tools hidden.
+    expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^SNAPSHOT/i })).toBeNull();
+  });
+
+  it("switching sub-tab swaps the tile grid", () => {
+    render(
+      <WorkspaceSurface theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /PORTFOLIO/i }));
+    expect(screen.getByRole("button", { name: /^SNAPSHOT/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PNL/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
+  });
+
+  it("shows the inline panel instead of the tile grid when set", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        inlinePanel={<div data-testid="inline-sim">inline sim</div>}
+      />
+    );
+    expect(screen.getByTestId("inline-sim")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
+  });
+
+  it("renders nothing in console (raw terminal)", () => {
+    const { container } = render(
+      <WorkspaceSurface theme={theme} mode="console" onCommand={vi.fn()} />
+    );
+    expect(container.firstChild).toBeNull();
+  });
+});
+
 describe("WorkspaceTile", () => {
   it("renders label + hint and fires the command", () => {
     const onCommand = vi.fn();
     render(
       <WorkspaceTile
         theme={theme}
-        action={{ cmd: "swap 1 ETH USDC", label: "SWAP", hint: "swap <amt> <from> <to>" }}
+        action={{ cmd: "swap 1 ETH USDC", label: "SWAP", hint: "swap <amt> <from> <to>", tab: "MARKET" }}
         onCommand={onCommand}
       />
     );
@@ -174,7 +220,8 @@ describe("WorkspaceTile", () => {
           cmd: "price",
           label: "PRICE",
           hint: "open price panel",
-          panel: "price"
+          panel: "price",
+          tab: "MARKET"
         }}
         onCommand={onCommand}
         onOpenPanel={onOpenPanel}

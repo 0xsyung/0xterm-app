@@ -91,7 +91,8 @@ export default function PricePanel({
   onClose,
   onRun,
   onPin,
-  pinned = false
+  pinned = false,
+  frameless = false
 }: {
   theme: ThemeConfig;
   /** Symbol list from COMMON_TOKENS for the active chain (fallback = builtins). */
@@ -108,6 +109,8 @@ export default function PricePanel({
   onRun: (args: PriceRunArgs) => Promise<PriceRunResult>;
   onPin?: (data: PriceCardData) => void;
   pinned?: boolean;
+  /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
+  frameless?: boolean;
 }) {
   const dexList = dexes ?? [];
 
@@ -253,7 +256,9 @@ export default function PricePanel({
 
   return (
     <div
-      className={`w-full max-w-[390px] flex flex-col gap-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
+      className={`w-full flex flex-col gap-3 ${
+        frameless ? "" : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
+      }`}
       data-testid="price-panel"
       role="dialog"
       aria-label="Price"

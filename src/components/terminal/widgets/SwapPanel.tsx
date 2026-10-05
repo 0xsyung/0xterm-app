@@ -89,13 +89,16 @@ export default function SwapPanel({
   theme,
   commonTokens,
   onClose,
-  onRun
+  onRun,
+  frameless = false
 }: {
   theme: ThemeConfig;
   /** Symbol list from COMMON_TOKENS for the active chain (fallback = builtins). */
   commonTokens?: string[];
   onClose: () => void;
   onRun: (args: SwapRunArgs) => Promise<SwapRunResult>;
+  /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
+  frameless?: boolean;
 }) {
   const [amount, setAmount] = useState("");
   const [fromToken, setFromToken] = useState("");
@@ -215,7 +218,9 @@ export default function SwapPanel({
 
   return (
     <div
-      className={`w-full max-w-[390px] flex flex-col gap-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
+      className={`w-full flex flex-col gap-3 ${
+        frameless ? "" : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
+      }`}
       data-testid="swap-panel"
       role="dialog"
       aria-label="Swap"

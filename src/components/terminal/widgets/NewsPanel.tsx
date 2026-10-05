@@ -29,10 +29,13 @@ type NewsPanelData = {
 
 export default function NewsPanel({
   theme,
-  onClose
+  onClose,
+  frameless = false
 }: {
   theme: ThemeConfig;
   onClose: () => void;
+  /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
+  frameless?: boolean;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +107,9 @@ export default function NewsPanel({
 
   return (
     <div
-      className={`w-full min-h-full flex flex-col gap-3 p-3 md:p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded}`}
+      className={`w-full min-h-full flex flex-col gap-3 ${
+        frameless ? "" : `p-3 md:p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
+      }`}
       data-testid="news-panel"
       role="dialog"
       aria-label="News"
