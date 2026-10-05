@@ -171,6 +171,25 @@ describe("WorkspaceSurface (#148)", () => {
     expect(screen.queryByRole("button", { name: /^SNAPSHOT/i })).toBeNull();
   });
 
+  it("NEWS is the leftmost MARKET tool tab (#152)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel="news"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={() => <div data-testid="panel-news">news panel</div>}
+      />
+    );
+    const marketButtons = screen.getAllByRole("button", { name: /^(NEWS|PRICE|SWAP|TICKER)$/i });
+    expect(marketButtons[0].textContent).toMatch(/^NEWS$/i);
+    expect(screen.getByTestId("panel-news")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /^NEWS/i }).getAttribute("aria-pressed")
+    ).toBe("true");
+  });
+
   it("switching sub-tab swaps the tool-tab row and notifies the shell", () => {
     const onSubTabChange = vi.fn();
     render(
