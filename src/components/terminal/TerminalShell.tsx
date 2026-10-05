@@ -701,7 +701,10 @@ export default function TerminalShell({
   const [suggestionIdx, setSuggestionIdx] = useState(-1);
 
   // Tool panel open inside the workspace frame (#145) — PRICE / SWAP / NEWS / SIM / TRACE.
-  const [openPanel, setOpenPanel] = useState<WorkspacePanelId | null>(null);
+  // #152 — INVEST opens on the NEWS panel by default; other modes rely on null.
+  const [openPanel, setOpenPanel] = useState<WorkspacePanelId | null>(() =>
+    terminalMode === "invest" ? "news" : null
+  );
 
   // Pending interactive confirmation (e.g. register an unverified contract).
   // When set, the next Enter routes the typed input through this resolver.

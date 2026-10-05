@@ -18,6 +18,13 @@ export const INVEST_SUB_TABS: { id: InvestSubTab; label: string }[] = [
 
 export const INVEST_ACTIONS: WorkspaceAction[] = [
   {
+    cmd: "news",
+    label: "NEWS",
+    hint: "open news panel",
+    panel: "news",
+    tab: "MARKET"
+  },
+  {
     cmd: "price",
     label: "PRICE",
     hint: "open price panel",
@@ -32,13 +39,6 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     tab: "MARKET"
   },
   { cmd: "ticker", label: "TICKER", hint: "watchlist board", tab: "MARKET" },
-  {
-    cmd: "news",
-    label: "NEWS",
-    hint: "open news panel",
-    panel: "news",
-    tab: "MARKET"
-  },
   { cmd: "balance", label: "BALANCE", hint: "check token balance", tab: "PORTFOLIO" },
   { cmd: "portfolio", label: "PORTFOLIO", hint: "all chains + P/L", tab: "PORTFOLIO" },
   { cmd: "snapshot", label: "SNAPSHOT", hint: "record baseline", tab: "PORTFOLIO" },
