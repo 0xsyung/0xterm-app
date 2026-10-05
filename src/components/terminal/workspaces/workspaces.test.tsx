@@ -150,10 +150,16 @@ describe("WorkspaceStrip", () => {
   });
 });
 
-describe("WorkspaceSurface (#145)", () => {
-  it("shows sub-tab row and groups tiles by the active sub-tab", () => {
+describe("WorkspaceSurface (#148)", () => {
+  it("shows sub-tab row and tool tabs for the active sub-tab", () => {
     render(
-      <WorkspaceSurface theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+      />
     );
     expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /PORTFOLIO/i })).toBeTruthy();
@@ -165,50 +171,98 @@ describe("WorkspaceSurface (#145)", () => {
     expect(screen.queryByRole("button", { name: /^SNAPSHOT/i })).toBeNull();
   });
 
-  it("switching sub-tab swaps the tile grid", () => {
-    render(
-      <WorkspaceSurface theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
-    );
-    fireEvent.click(screen.getByRole("button", { name: /PORTFOLIO/i }));
-    expect(screen.getByRole("button", { name: /^SNAPSHOT/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^PNL/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
-  });
-
-  it("shows the inline panel instead of the tile grid when set", () => {
-    render(
-      <WorkspaceSurface
-        theme={theme}
-        mode="forensic"
-        onCommand={vi.fn()}
-        onOpenPanel={vi.fn()}
-        inlinePanel={<div data-testid="inline-sim">inline sim</div>}
-      />
-    );
-    expect(screen.getByTestId("inline-sim")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
-  });
-
-  it("switching sub-tab while an inline panel is open notifies onSubTabChange (shell clears panel)", () => {
+  it("switching sub-tab swaps the tool-tab row and notifies the shell", () => {
     const onSubTabChange = vi.fn();
     render(
       <WorkspaceSurface
         theme={theme}
         mode="invest"
+        activePanel={null}
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
         onSubTabChange={onSubTabChange}
-        inlinePanel={<div data-testid="inline-price">inline price</div>}
       />
     );
-    expect(screen.getByTestId("inline-price")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /DEX/i }));
-    expect(onSubTabChange).toHaveBeenCalledWith("DEX");
+    fireEvent.click(screen.getByRole("button", { name: /PORTFOLIO/i }));
+    expect(onSubTabChange).toHaveBeenCalledWith("PORTFOLIO");
+    expect(screen.getByRole("button", { name: /^SNAPSHOT/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PNL/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
+  });
+
+  it("keeps tool tabs visible and renders the panel below when one is open", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel="price"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={() => <div data-testid="panel-price">price panel</div>}
+      />
+    );
+    // Tool tabs stay visible alongside the panel.
+    expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^SWAP/i })).toBeTruthy();
+    expect(screen.getByTestId("panel-price")).toBeTruthy();
+  });
+
+  it("highlights the open panel's tool tab", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel="price"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={() => <div data-testid="panel-price">price panel</div>}
+      />
+    );
+    expect(screen.getByRole("button", { name: /^PRICE/i }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
+    expect(screen.getByRole("button", { name: /^SWAP/i }).getAttribute("aria-pressed")).toBe(
+      "false"
+    );
+  });
+
+  it("fires commands for bare tool tabs", () => {
+    const onCommand = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel={null}
+        onCommand={onCommand}
+        onOpenPanel={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^KYT/i }));
+    expect(onCommand).toHaveBeenCalledWith("kyt");
+  });
+
+  it("opens panels via onOpenPanel for panel tool tabs", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    // SIM is under the SIM sub-tab — sub-tab and tool share the "SIM" label,
+    // so use getAllByRole (DOM order: sub-tab row first, then tool row).
+    const simButtons = screen.getAllByRole("button", { name: /^SIM/i });
+    fireEvent.click(simButtons[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /^SIM/i })[1]);
+    expect(onOpenPanel).toHaveBeenCalledWith("sim");
   });
 
   it("renders nothing in console (raw terminal)", () => {
     const { container } = render(
-      <WorkspaceSurface theme={theme} mode="console" onCommand={vi.fn()} />
+      <WorkspaceSurface theme={theme} mode="console" activePanel={null} onCommand={vi.fn()} />
     );
     expect(container.firstChild).toBeNull();
   });
