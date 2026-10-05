@@ -17,7 +17,7 @@ export const FORENSIC_SUB_TABS: { id: ForensicSubTab; label: string }[] = [
   { id: "READ", label: "READ" }
 ];
 
-const ACTIONS: WorkspaceAction[] = [
+export const FORENSIC_ACTIONS: WorkspaceAction[] = [
   { cmd: "kyt", label: "KYT", hint: "screen address", tab: "SCREEN" },
   { cmd: "kya", label: "KYA", hint: "screen address", tab: "SCREEN" },
   { cmd: "is", label: "CHECK TOKEN", hint: "check token standard", tab: "SCREEN" },
@@ -52,7 +52,7 @@ export function ForensicWorkspace({
   onCommand: (cmd: string) => void;
   onOpenPanel?: (panel: WorkspacePanelId) => void;
 }) {
-  const actions = ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
+  const actions = FORENSIC_ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
 
   return (
     <div className="flex flex-wrap gap-1.5">

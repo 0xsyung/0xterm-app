@@ -16,7 +16,7 @@ export const INVEST_SUB_TABS: { id: InvestSubTab; label: string }[] = [
   { id: "DEX", label: "DEX" }
 ];
 
-const ACTIONS: WorkspaceAction[] = [
+export const INVEST_ACTIONS: WorkspaceAction[] = [
   {
     cmd: "price",
     label: "PRICE",
@@ -59,7 +59,7 @@ export function InvestWorkspace({
   onCommand: (cmd: string) => void;
   onOpenPanel?: (panel: WorkspacePanelId) => void;
 }) {
-  const actions = ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
+  const actions = INVEST_ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
 
   return (
     <div className="flex flex-wrap gap-1.5">

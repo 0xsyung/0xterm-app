@@ -16,7 +16,7 @@ export const DEV_SUB_TABS: { id: DevSubTab; label: string }[] = [
   { id: "SHIP", label: "SHIP" }
 ];
 
-const ACTIONS: WorkspaceAction[] = [
+export const DEV_ACTIONS: WorkspaceAction[] = [
   { cmd: "dig new", label: "NEW", hint: "empty Solidity editor", tab: "SOURCE" },
   { cmd: "dig open", label: "OPEN", hint: "pick a .sol file", tab: "SOURCE" },
   { cmd: "dig edit", label: "EDIT", hint: "reopen last source", tab: "SOURCE" },
@@ -40,7 +40,7 @@ export function DevWorkspace({
   activeSubTab?: DevSubTab;
   onCommand: (cmd: string) => void;
 }) {
-  const actions = ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
+  const actions = DEV_ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
 
   return (
     <div className="flex flex-wrap gap-1.5">

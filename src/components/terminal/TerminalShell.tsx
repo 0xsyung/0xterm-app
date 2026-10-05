@@ -8391,6 +8391,7 @@ export default function TerminalShell({
                   key={terminalMode}
                   theme={theme}
                   mode={terminalMode}
+                  activePanel={openPanel}
                   onCommand={(cmd) => {
                     void handleCommand(cmd);
                   }}
@@ -8400,7 +8401,7 @@ export default function TerminalShell({
                   onSubTabChange={() => {
                     setOpenPanel(null);
                   }}
-                  inlinePanel={openPanel ? renderInlinePanel(openPanel) : undefined}
+                  renderPanel={renderInlinePanel}
                 />
               </div>
             )}

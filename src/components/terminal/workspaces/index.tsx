@@ -1,6 +1,6 @@
 /**
  * @file workspaces/index.tsx
- * @description Workspace launchers — flat tile grid (WorkspaceStrip) or framed sub-tab surface (WorkspaceSurface) (#80/#117/#145)
+ * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -10,10 +10,11 @@ import { useState } from "react";
 import type { ThemeConfig } from "../types";
 import type { TerminalMode } from "../mode";
 import { WorkspaceFrame } from "./WorkspaceFrame";
-import { InvestWorkspace, INVEST_SUB_TABS } from "./InvestWorkspace";
-import { DevWorkspace, DEV_SUB_TABS } from "./DevWorkspace";
-import { ForensicWorkspace, FORENSIC_SUB_TABS } from "./ForensicWorkspace";
-import type { WorkspacePanelId, InvestSubTab, DevSubTab, ForensicSubTab } from "./WorkspaceTile";
+import { WorkspaceToolTabs } from "./WorkspaceToolTabs";
+import { InvestWorkspace, INVEST_SUB_TABS, INVEST_ACTIONS } from "./InvestWorkspace";
+import { DevWorkspace, DEV_SUB_TABS, DEV_ACTIONS } from "./DevWorkspace";
+import { ForensicWorkspace, FORENSIC_SUB_TABS, FORENSIC_ACTIONS } from "./ForensicWorkspace";
+import type { WorkspaceAction, WorkspacePanelId, InvestSubTab, DevSubTab, ForensicSubTab } from "./WorkspaceTile";
 
 const SUB_TABS: Record<
   Exclude<TerminalMode, "console">,
@@ -22,6 +23,12 @@ const SUB_TABS: Record<
   invest: INVEST_SUB_TABS,
   dev: DEV_SUB_TABS,
   forensic: FORENSIC_SUB_TABS
+};
+
+const MODE_ACTIONS: Record<Exclude<TerminalMode, "console">, WorkspaceAction[]> = {
+  invest: INVEST_ACTIONS,
+  dev: DEV_ACTIONS,
+  forensic: FORENSIC_ACTIONS
 };
 
 function WorkspaceBody({
@@ -67,27 +74,36 @@ function WorkspaceBody({
   );
 }
 
-/** Framed surface owned by the shell: sub-tab row + active tile grid or inline panel. */
+/**
+ * Framed workspace surface. Presentational: the shell owns which panel is
+ * open (`activePanel`) and how to render it (`renderPanel`). The active
+ * sub-tab's tool buttons are always visible; a panel, when open, renders
+ * below them (#148).
+ */
 export function WorkspaceSurface({
   theme,
   mode,
+  activePanel,
   onCommand,
   onOpenPanel,
   onSubTabChange,
-  inlinePanel
+  renderPanel
 }: {
   theme: ThemeConfig;
   mode: TerminalMode;
+  activePanel: WorkspacePanelId | null;
   onCommand: (cmd: string) => void;
   onOpenPanel?: (panel: WorkspacePanelId) => void;
-  /** Fired when the user switches sub-tabs — shell clears any open inline panel (#145). */
+  /** Fired when the user switches sub-tabs — shell clears the open panel. */
   onSubTabChange?: (tab: string) => void;
-  inlinePanel?: React.ReactNode;
+  renderPanel?: (panel: WorkspacePanelId) => React.ReactNode;
 }) {
   const subTabs = mode === "console" ? undefined : SUB_TABS[mode];
   const [activeSubTab, setActiveSubTab] = useState(subTabs?.[0].id ?? "");
 
-  if (!subTabs) return null;
+  if (!subTabs || mode === "console") return null;
+
+  const toolActions = MODE_ACTIONS[mode].filter((a) => a.tab === activeSubTab);
 
   const handleSubTabChange = (tab: string) => {
     setActiveSubTab(tab);
@@ -101,15 +117,14 @@ export function WorkspaceSurface({
       activeSubTab={activeSubTab}
       onSubTabChange={handleSubTabChange}
     >
-      {inlinePanel ?? (
-        <WorkspaceBody
-          theme={theme}
-          mode={mode}
-          activeSubTab={activeSubTab}
-          onCommand={onCommand}
-          onOpenPanel={onOpenPanel}
-        />
-      )}
+      <WorkspaceToolTabs
+        theme={theme}
+        actions={toolActions}
+        activeTool={activePanel}
+        onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
+      />
+      {activePanel && renderPanel ? renderPanel(activePanel) : null}
     </WorkspaceFrame>
   );
 }
