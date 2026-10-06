@@ -1,19 +1,30 @@
 /**
  * @file SettingsPanel.tsx
- * @description Bloomberg Settings surface — RPC, tokens, theme, channels, mode, export (#81)
+ * @description Bloomberg Settings surface — network defaults/overrides, RPC, tokens, theme (#81/#156)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getAddress, isAddress, type Address } from "viem";
 import type { ThemeConfig, ThemeMode, CustomTokensMap, CustomTokenEntry, PinnedManifest } from "../types";
 import type { RpcProviders, ActiveRpcProviders } from "../rpc";
 import type { ExplorerKeys } from "../explorerKeys";
 import type { TerminalMode } from "../mode";
 import { MODE_LABEL, MODE_ORDER } from "../mode";
-import { SUPPORTED_CHAINS, THEME_ORDER, THEMES } from "../constants";
+import { SUPPORTED_CHAINS, THEME_ORDER, THEMES, chainShortName } from "../constants";
+import {
+  READ_ACTIONS,
+  WRITE_ACTIONS,
+  countOverrides,
+  formatDefaultCellLabel,
+  formatDefaultOptionLabel,
+  formatUnsupportedOverrideLabel,
+  setActionOverride,
+  shortNameForChainId,
+  type ActionNetworkOverrides
+} from "../actionNetworks";
 import type { ChannelStore, ChatChannel } from "../chatChannels";
 import {
   channelId,
@@ -73,18 +84,21 @@ function PhosphorChip({
   label,
   onClick,
   disabled,
-  warn
+  warn,
+  title
 }: {
   theme: ThemeConfig;
   label: string;
   onClick: () => void;
   disabled?: boolean;
   warn?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
+      title={title}
       onClick={onClick}
       className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] rounded-none font-bold disabled:opacity-40 disabled:cursor-not-allowed border ${
         warn ? theme.warn : "border-transparent"
@@ -102,17 +116,20 @@ function GhostChip({
   theme,
   label,
   onClick,
-  disabled
+  disabled,
+  title
 }: {
   theme: ThemeConfig;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
+      title={title}
       onClick={onClick}
       className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] rounded-none border ${theme.border} ${theme.muted} bg-transparent disabled:opacity-40`}
     >
@@ -179,6 +196,14 @@ export type SettingsPanelProps = {
   existingPreferences?: Record<string, unknown>;
   /** Apply full import (persist + React state). */
   onApplyImport: (patch: ReturnType<typeof applyImportBlob>) => void;
+  /** Default network (same as header / activeChainId) (#156). */
+  defaultChainId?: number | null;
+  onDefaultChainChange?: (chainId: number) => void;
+  /** Per-action network overrides (#156). */
+  actionNetworks?: ActionNetworkOverrides;
+  onActionNetworksChange?: (next: ActionNetworkOverrides) => void;
+  /** Bump to scroll/focus Default network selector when opened from header (#156). */
+  networkFocusNonce?: number;
 };
 
 export default function SettingsPanel(props: SettingsPanelProps) {
@@ -202,7 +227,12 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     walletAddress,
     isConnected,
     existingPreferences,
-    onApplyImport
+    onApplyImport,
+    defaultChainId = null,
+    onDefaultChainChange,
+    actionNetworks = {},
+    onActionNetworksChange,
+    networkFocusNonce = 0
   } = props;
 
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
@@ -233,6 +263,21 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [importError, setImportError] = useState<string | null>(null);
   const [importConfirm, setImportConfirm] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [resetAllConfirm, setResetAllConfirm] = useState(false);
+  const defaultNetworkRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!networkFocusNonce) return;
+    const el = defaultNetworkRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const focusable = el.querySelector<HTMLElement>(
+      "[data-testid='settings-default-network'] button, [data-testid='settings-default-network']"
+    );
+    focusable?.focus?.();
+  }, [networkFocusNonce]);
+
+  const overrideCount = countOverrides(actionNetworks);
 
   const rpcRows = useMemo(() => {
     const rows: {
@@ -539,8 +584,247 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         <SettingsGroupHeading
           theme={theme}
           title="NETWORK"
-          hint="Endpoints and explorer keys for these chains."
+          hint="Default chain, per-action overrides, RPC and explorer keys."
         />
+
+      {/* 0. Default network (#156) */}
+      <section className="space-y-1.5" ref={defaultNetworkRef}>
+        <SectionLabel theme={theme}>Default network</SectionLabel>
+        <div
+          className="flex flex-wrap gap-1"
+          data-testid="settings-default-network"
+          id="settings-network-default"
+        >
+          {SUPPORTED_CHAINS.map((c) => {
+            const active = c.id === defaultChainId;
+            const short = chainShortName(c);
+            const Chip = active ? PhosphorChip : GhostChip;
+            return (
+              <Chip
+                key={c.id}
+                theme={theme}
+                label={short}
+                title={`${short} ${c.id}`}
+                onClick={() => onDefaultChainChange?.(c.id)}
+              />
+            );
+          })}
+        </div>
+        <div className={`${theme.muted} text-[10px]`}>
+          Used by any action without an override.
+        </div>
+      </section>
+
+      {/* 0b. Per-action networks (#156) */}
+      <section className="space-y-1.5" data-testid="settings-action-networks">
+        <details open={overrideCount > 0 || undefined}>
+          <summary
+            className={`cursor-pointer uppercase tracking-widest text-[10px] py-1 ${theme.muted} list-none [&::-webkit-details-marker]:hidden`}
+          >
+            <SectionLabel theme={theme}>
+              Per-action networks
+              {overrideCount > 0 ? ` (${overrideCount} overridden)` : ""}
+            </SectionLabel>
+          </summary>
+          <div className={`${theme.muted} text-[10px] uppercase tracking-widest pt-1`}>
+            WRITE
+          </div>
+          <div className={`border ${theme.border} mb-2`}>
+            <div
+              className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-1 px-1 py-0.5 uppercase tracking-widest text-[10px] ${theme.muted} border-b ${theme.border}`}
+            >
+              <span>Action</span>
+              <span>Network</span>
+            </div>
+            {WRITE_ACTIONS.map((action) => {
+              const override = actionNetworks[action.id];
+              const supported = action.supportedChainIds;
+              const unsupported =
+                override != null && !supported.includes(override);
+              const onDefault = override == null || unsupported;
+              return (
+                <div
+                  key={action.id}
+                  className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-1 px-1 py-0.5 items-center border-b ${theme.border} last:border-b-0`}
+                  data-testid={`settings-action-row-${action.id}`}
+                >
+                  <span className="font-mono truncate">{action.label}</span>
+                  <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                    {unsupported ? (
+                      <span className={`${theme.warn} text-[10px] truncate`}>
+                        {formatUnsupportedOverrideLabel(
+                          shortNameForChainId(override!)
+                        )}
+                      </span>
+                    ) : onDefault ? (
+                      <span className={`${theme.muted} text-[10px] truncate`}>
+                        {formatDefaultCellLabel(defaultChainId)}
+                      </span>
+                    ) : (
+                      <span className={`${theme.primary} text-[10px] truncate`}>
+                        {shortNameForChainId(override!)}
+                      </span>
+                    )}
+                    <select
+                      aria-label={`${action.label} network`}
+                      className={`border ${theme.border} ${theme.bg} ${theme.text} text-[10px] font-mono px-1 py-0.5 max-w-[9rem]`}
+                      value={onDefault || unsupported ? "" : String(override)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const next = setActionOverride(
+                          actionNetworks,
+                          action.id,
+                          v === "" ? null : Number(v)
+                        );
+                        onActionNetworksChange?.(next);
+                        setResetAllConfirm(false);
+                      }}
+                    >
+                      <option value="">
+                        {formatDefaultOptionLabel(defaultChainId)}
+                      </option>
+                      {supported.map((id) => {
+                        const c = SUPPORTED_CHAINS.find((x) => x.id === id);
+                        if (!c) return null;
+                        return (
+                          <option key={id} value={id} title={String(id)}>
+                            {chainShortName(c)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {override != null && (
+                      <GhostChip
+                        theme={theme}
+                        label="RESET"
+                        onClick={() => {
+                          onActionNetworksChange?.(
+                            setActionOverride(actionNetworks, action.id, null)
+                          );
+                          setResetAllConfirm(false);
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className={`${theme.muted} text-[10px] uppercase tracking-widest`}>
+            READ
+          </div>
+          <div className={`border ${theme.border}`}>
+            <div
+              className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-1 px-1 py-0.5 uppercase tracking-widest text-[10px] ${theme.muted} border-b ${theme.border}`}
+            >
+              <span>Action</span>
+              <span>Network</span>
+            </div>
+            {READ_ACTIONS.map((action) => {
+              const override = actionNetworks[action.id];
+              const supported = action.supportedChainIds;
+              const unsupported =
+                override != null && !supported.includes(override);
+              const onDefault = override == null || unsupported;
+              return (
+                <div
+                  key={action.id}
+                  className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-1 px-1 py-0.5 items-center border-b ${theme.border} last:border-b-0`}
+                  data-testid={`settings-action-row-${action.id}`}
+                >
+                  <span className="font-mono truncate">{action.label}</span>
+                  <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                    {unsupported ? (
+                      <span className={`${theme.warn} text-[10px] truncate`}>
+                        {formatUnsupportedOverrideLabel(
+                          shortNameForChainId(override!)
+                        )}
+                      </span>
+                    ) : onDefault ? (
+                      <span className={`${theme.muted} text-[10px] truncate`}>
+                        {formatDefaultCellLabel(defaultChainId)}
+                      </span>
+                    ) : (
+                      <span className={`${theme.primary} text-[10px] truncate`}>
+                        {shortNameForChainId(override!)}
+                      </span>
+                    )}
+                    <select
+                      aria-label={`${action.label} network`}
+                      className={`border ${theme.border} ${theme.bg} ${theme.text} text-[10px] font-mono px-1 py-0.5 max-w-[9rem]`}
+                      value={onDefault || unsupported ? "" : String(override)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const next = setActionOverride(
+                          actionNetworks,
+                          action.id,
+                          v === "" ? null : Number(v)
+                        );
+                        onActionNetworksChange?.(next);
+                        setResetAllConfirm(false);
+                      }}
+                    >
+                      <option value="">
+                        {formatDefaultOptionLabel(defaultChainId)}
+                      </option>
+                      {supported.map((id) => {
+                        const c = SUPPORTED_CHAINS.find((x) => x.id === id);
+                        if (!c) return null;
+                        return (
+                          <option key={id} value={id} title={String(id)}>
+                            {chainShortName(c)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {override != null && (
+                      <GhostChip
+                        theme={theme}
+                        label="RESET"
+                        onClick={() => {
+                          onActionNetworksChange?.(
+                            setActionOverride(actionNetworks, action.id, null)
+                          );
+                          setResetAllConfirm(false);
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-1 pt-1.5">
+            {resetAllConfirm ? (
+              <>
+                <PhosphorChip
+                  theme={theme}
+                  label="Confirm"
+                  warn
+                  disabled={overrideCount === 0}
+                  onClick={() => {
+                    onActionNetworksChange?.({});
+                    setResetAllConfirm(false);
+                  }}
+                />
+                <GhostChip
+                  theme={theme}
+                  label="Cancel"
+                  onClick={() => setResetAllConfirm(false)}
+                />
+              </>
+            ) : (
+              <GhostChip
+                theme={theme}
+                label="RESET ALL OVERRIDES"
+                disabled={overrideCount === 0}
+                onClick={() => setResetAllConfirm(true)}
+              />
+            )}
+          </div>
+        </details>
+      </section>
+
       {/* 1. RPC */}
       <section className="space-y-1.5">
         <SectionLabel theme={theme}>RPC / API providers</SectionLabel>

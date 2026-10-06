@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * @file TerminalHeader.test.tsx
- * @description Header brand-clock + nav + wallet cluster (NETWORK + CONNECT) (#117/#121/#134)
+ * @description Header brand-clock + nav + wallet cluster (NETWORK + CONNECT) (#117/#121/#134/#156)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -43,7 +43,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
 
   it("brand-clock has logo + clock and no NETWORK (#134)", () => {
     render(
-      <TerminalHeader {...baseProps} activeChainId={8453} onChainSwitch={vi.fn()} />
+      <TerminalHeader {...baseProps} activeChainId={8453} onOpenNetworkSettings={vi.fn()} />
     );
     const brandClock = screen.getByTestId("brand-clock");
     expect(within(brandClock).getByTestId("header-logo")).toBeTruthy();
@@ -54,7 +54,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
 
   it("wallet cluster is CONSOLE · SETTINGS · NETWORK · CONNECT with ml-auto (#134/#140)", () => {
     render(
-      <TerminalHeader {...baseProps} activeChainId={8453} onChainSwitch={vi.fn()} />
+      <TerminalHeader {...baseProps} activeChainId={8453} onOpenNetworkSettings={vi.fn()} />
     );
     const cluster = screen.getByTestId("wallet-cluster");
     expect(cluster.className).toMatch(/ml-auto/);
@@ -84,59 +84,68 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(kids.length).toBe(4);
   });
 
-  it("renders NETWORK control in wallet cluster; options = SUPPORTED_CHAINS", () => {
-    const onChainSwitch = vi.fn();
+  it("read-only NETWORK chip shows short name; click opens Settings (#156)", () => {
+    const onOpenNetworkSettings = vi.fn();
     render(
       <TerminalHeader
         {...baseProps}
         activeChainId={8453}
-        onChainSwitch={onChainSwitch}
+        onOpenNetworkSettings={onOpenNetworkSettings}
       />
     );
     const trigger = screen.getByTestId("header-network");
     expect(trigger.textContent).toMatch(/BASE/);
+    expect(trigger.textContent).not.toMatch(/▾/);
+    expect(screen.queryByTestId("header-network-menu")).toBeNull();
+    expect(trigger.getAttribute("title")).toBe(
+      "Default network: BASE 8453 · change in Settings"
+    );
+    expect(trigger.getAttribute("aria-label")).toBe(
+      "Default network: BASE 8453 · change in Settings"
+    );
     fireEvent.click(trigger);
-    expect(screen.getByTestId("header-network-option-1")).toBeTruthy();
-    expect(screen.getByTestId("header-network-option-8453")).toBeTruthy();
-    expect(screen.getByTestId("header-network-option-11155111")).toBeTruthy();
-    // Menu aligns right when far-right (#134)
-    expect(screen.getByTestId("header-network-menu").className).toMatch(
-      /right-0/
-    );
-    expect(screen.getByTestId("header-network-menu").className).not.toMatch(
-      /left-0/
-    );
-    fireEvent.click(screen.getByTestId("header-network-option-1"));
-    expect(onChainSwitch).toHaveBeenCalledWith(1);
+    expect(onOpenNetworkSettings).toHaveBeenCalledTimes(1);
   });
 
-  it("shows muted NETWORK placeholder when chain unset", () => {
-    render(<TerminalHeader {...baseProps} activeChainId={null} />);
+  it("shows muted NETWORK placeholder when chain unset; no menu (#156)", () => {
+    const onOpenNetworkSettings = vi.fn();
+    render(
+      <TerminalHeader
+        {...baseProps}
+        activeChainId={null}
+        onOpenNetworkSettings={onOpenNetworkSettings}
+      />
+    );
     const chip = screen.getByTestId("header-network");
     expect(chip.textContent).toMatch(/NETWORK/);
-    expect(chip.textContent).toMatch(/▾/);
+    expect(chip.textContent).not.toMatch(/▾/);
     expect(chip.textContent).not.toMatch(/\d/);
+    expect(screen.queryByTestId("header-network-menu")).toBeNull();
+    fireEvent.click(chip);
+    expect(onOpenNetworkSettings).toHaveBeenCalledTimes(1);
   });
 
-  it("chip shows short name only; id stays in the menu (#140 B3)", () => {
+  it("chip shows short name only; id in tooltip/aria, Enter opens Settings (#156)", () => {
+    const onOpenNetworkSettings = vi.fn();
     render(
       <TerminalHeader
         {...baseProps}
         activeChainId={11155111}
-        onChainSwitch={vi.fn()}
+        onOpenNetworkSettings={onOpenNetworkSettings}
       />
     );
     const chip = screen.getByTestId("header-network");
     expect(chip.textContent).toMatch(/SEPOLIA/);
-    expect(chip.textContent).toMatch(/▾/);
+    expect(chip.textContent).not.toMatch(/▾/);
     expect(chip.textContent).not.toMatch(/11155111/);
     expect(chip.textContent).not.toMatch(/\d/);
     expect(chip.getAttribute("title")).toContain("11155111");
     expect(chip.getAttribute("aria-label")).toContain("11155111");
-    fireEvent.click(chip);
-    const row = screen.getByTestId("header-network-option-11155111");
-    expect(row.textContent).toMatch(/SEPOLIA/);
-    expect(row.textContent).toContain("11155111");
+    expect(chip.getAttribute("title")).toMatch(/change in Settings/);
+    fireEvent.keyDown(chip, { key: "Enter" });
+    expect(onOpenNetworkSettings).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("header-network-menu")).toBeNull();
+    expect(screen.queryByTestId("header-network-option-11155111")).toBeNull();
   });
 
   it("NETWORK is visible on SOCIAL / SETTINGS (not a mode chip)", () => {

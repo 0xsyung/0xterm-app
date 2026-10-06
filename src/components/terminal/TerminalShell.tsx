@@ -334,6 +334,16 @@ import PinnedPanel from "./PinnedPanel";
 import SocialPanel from "./SocialPanel";
 import FloatingChat from "./widgets/FloatingChat";
 import SettingsPanel from "./widgets/SettingsPanel";
+import {
+  ACTION_NETWORKS_PREF_KEY,
+  formatActionNetworkLine,
+  parseActionNetworkOverrides,
+  resolveActionChain,
+  type ActionId,
+  type ActionNetworkOverrides
+} from "./actionNetworks";
+import { ensureChainForAction } from "./ensureActionChain";
+
 import VerifyWidget, { type VerifyWidgetData } from "./widgets/VerifyWidget";
 import { applyImportBlob } from "./settingsPrefs";
 import {
@@ -528,6 +538,10 @@ export default function TerminalShell({
 }) {
   const [mounted, setMounted] = useState(false);
   const [activeChainId, setActiveChainId] = useState<number | null>(null);
+  /** Per-action network overrides (#156) — persisted in prefs as actionNetworks. */
+  const [actionNetworks, setActionNetworks] = useState<ActionNetworkOverrides>({});
+  /** Bump when header NETWORK opens Settings → default selector (#156). */
+  const [networkFocusNonce, setNetworkFocusNonce] = useState(0);
   const [activeDexId, setActiveDexId] = useState<string | null>(null);
 
   // Multi-provider RPC maps: ChainId -> { providerName: url } & ChainId -> activeProviderName
@@ -747,7 +761,10 @@ export default function TerminalShell({
     failed: number;
   } | null>(null);
 
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId: walletChainId } = useAccount();
+  // Latest wallet chain for async write paths (avoid stale render closures).
+  const walletChainIdRef = useRef<number | undefined>(walletChainId);
+  walletChainIdRef.current = walletChainId;
   const { data: walletClient } = useWalletClient();
   const { sendTransactionAsync } = useSendTransaction();
   const { connectors, connect } = useConnect();
@@ -769,6 +786,15 @@ export default function TerminalShell({
   }, [logs]);
 
   const generateId = () => Math.random().toString(36).substring(2, 9);
+
+  /** PR #157 must-fix: put the wallet on the resolved action chain before a
+   *  write (switchChainAsync). Writes also pass `chainId` so wagmi hard-stops
+   *  on mismatch. See ensureActionChain.ts. */
+  const ensureWalletChain = (chainId: number | null | undefined) =>
+    ensureChainForAction(chainId, {
+      walletChainId: walletChainIdRef.current,
+      switchChainAsync
+    });
 
   // --- Pin / unpin (floating right column) --------------------------------
   // Toggle a log entry between the main feed and the pinned column. `refresh`
@@ -1461,6 +1487,12 @@ export default function TerminalShell({
             }
           }
 
+          if (prefs[ACTION_NETWORKS_PREF_KEY] != null) {
+            setActionNetworks(
+              parseActionNetworkOverrides(prefs[ACTION_NETWORKS_PREF_KEY])
+            );
+          }
+
           if (loadedDetails.length > 0) {
             setLogs((prev) =>
               [
@@ -1592,6 +1624,9 @@ export default function TerminalShell({
     if ("error" in req)
       return [{ id: generateId(), type: "text", text: req.error }];
     const contract = req.contract;
+    const onChain = await ensureWalletChain(chain.id);
+    if (!onChain.ok)
+      return [{ id: generateId(), type: "text", warn: true, text: onChain.error }];
 
     try {
       const myPair = await getChatKeyPair();
@@ -1616,6 +1651,7 @@ export default function TerminalShell({
         const popSig = await signMessageAsync({ message: { raw: popDigest } });
         const { v, r, s } = splitSignature(popSig);
         await writeContractAsync({
+          chainId: chain.id,
           address: contract as Address,
           abi: chatAbi,
           functionName: "setPublicKey",
@@ -1650,6 +1686,7 @@ export default function TerminalShell({
       });
 
       const hash = await writeContractAsync({
+        chainId: chain.id,
         address: contract as Address,
         abi: chatAbi,
         functionName: "sendMessage",
@@ -1771,6 +1808,34 @@ export default function TerminalShell({
       setActiveDexId(null);
       savePreference("dexId", null);
     }
+  };
+
+  /** Resolve per-action chain and log muted `on X` / `on X (override)` (#156). */
+  const beginActionNetwork = (actionId: ActionId) => {
+    const resolved = resolveActionChain(actionId, activeChainId, actionNetworks);
+    const line = formatActionNetworkLine(
+      resolved.chainId,
+      resolved.usedOverride
+    );
+    if (line) {
+      setLogs((prev) =>
+        [
+          ...prev,
+          {
+            id: generateId(),
+            type: "text",
+            muted: true,
+            text: line
+          } as LogEntry
+        ].slice(-MAX_LOGS)
+      );
+    }
+    return resolved;
+  };
+
+  const handleActionNetworksChange = (next: ActionNetworkOverrides) => {
+    setActionNetworks(next);
+    savePreference(ACTION_NETWORKS_PREF_KEY, next);
   };
 
   const resolveTokenDetails = (queryToken: string, chain: Chain) =>
@@ -2348,6 +2413,17 @@ export default function TerminalShell({
     if (patch.channelStore) {
       persistChannels(patch.channelStore);
     }
+    // Sync default chain + per-action overrides from imported prefs (#156).
+    const bag = patch.preferencesToPersist || {};
+    if (typeof bag.chainId === "number") {
+      handleChainSwitch(bag.chainId);
+    }
+    if (bag[ACTION_NETWORKS_PREF_KEY] != null) {
+      const next = parseActionNetworkOverrides(bag[ACTION_NETWORKS_PREF_KEY]);
+      setActionNetworks(next);
+      savePreference(ACTION_NETWORKS_PREF_KEY, next);
+    }
+
     // Persist merged preference bag under the wallet key (same as import cmd).
     if (isConnected && address && patch.preferencesToPersist) {
       const userKey = `0xterm_user_${address.toLowerCase()}`;
@@ -2735,6 +2811,7 @@ export default function TerminalShell({
       return null;
     },
     dig: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("dig");
       const chainObj = activeChainId
         ? SUPPORTED_CHAINS.find((c) => c.id === activeChainId)
         : undefined;
@@ -3029,7 +3106,25 @@ export default function TerminalShell({
                       );
                       return;
                     }
+                    // PR #157: dig runs on the resolved `dig` chain — switch
+                    // the wallet first; chainId below hard-stops on mismatch.
+                    const onChain = await ensureWalletChain(activeChainId);
+                    if (!onChain.ok) {
+                      setLogs((prev) =>
+                        [
+                          ...prev.filter((l) => l.id !== id),
+                          {
+                            id: generateId(),
+                            type: "text" as const,
+                            text: onChain.error,
+                            warn: true
+                          }
+                        ].slice(-MAX_LOGS)
+                      );
+                      return;
+                    }
                     const hash = await sendTransactionAsync({
+                      chainId: onChain.chainId,
                       to:
                         confirm.intent === "deploy"
                           ? undefined
@@ -3992,6 +4087,13 @@ export default function TerminalShell({
               setActiveDexId(data.preferences.dexId);
             }
           }
+          if (data.preferences[ACTION_NETWORKS_PREF_KEY] != null) {
+            setActionNetworks(
+              parseActionNetworkOverrides(
+                data.preferences[ACTION_NETWORKS_PREF_KEY]
+              )
+            );
+          }
         }
 
         if (data.customTokens) {
@@ -4385,22 +4487,32 @@ export default function TerminalShell({
       }
     },
     createpool: async (args) => {
+      const __resolved = beginActionNetwork("createpool");
+      const runChainId = __resolved.chainId;
+      const runDexId =
+        runChainId == null
+          ? null
+          : !__resolved.usedOverride &&
+              activeDexId &&
+              (DEX_REGISTRY[runChainId] || []).some((d) => d.id === activeDexId)
+            ? activeDexId
+            : (DEX_REGISTRY[runChainId]?.[0]?.id ?? null);
       if (!isConnected || !address)
         return {
           id: generateId(),
           type: "text",
           text: "Wallet not connected."
         };
-      if (!activeChainId || !activeDexId)
+      if (!runChainId || !runDexId)
         return {
           id: generateId(),
           type: "text",
           text: "Select network and DEX first."
         };
 
-      const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId)!;
-      const activeDex = DEX_REGISTRY[activeChainId]?.find(
-        (d) => d.id === activeDexId
+      const targetChain = SUPPORTED_CHAINS.find((c) => c.id === runChainId)!;
+      const activeDex = DEX_REGISTRY[runChainId]?.find(
+        (d) => d.id === runDexId
       );
       if (!activeDex)
         return {
@@ -4547,13 +4659,23 @@ export default function TerminalShell({
       };
     },
     addliq: async (args) => {
+      const __resolved = beginActionNetwork("addliq");
+      const runChainId = __resolved.chainId;
+      const runDexId =
+        runChainId == null
+          ? null
+          : !__resolved.usedOverride &&
+              activeDexId &&
+              (DEX_REGISTRY[runChainId] || []).some((d) => d.id === activeDexId)
+            ? activeDexId
+            : (DEX_REGISTRY[runChainId]?.[0]?.id ?? null);
       if (!isConnected || !address)
         return {
           id: generateId(),
           type: "text",
           text: "Wallet not connected."
         };
-      if (!activeChainId || !activeDexId)
+      if (!runChainId || !runDexId)
         return {
           id: generateId(),
           type: "text",
@@ -4566,9 +4688,9 @@ export default function TerminalShell({
           text: "Usage: addliq <tokenA> <tokenB> <amtA> <amtB> [fee]"
         };
 
-      const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId)!;
-      const activeDex = DEX_REGISTRY[activeChainId]?.find(
-        (d) => d.id === activeDexId
+      const targetChain = SUPPORTED_CHAINS.find((c) => c.id === runChainId)!;
+      const activeDex = DEX_REGISTRY[runChainId]?.find(
+        (d) => d.id === runDexId
       );
       if (!activeDex)
         return {
@@ -4601,13 +4723,23 @@ export default function TerminalShell({
       };
     },
     swap: async (args) => {
+      const __resolved = beginActionNetwork("swap");
+      const runChainId = __resolved.chainId;
+      const runDexId =
+        runChainId == null
+          ? null
+          : !__resolved.usedOverride &&
+              activeDexId &&
+              (DEX_REGISTRY[runChainId] || []).some((d) => d.id === activeDexId)
+            ? activeDexId
+            : (DEX_REGISTRY[runChainId]?.[0]?.id ?? null);
       if (!isConnected || !address)
         return {
           id: generateId(),
           type: "text",
           text: "Wallet not connected."
         };
-      if (!activeChainId || !activeDexId)
+      if (!runChainId || !runDexId)
         return {
           id: generateId(),
           type: "text",
@@ -4652,9 +4784,9 @@ export default function TerminalShell({
         feeTier = parsed;
       }
 
-      const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId)!;
-      const activeDex = DEX_REGISTRY[activeChainId]?.find(
-        (d) => d.id === activeDexId
+      const targetChain = SUPPORTED_CHAINS.find((c) => c.id === runChainId)!;
+      const activeDex = DEX_REGISTRY[runChainId]?.find(
+        (d) => d.id === runDexId
       );
       if (!activeDex)
         return {
@@ -4851,7 +4983,7 @@ export default function TerminalShell({
     },
     arb: async (args) => {
       // arb [venues | scan <tA> <tB> | sim | run | help]
-      const chainId = activeChainId;
+      const { chainId } = beginActionNetwork("arb");
       const chainObj = chainId
         ? SUPPORTED_CHAINS.find((c) => c.id === chainId)
         : undefined;
@@ -5267,6 +5399,7 @@ export default function TerminalShell({
       };
     },
     vault: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("vault");
       // vault list | vault show <addr|id|name> | vault deposit/mint/withdraw/
       // redeem <vault> <amount|max> | vault approve <vault> <amount|0> | help
       const sub = (args[1] || "").toLowerCase();
@@ -5642,6 +5775,7 @@ export default function TerminalShell({
     },
     sim: async (args) => {
       // sim <to> <data> — eth_call dry-run (read-only, never sends) (#18)
+      const { chainId: activeChainId } = beginActionNetwork("sim");
       if (!args[1] || !args[2])
         return {
           id: generateId(),
@@ -5709,6 +5843,7 @@ export default function TerminalShell({
       };
     },
     trace: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("trace");
       // trace <txhash> — opcode trace via default struct-logger (read-only) (#18 / #136)
       if (!args[1])
         return {
@@ -6298,6 +6433,7 @@ export default function TerminalShell({
       return { id: generateId(), type: "component", component: poolWidget, title: `POOL ${args[1]}` };
     },
     ens: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("ens");
       const sub = args[1]?.toLowerCase();
 
       if (sub === "set" || sub === "clear") {
@@ -6329,8 +6465,12 @@ export default function TerminalShell({
             | readonly [`0x${string}`, `0x${string}`],
           label: string
         ): Promise<LogEntry | LogEntry[]> => {
+          const onChain = await ensureWalletChain(chain.id);
+          if (!onChain.ok)
+            return { id: generateId(), type: "text", warn: true, text: onChain.error };
           try {
             const hash = await writeContractAsync({
+              chainId: chain.id,
               address: contract as Address,
               abi: ensRegistryAbi,
               functionName: fn,
@@ -6423,6 +6563,7 @@ export default function TerminalShell({
       }
     },
     chat: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("chat");
       if (!isConnected || !address)
         return { id: generateId(), type: "text", text: "[!] Connect a wallet to send chat messages." };
       if (args.length < 3)
@@ -6452,6 +6593,11 @@ export default function TerminalShell({
       if ("error" in req)
         return { id: generateId(), type: "text", text: req.error };
       const contract = req.contract;
+      // PR #157: chat resolves an override chain — wallet must be on it before
+      // setPublicKey / sendMessage (both also pass chainId → hard-stop).
+      const onChain = await ensureWalletChain(chain.id);
+      if (!onChain.ok)
+        return { id: generateId(), type: "text", warn: true, text: onChain.error };
 
       try {
         const myPair = await getChatKeyPair();
@@ -6479,6 +6625,7 @@ export default function TerminalShell({
           const popSig = await signMessageAsync({ message: { raw: popDigest } });
           const { v, r, s } = splitSignature(popSig);
           await writeContractAsync({
+            chainId: chain.id,
             address: contract as Address,
             abi: chatAbi,
             functionName: "setPublicKey",
@@ -6515,6 +6662,7 @@ export default function TerminalShell({
         });
 
         const hash = await writeContractAsync({
+          chainId: chain.id,
           address: contract as Address,
           abi: chatAbi,
           functionName: "sendMessage",
@@ -6708,6 +6856,7 @@ export default function TerminalShell({
       }
     },
     board: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("board");
       const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
       if (!chain)
         return { id: generateId(), type: "text", text: "[!] Set a network first (network <name|id>)." };
@@ -6737,6 +6886,10 @@ export default function TerminalShell({
             type: "text",
             text: "Usage: board post <content>"
           };
+        // PR #157: billboard is testnet-only — never let the wallet's chain win.
+        const onChain = await ensureWalletChain(chain.id);
+        if (!onChain.ok)
+          return { id: generateId(), type: "text", warn: true, text: onChain.error };
         try {
           const fee = await getClient(chain).readContract({
             address: contract as Address,
@@ -6744,6 +6897,7 @@ export default function TerminalShell({
             functionName: "fee"
           });
           const hash = await writeContractAsync({
+            chainId: chain.id,
             address: contract as Address,
             abi: billboardAbi,
             functionName: "post",
@@ -6877,6 +7031,7 @@ export default function TerminalShell({
       };
     },
     share: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("share");
       const sub = (args[1] || "status").toLowerCase();
       if (
         sub !== "portfolio" &&
@@ -6962,8 +7117,13 @@ export default function TerminalShell({
         if (!isConnected || !address) {
           return { id: generateId(), type: "text", text: "Wallet not connected." };
         }
+        // PR #157: share contract is Sepolia-only — switch before writing.
+        const onChain = await ensureWalletChain(chain.id);
+        if (!onChain.ok)
+          return { id: generateId(), type: "text", warn: true, text: onChain.error };
         try {
           const hash = await writeContractAsync({
+            chainId: chain.id,
             address: contract,
             abi: shareAbi,
             functionName: "unshare"
@@ -6985,6 +7145,9 @@ export default function TerminalShell({
       if (!isConnected || !address) {
         return { id: generateId(), type: "text", text: "Wallet not connected." };
       }
+      const onChain = await ensureWalletChain(chain.id);
+      if (!onChain.ok)
+        return { id: generateId(), type: "text", warn: true, text: onChain.error };
 
       try {
         const ens = (await ensNameFor(address)) || "";
@@ -7009,6 +7172,7 @@ export default function TerminalShell({
             functionName: "fee"
           })) as bigint;
           const hash = await writeContractAsync({
+            chainId: chain.id,
             address: contract,
             abi: shareAbi,
             functionName: "share",
@@ -7057,6 +7221,7 @@ export default function TerminalShell({
           functionName: "fee"
         })) as bigint;
         const hash = await writeContractAsync({
+          chainId: chain.id,
           address: contract,
           abi: shareAbi,
           functionName: "share",
@@ -7475,8 +7640,12 @@ export default function TerminalShell({
           };
         }
       }
+      const onChain = await ensureWalletChain(chain.id);
+      if (!onChain.ok)
+        return { id: generateId(), type: "text", warn: true, text: onChain.error };
       try {
         const hash = await writeContractAsync({
+          chainId: chain.id,
           address: factory as Address,
           abi: chatFactoryAbi,
           functionName: "deploy",
@@ -8223,13 +8392,9 @@ export default function TerminalShell({
         socialBadge={inboxUnread + boardUnread}
         bindings={bindings}
         activeChainId={activeChainId}
-        onChainSwitch={(chainId) => {
-          handleChainSwitch(chainId);
-          if (isConnected) {
-            void switchChainAsync({ chainId }).catch(() => {
-              /* wallet rejected — terminal selection still updated (same as network cmd) */
-            });
-          }
+        onOpenNetworkSettings={() => {
+          handlePrimaryTabChange("settings");
+          setNetworkFocusNonce((n) => n + 1);
         }}
         walletAddress={address ?? null}
         isWalletConnected={isConnected}
@@ -8378,6 +8543,18 @@ export default function TerminalShell({
               isConnected={!!isConnected && !!address}
               existingPreferences={readExistingPreferences()}
               onApplyImport={handleSettingsApplyImport}
+              defaultChainId={activeChainId}
+              onDefaultChainChange={(chainId) => {
+                handleChainSwitch(chainId);
+                if (isConnected) {
+                  void switchChainAsync({ chainId }).catch(() => {
+                    /* wallet rejected — terminal default still updated */
+                  });
+                }
+              }}
+              actionNetworks={actionNetworks}
+              onActionNetworksChange={handleActionNetworksChange}
+              networkFocusNonce={networkFocusNonce}
             />
           </div>
         ) : (
