@@ -1,6 +1,6 @@
 /**
  * @file InvestWorkspace.tsx
- * @description Invest mode action-tile launcher (#80/#117/#140/#145)
+ * @description Invest mode action-tile launcher (#80/#117/#140/#145/#160)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -9,6 +9,7 @@
 import type { ThemeConfig } from "../types";
 import { WorkspaceTile } from "./WorkspaceTile";
 import type { WorkspaceAction, WorkspacePanelId, InvestSubTab } from "./WorkspaceTile";
+import { readyWorkspaceActions } from "./wiredPanels";
 
 export const INVEST_SUB_TABS: { id: InvestSubTab; label: string }[] = [
   { id: "MARKET", label: "MARKET" },
@@ -16,6 +17,10 @@ export const INVEST_SUB_TABS: { id: InvestSubTab; label: string }[] = [
   { id: "DEX", label: "DEX" }
 ];
 
+/**
+ * Full action catalog. Unfinished (no `panel`) are hidden until a panel is
+ * wired in TerminalShell.renderInlinePanel (#160).
+ */
 export const INVEST_ACTIONS: WorkspaceAction[] = [
   {
     cmd: "news",
@@ -38,6 +43,7 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     panel: "swap",
     tab: "MARKET"
   },
+  // unfinished = hidden until panel wired (#160)
   { cmd: "ticker", label: "TICKER", hint: "watchlist board", tab: "MARKET" },
   { cmd: "balance", label: "BALANCE", hint: "check token balance", tab: "PORTFOLIO" },
   { cmd: "portfolio", label: "PORTFOLIO", hint: "all chains + P/L", tab: "PORTFOLIO" },
@@ -59,7 +65,9 @@ export function InvestWorkspace({
   onCommand: (cmd: string) => void;
   onOpenPanel?: (panel: WorkspacePanelId) => void;
 }) {
-  const actions = INVEST_ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
+  const actions = readyWorkspaceActions(INVEST_ACTIONS).filter(
+    (a) => !activeSubTab || a.tab === activeSubTab
+  );
 
   return (
     <div className="flex flex-wrap gap-1.5">

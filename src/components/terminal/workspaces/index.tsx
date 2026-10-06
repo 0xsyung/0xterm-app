@@ -1,6 +1,6 @@
 /**
  * @file workspaces/index.tsx
- * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148)
+ * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148/#160)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -11,10 +11,12 @@ import type { ThemeConfig } from "../types";
 import type { TerminalMode } from "../mode";
 import { WorkspaceFrame } from "./WorkspaceFrame";
 import { WorkspaceToolTabs } from "./WorkspaceToolTabs";
+import { ModeEmptyState } from "./ModeEmptyState";
 import { InvestWorkspace, INVEST_SUB_TABS, INVEST_ACTIONS } from "./InvestWorkspace";
 import { DevWorkspace, DEV_SUB_TABS, DEV_ACTIONS } from "./DevWorkspace";
 import { ForensicWorkspace, FORENSIC_SUB_TABS, FORENSIC_ACTIONS } from "./ForensicWorkspace";
 import type { WorkspaceAction, WorkspacePanelId, InvestSubTab, DevSubTab, ForensicSubTab } from "./WorkspaceTile";
+import { liveSubTabs, readyWorkspaceActions } from "./wiredPanels";
 
 const SUB_TABS: Record<
   Exclude<TerminalMode, "console">,
@@ -78,7 +80,7 @@ function WorkspaceBody({
  * Framed workspace surface. Presentational: the shell owns which panel is
  * open (`activePanel`) and how to render it (`renderPanel`). The active
  * sub-tab's tool buttons are always visible; a panel, when open, renders
- * below them (#148).
+ * below them (#148). Unfinished tools and empty sub-tabs are hidden (#160).
  */
 export function WorkspaceSurface({
   theme,
@@ -98,12 +100,23 @@ export function WorkspaceSurface({
   onSubTabChange?: (tab: string) => void;
   renderPanel?: (panel: WorkspacePanelId) => React.ReactNode;
 }) {
-  const subTabs = mode === "console" ? undefined : SUB_TABS[mode];
-  const [activeSubTab, setActiveSubTab] = useState(subTabs?.[0].id ?? "");
+  if (mode === "console") return null;
 
-  if (!subTabs || mode === "console") return null;
+  const subTabs = liveSubTabs(SUB_TABS[mode], MODE_ACTIONS[mode]);
+  const [activeSubTab, setActiveSubTab] = useState(subTabs[0]?.id ?? "");
 
-  const toolActions = MODE_ACTIONS[mode].filter((a) => a.tab === activeSubTab);
+  // Mode with zero live sub-tabs (e.g. DEV): keep header mode chip, show empty state (#160).
+  if (subTabs.length === 0) {
+    return (
+      <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden pt-2 px-0">
+        <ModeEmptyState theme={theme} mode={mode} />
+      </div>
+    );
+  }
+
+  const toolActions = readyWorkspaceActions(MODE_ACTIONS[mode]).filter(
+    (a) => a.tab === activeSubTab
+  );
 
   const handleSubTabChange = (tab: string) => {
     setActiveSubTab(tab);
@@ -150,3 +163,11 @@ export function WorkspaceStrip({
     />
   );
 }
+
+export {
+  WIRED_WORKSPACE_PANELS,
+  isReadyWorkspaceAction,
+  isWiredWorkspacePanel,
+  readyWorkspaceActions,
+  liveSubTabs
+} from "./wiredPanels";
