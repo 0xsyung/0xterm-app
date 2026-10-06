@@ -8242,6 +8242,7 @@ export default function TerminalShell({
   // #145 — panel wiring reused for the inline (frameless) panels inside the
   // workspace frame. Each panel keeps its own Escape-close; onClose returns
   // to the active sub-tab's tile grid.
+  // Keep switch cases in sync with WIRED_WORKSPACE_PANELS (#160).
   const renderInlinePanel = (panel: WorkspacePanelId): React.ReactNode => {
     const close = () => setOpenPanel(null);
     switch (panel) {

@@ -1,6 +1,6 @@
 /**
  * @file DevWorkspace.tsx
- * @description Dev (dig) mode action-tile launcher (#80/#140/#145)
+ * @description Dev (dig) mode action-tile launcher (#80/#140/#145/#160)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -9,6 +9,7 @@
 import type { ThemeConfig } from "../types";
 import { WorkspaceTile } from "./WorkspaceTile";
 import type { WorkspaceAction, DevSubTab } from "./WorkspaceTile";
+import { readyWorkspaceActions } from "./wiredPanels";
 
 export const DEV_SUB_TABS: { id: DevSubTab; label: string }[] = [
   { id: "SOURCE", label: "SOURCE" },
@@ -16,7 +17,12 @@ export const DEV_SUB_TABS: { id: DevSubTab; label: string }[] = [
   { id: "SHIP", label: "SHIP" }
 ];
 
+/**
+ * Full dig catalog. All unfinished (no panel) — hidden until Dig panels are
+ * wired (#160). Mode shows ModeEmptyState while zero live sub-tabs remain.
+ */
 export const DEV_ACTIONS: WorkspaceAction[] = [
+  // unfinished = hidden until panel wired (#160)
   { cmd: "dig new", label: "NEW", hint: "empty Solidity editor", tab: "SOURCE" },
   { cmd: "dig open", label: "OPEN", hint: "pick a .sol file", tab: "SOURCE" },
   { cmd: "dig edit", label: "EDIT", hint: "reopen last source", tab: "SOURCE" },
@@ -40,7 +46,9 @@ export function DevWorkspace({
   activeSubTab?: DevSubTab;
   onCommand: (cmd: string) => void;
 }) {
-  const actions = DEV_ACTIONS.filter((a) => !activeSubTab || a.tab === activeSubTab);
+  const actions = readyWorkspaceActions(DEV_ACTIONS).filter(
+    (a) => !activeSubTab || a.tab === activeSubTab
+  );
 
   return (
     <div className="flex flex-wrap gap-1.5">
