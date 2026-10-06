@@ -1,12 +1,12 @@
 /**
  * @file TerminalHeader.tsx
- * @description Terminal header — brand-clock + nav + wallet cluster (NETWORK + CONNECT) (#117/#121/#134)
+ * @description Terminal header — brand-clock + nav + wallet cluster (NETWORK + CONNECT) (#117/#121/#134/#156)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ThemeConfig } from "./types";
 import { HEADER_H, SUPPORTED_CHAINS, chainShortName } from "./constants";
 import { MODE_LABEL, MODE_ORDER } from "./mode";
@@ -208,95 +208,43 @@ function SettingsTab({
   );
 }
 
-/** Header NETWORK control — chrome from #121; home is wallet cluster (#134). */
+/** Header NETWORK chip — read-only default; opens Settings → NETWORK (#156). */
 function NetworkControl({
   theme,
   activeChainId,
-  onChainSwitch
+  onOpenNetworkSettings
 }: {
   theme: ThemeConfig;
   activeChainId?: number | null;
-  onChainSwitch?: (chainId: number) => void;
+  onOpenNetworkSettings?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
   const label = chain ? chainShortName(chain) : "NETWORK";
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const tip = chain
+    ? `Default network: ${label} ${chain.id} · change in Settings`
+    : "Default network: unset · change in Settings";
 
   return (
-    <div className="relative shrink-0" ref={rootRef}>
-      <button
-        type="button"
-        data-testid="header-network"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={chain ? `Network ${label} ${chain.id}` : "Network"}
-        title={chain ? `${label} ${chain.id}` : "Network"}
-        onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${TOUCH} ${
-          chain
-            ? `${theme.border} ${theme.primary} bg-transparent`
-            : `${theme.border} ${theme.muted} bg-transparent`
-        }`}
-      >
-        <span className="truncate max-w-[7rem]">{label}</span>
-        <span aria-hidden>▾</span>
-      </button>
-      {open && (
-        <div
-          role="listbox"
-          aria-label="Networks"
-          className={`absolute right-0 top-full mt-1 z-50 min-w-[10rem] max-h-[60vh] overflow-y-auto border ${theme.border} ${theme.cardBg} shadow-lg`}
-          data-testid="header-network-menu"
-        >
-          {SUPPORTED_CHAINS.map((c) => {
-            const active = c.id === activeChainId;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="option"
-                aria-selected={active}
-                data-testid={`header-network-option-${c.id}`}
-                onClick={() => {
-                  onChainSwitch?.(c.id);
-                  setOpen(false);
-                }}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-left uppercase tracking-widest text-[10px] cursor-pointer border-0 ${TOUCH} ${
-                  active ? "font-bold" : `${theme.muted} bg-transparent`
-                }`}
-                style={
-                  active
-                    ? { background: theme.phosphor, color: FILL_FG }
-                    : undefined
-                }
-              >
-                <span>{chainShortName(c)}</span>
-                <span className={active ? "" : theme.muted}>{c.id}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      data-testid="header-network"
+      aria-label={tip}
+      title={tip}
+      onClick={() => onOpenNetworkSettings?.()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenNetworkSettings?.();
+        }
+      }}
+      className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${TOUCH} ${
+        chain
+          ? `${theme.border} ${theme.primary} bg-transparent`
+          : `${theme.border} ${theme.muted} bg-transparent`
+      }`}
+    >
+      <span className="truncate max-w-[7rem]">{label}</span>
+    </button>
   );
 }
 
@@ -346,7 +294,7 @@ export default function TerminalHeader({
   socialBadge = 0,
   bindings,
   activeChainId = null,
-  onChainSwitch,
+  onOpenNetworkSettings,
   walletAddress = null,
   isWalletConnected = false,
   onWalletOpen
@@ -360,10 +308,10 @@ export default function TerminalHeader({
   socialBadge?: number;
   /** Live bindings keymap — the header F-row mirrors it (#28). */
   bindings?: BindingsState;
-  /** Active chain for NETWORK chrome (#121). */
+  /** Default chain for NETWORK chrome (#121/#156). */
   activeChainId?: number | null;
-  /** Same path as handleChainSwitch / network cmd (#121). */
-  onChainSwitch?: (chainId: number) => void;
+  /** Opens SETTINGS scrolled to NETWORK default selector (#156). */
+  onOpenNetworkSettings?: () => void;
   /** Connected wallet address for account chip (#134). */
   walletAddress?: string | null;
   /** Whether a wallet is connected (#134). */
@@ -468,7 +416,7 @@ export default function TerminalHeader({
         <NetworkControl
           theme={theme}
           activeChainId={activeChainId}
-          onChainSwitch={onChainSwitch}
+          onOpenNetworkSettings={onOpenNetworkSettings}
         />
         <ConnectControl
           theme={theme}
