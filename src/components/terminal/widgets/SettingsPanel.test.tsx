@@ -81,7 +81,7 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
     }
   });
 
-  it("default network chips: active Phosphor, click changes default (#156)", () => {
+  it("default network grid: full names, active press, click changes default (#156)", () => {
     const onDefaultChainChange = vi.fn();
     render(
       <SettingsPanel
@@ -91,8 +91,14 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
       />
     );
     const row = screen.getByTestId("settings-default-network");
-    expect(row.textContent).toMatch(/BASE/);
-    const eth = within(row).getByRole("button", { name: "ETH" });
+    expect(row.textContent).toMatch(/Base/);
+    expect(row.textContent).toMatch(/Ethereum/);
+    expect(row.textContent).toMatch(/Arbitrum One/);
+    expect(row.textContent).toMatch(/Polygon Amoy/);
+    const base = within(row).getByRole("button", { name: "Base" });
+    expect(base.getAttribute("aria-pressed")).toBe("true");
+    const eth = within(row).getByRole("button", { name: "Ethereum" });
+    expect(eth.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(eth);
     expect(onDefaultChainChange).toHaveBeenCalledWith(1);
   });
@@ -108,8 +114,12 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
       />
     );
     const swapRow = screen.getByTestId("settings-action-row-swap");
-    expect(swapRow.textContent).toMatch(/DEFAULT · BASE/);
     const select = within(swapRow).getByLabelText("swap network");
+    expect((select as HTMLSelectElement).value).toBe("");
+    const defaultOption = within(select).getByRole("option", {
+      name: "DEFAULT (BASE)"
+    });
+    expect((defaultOption as HTMLOptionElement).selected).toBe(true);
     fireEvent.change(select, { target: { value: "1" } });
     expect(onActionNetworksChange).toHaveBeenCalledWith({ swap: 1 });
 
@@ -123,7 +133,8 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
       />
     );
     const swapRow2 = screen.getByTestId("settings-action-row-swap");
-    expect(swapRow2.textContent).toMatch(/ETH/);
+    const select2 = within(swapRow2).getByLabelText("swap network");
+    expect((select2 as HTMLSelectElement).value).toBe("1");
     fireEvent.click(within(swapRow2).getByRole("button", { name: "RESET" }));
     expect(onActionNetworksChange).toHaveBeenCalledWith({});
 
@@ -143,7 +154,7 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
     expect(onActionNetworksChange).toHaveBeenCalledWith({});
   });
 
-  it("unsupported override shows warn and uses default label path (#156)", () => {
+  it("unsupported override falls back to default option and has its own RESET (#156)", () => {
     const onActionNetworksChange = vi.fn();
     render(
       <SettingsPanel
@@ -154,13 +165,17 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
       />
     );
     const row = screen.getByTestId("settings-action-row-vault");
-    expect(row.textContent).toMatch(/unavailable → default/);
-    // soft #1 (PR #157): stale unsupported override gets its own RESET
+    const select = within(row).getByLabelText("vault network");
+    expect((select as HTMLSelectElement).value).toBe("");
+    expect(
+      within(select).getByRole("option", { name: "DEFAULT (BASE)" })
+    ).toBeTruthy();
+    // stale unsupported override gets its own RESET
     fireEvent.click(within(row).getByRole("button", { name: "RESET" }));
     expect(onActionNetworksChange).toHaveBeenCalledWith({});
   });
 
-  it("changing default keeps overrides; DEFAULT · X updates live (#156)", () => {
+  it("changing default keeps overrides; default option label updates live (#156)", () => {
     const { rerender } = render(
       <SettingsPanel
         {...baseProps}
@@ -168,9 +183,12 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
         actionNetworks={{ swap: 1 }}
       />
     );
-    expect(screen.getByTestId("settings-action-row-sim").textContent).toMatch(
-      /DEFAULT · BASE/
-    );
+    const simRow = screen.getByTestId("settings-action-row-sim");
+    const simSelect = within(simRow).getByLabelText("sim network");
+    expect((simSelect as HTMLSelectElement).value).toBe("");
+    expect(
+      within(simSelect).getByRole("option", { name: "DEFAULT (BASE)" })
+    ).toBeTruthy();
     rerender(
       <SettingsPanel
         {...baseProps}
@@ -178,11 +196,15 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
         actionNetworks={{ swap: 1 }}
       />
     );
-    expect(screen.getByTestId("settings-action-row-sim").textContent).toMatch(
-      /DEFAULT · POLYGON/
-    );
-    expect(screen.getByTestId("settings-action-row-swap").textContent).toMatch(
-      /ETH/
-    );
+    const simRow2 = screen.getByTestId("settings-action-row-sim");
+    const simSelect2 = within(simRow2).getByLabelText("sim network");
+    expect(
+      within(simSelect2).getByRole("option", { name: "DEFAULT (POLYGON)" })
+    ).toBeTruthy();
+    expect((simSelect2 as HTMLSelectElement).value).toBe("");
+    const swapSelect = within(
+      screen.getByTestId("settings-action-row-swap")
+    ).getByLabelText("swap network");
+    expect((swapSelect as HTMLSelectElement).value).toBe("1");
   });
 });

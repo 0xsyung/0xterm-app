@@ -280,21 +280,10 @@ export function formatActionNetworkLine(
   return usedOverride ? `on ${short} (override)` : `on ${short}`;
 }
 
-/** Display cell when row uses default: `DEFAULT · BASE`. */
-export function formatDefaultCellLabel(defaultChainId: number | null): string {
-  const short = shortNameForChainId(defaultChainId) || "—";
-  return `DEFAULT · ${short}`;
-}
-
 /** First select option label: `DEFAULT (BASE)`. */
 export function formatDefaultOptionLabel(defaultChainId: number | null): string {
   const short = shortNameForChainId(defaultChainId) || "—";
   return `DEFAULT (${short})`;
-}
-
-/** Warn cell when override chain is unavailable: `BASE SEPOLIA unavailable → default`. */
-export function formatUnsupportedOverrideLabel(shortName: string): string {
-  return `${shortName} unavailable → default`;
 }
 
 /** Map CLI / panel command name → action id (createpool/addliq stay distinct). */
