@@ -95,6 +95,10 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
     expect(row.textContent).toMatch(/Ethereum/);
     expect(row.textContent).toMatch(/Arbitrum One/);
     expect(row.textContent).toMatch(/Polygon Amoy/);
+    expect(row.textContent).toMatch(/Optimism/);
+    expect(row.textContent).toMatch(/Optimism Sepolia/);
+    expect(row.textContent).not.toMatch(/OP Mainnet/);
+    expect(row.textContent).not.toMatch(/OP Sepolia/);
     const base = within(row).getByRole("button", { name: "Base" });
     expect(base.getAttribute("aria-pressed")).toBe("true");
     const eth = within(row).getByRole("button", { name: "Ethereum" });

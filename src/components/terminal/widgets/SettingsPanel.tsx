@@ -13,7 +13,13 @@ import type { RpcProviders, ActiveRpcProviders } from "../rpc";
 import type { ExplorerKeys } from "../explorerKeys";
 import type { TerminalMode } from "../mode";
 import { MODE_LABEL, MODE_ORDER } from "../mode";
-import { SUPPORTED_CHAINS, THEME_ORDER, THEMES, chainShortName } from "../constants";
+import {
+  SUPPORTED_CHAINS,
+  THEME_ORDER,
+  THEMES,
+  chainFullName,
+  chainShortName
+} from "../constants";
 import {
   READ_ACTIONS,
   WRITE_ACTIONS,
@@ -612,7 +618,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                     : undefined
                 }
               >
-                {c.name}
+                {chainFullName(c)}
               </button>
             );
           })}

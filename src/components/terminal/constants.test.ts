@@ -12,6 +12,7 @@ import {
   THEME_ALIASES,
   THEME_ORDER,
   isKnownThemeInput,
+  chainFullName,
   chainShortName,
   resolveChain,
   resolveThemeKey,
@@ -169,5 +170,19 @@ describe("chainShortName + HEADER metrics (#121)", () => {
   it("HEADER_H/PAD use 48px desktop soft target", () => {
     expect(HEADER_H).toContain("48px");
     expect(HEADER_PAD).toContain("48px");
+  });
+});
+
+describe("chainFullName", () => {
+  it("overrides viem's OP Mainnet names to Optimism", () => {
+    expect(chainFullName({ id: 10, name: "OP Mainnet" })).toBe("Optimism");
+    expect(chainFullName({ id: 11155420, name: "OP Sepolia" })).toBe(
+      "Optimism Sepolia"
+    );
+  });
+
+  it("falls through to the viem chain name for others", () => {
+    expect(chainFullName({ id: 1, name: "Ethereum" })).toBe("Ethereum");
+    expect(chainFullName({ id: 8453, name: "Base" })).toBe("Base");
   });
 });

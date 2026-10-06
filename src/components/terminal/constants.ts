@@ -227,6 +227,15 @@ export function chainShortName(chain: { id: number; name: string }): string {
   return SHORT[chain.id] || chain.name.toUpperCase().slice(0, 10)
 }
 
+/** Full display name — viem calls Optimism "OP Mainnet", so override the two OP names. */
+export function chainFullName(chain: { id: number; name: string }): string {
+  const FULL: Record<number, string> = {
+    10: 'Optimism',
+    11155420: 'Optimism Sepolia'
+  }
+  return FULL[chain.id] || chain.name
+}
+
 export function resolveThemeKey(raw?: string | null): ThemeMode {
   if (!raw) return 'matrix'
   if (Object.prototype.hasOwnProperty.call(THEMES, raw)) return raw as ThemeMode
