@@ -56,7 +56,6 @@ import {
   DEX_REGISTRY,
   erc20Abi,
   uniV2RouterAbi,
-  uniV3RouterAbi,
   uniV3PoolAbi,
   uniV2FactoryAbi,
   uniV3FactoryAbi,
@@ -82,6 +81,7 @@ import {
   VAULT_REGISTRY,
   erc4626Abi
 } from "./constants";
+import { encodeV3ExactInputSingle } from "./swapEncode";
 import { formatViemError } from "../../lib/viemError";
 import {
   isPinnableLog,
@@ -4811,21 +4811,16 @@ export default function TerminalShell({
           approvalAddress = activeDex.router;
         }
       } else {
-        txData = encodeFunctionData({
-          abi: uniV3RouterAbi,
-          functionName: "exactInputSingle",
-          args: [
-            {
-              tokenIn: addrIn,
-              tokenOut: addrOut,
-              fee: feeTier,
-              recipient: address,
-              deadline,
-              amountIn: amountInWei,
-              amountOutMinimum: amountOutMin,
-              sqrtPriceLimitX96: 0n
-            }
-          ]
+        // #154: original SwapRouter vs SwapRouter02 ABI per DEX_REGISTRY entry.
+        txData = encodeV3ExactInputSingle(activeDex, {
+          tokenIn: addrIn,
+          tokenOut: addrOut,
+          fee: feeTier,
+          recipient: address,
+          deadline,
+          amountIn: amountInWei,
+          amountOutMinimum: amountOutMin,
+          sqrtPriceLimitX96: 0n
         });
         if (fromToken.isNative) txValue = toHex(amountInWei);
         else approvalAddress = activeDex.router;
