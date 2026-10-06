@@ -40,7 +40,13 @@ export type DexProtocol = {
   factory: Address
   positionManager?: Address
   type: 'V2' | 'V3'
+  // V3 only (#154): which Uniswap router ABI the `router` address speaks.
+  // 'swapRouter'   = original SwapRouter (exactInputSingle struct has deadline)
+  // 'swapRouter02' = SwapRouter02 (no deadline in struct; deadline via multicall)
+  routerVersion?: V3RouterVersion
 }
+
+export type V3RouterVersion = 'swapRouter' | 'swapRouter02'
 
 // Curated ERC-4626 allow-list for `vault list` (#21). Not a complete vault
 // directory — users may still pass a raw address to `vault show`. `asset()` is

@@ -105,6 +105,10 @@ describe("DEX_REGISTRY[8453] (locks #7)", () => {
   it("uses the correct nonfungible position manager", () => {
     expect(univ3?.positionManager).toBe("0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1");
   });
+
+  it("tags the V3 router as SwapRouter02 (#154)", () => {
+    expect(univ3?.routerVersion).toBe("swapRouter02");
+  });
 });
 
 describe("DEX_REGISTRY univ2 entries (Wave 1 #32)", () => {
