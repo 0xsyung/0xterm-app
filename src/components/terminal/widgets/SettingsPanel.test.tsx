@@ -144,15 +144,20 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
   });
 
   it("unsupported override shows warn and uses default label path (#156)", () => {
+    const onActionNetworksChange = vi.fn();
     render(
       <SettingsPanel
         {...baseProps}
         defaultChainId={8453}
         actionNetworks={{ vault: 84532 }}
+        onActionNetworksChange={onActionNetworksChange}
       />
     );
     const row = screen.getByTestId("settings-action-row-vault");
     expect(row.textContent).toMatch(/unavailable → default/);
+    // soft #1 (PR #157): stale unsupported override gets its own RESET
+    fireEvent.click(within(row).getByRole("button", { name: "RESET" }));
+    expect(onActionNetworksChange).toHaveBeenCalledWith({});
   });
 
   it("changing default keeps overrides; DEFAULT · X updates live (#156)", () => {

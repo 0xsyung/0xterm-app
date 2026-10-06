@@ -342,6 +342,7 @@ import {
   type ActionId,
   type ActionNetworkOverrides
 } from "./actionNetworks";
+import { ensureChainForAction } from "./ensureActionChain";
 
 import VerifyWidget, { type VerifyWidgetData } from "./widgets/VerifyWidget";
 import { applyImportBlob } from "./settingsPrefs";
@@ -760,7 +761,10 @@ export default function TerminalShell({
     failed: number;
   } | null>(null);
 
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId: walletChainId } = useAccount();
+  // Latest wallet chain for async write paths (avoid stale render closures).
+  const walletChainIdRef = useRef<number | undefined>(walletChainId);
+  walletChainIdRef.current = walletChainId;
   const { data: walletClient } = useWalletClient();
   const { sendTransactionAsync } = useSendTransaction();
   const { connectors, connect } = useConnect();
@@ -782,6 +786,15 @@ export default function TerminalShell({
   }, [logs]);
 
   const generateId = () => Math.random().toString(36).substring(2, 9);
+
+  /** PR #157 must-fix: put the wallet on the resolved action chain before a
+   *  write (switchChainAsync). Writes also pass `chainId` so wagmi hard-stops
+   *  on mismatch. See ensureActionChain.ts. */
+  const ensureWalletChain = (chainId: number | null | undefined) =>
+    ensureChainForAction(chainId, {
+      walletChainId: walletChainIdRef.current,
+      switchChainAsync
+    });
 
   // --- Pin / unpin (floating right column) --------------------------------
   // Toggle a log entry between the main feed and the pinned column. `refresh`
@@ -1611,6 +1624,9 @@ export default function TerminalShell({
     if ("error" in req)
       return [{ id: generateId(), type: "text", text: req.error }];
     const contract = req.contract;
+    const onChain = await ensureWalletChain(chain.id);
+    if (!onChain.ok)
+      return [{ id: generateId(), type: "text", warn: true, text: onChain.error }];
 
     try {
       const myPair = await getChatKeyPair();
@@ -1635,6 +1651,7 @@ export default function TerminalShell({
         const popSig = await signMessageAsync({ message: { raw: popDigest } });
         const { v, r, s } = splitSignature(popSig);
         await writeContractAsync({
+          chainId: chain.id,
           address: contract as Address,
           abi: chatAbi,
           functionName: "setPublicKey",
@@ -1669,6 +1686,7 @@ export default function TerminalShell({
       });
 
       const hash = await writeContractAsync({
+        chainId: chain.id,
         address: contract as Address,
         abi: chatAbi,
         functionName: "sendMessage",
@@ -3088,7 +3106,25 @@ export default function TerminalShell({
                       );
                       return;
                     }
+                    // PR #157: dig runs on the resolved `dig` chain — switch
+                    // the wallet first; chainId below hard-stops on mismatch.
+                    const onChain = await ensureWalletChain(activeChainId);
+                    if (!onChain.ok) {
+                      setLogs((prev) =>
+                        [
+                          ...prev.filter((l) => l.id !== id),
+                          {
+                            id: generateId(),
+                            type: "text" as const,
+                            text: onChain.error,
+                            warn: true
+                          }
+                        ].slice(-MAX_LOGS)
+                      );
+                      return;
+                    }
                     const hash = await sendTransactionAsync({
+                      chainId: onChain.chainId,
                       to:
                         confirm.intent === "deploy"
                           ? undefined
@@ -6429,8 +6465,12 @@ export default function TerminalShell({
             | readonly [`0x${string}`, `0x${string}`],
           label: string
         ): Promise<LogEntry | LogEntry[]> => {
+          const onChain = await ensureWalletChain(chain.id);
+          if (!onChain.ok)
+            return { id: generateId(), type: "text", warn: true, text: onChain.error };
           try {
             const hash = await writeContractAsync({
+              chainId: chain.id,
               address: contract as Address,
               abi: ensRegistryAbi,
               functionName: fn,
@@ -6553,6 +6593,11 @@ export default function TerminalShell({
       if ("error" in req)
         return { id: generateId(), type: "text", text: req.error };
       const contract = req.contract;
+      // PR #157: chat resolves an override chain — wallet must be on it before
+      // setPublicKey / sendMessage (both also pass chainId → hard-stop).
+      const onChain = await ensureWalletChain(chain.id);
+      if (!onChain.ok)
+        return { id: generateId(), type: "text", warn: true, text: onChain.error };
 
       try {
         const myPair = await getChatKeyPair();
@@ -6580,6 +6625,7 @@ export default function TerminalShell({
           const popSig = await signMessageAsync({ message: { raw: popDigest } });
           const { v, r, s } = splitSignature(popSig);
           await writeContractAsync({
+            chainId: chain.id,
             address: contract as Address,
             abi: chatAbi,
             functionName: "setPublicKey",
@@ -6616,6 +6662,7 @@ export default function TerminalShell({
         });
 
         const hash = await writeContractAsync({
+          chainId: chain.id,
           address: contract as Address,
           abi: chatAbi,
           functionName: "sendMessage",
@@ -6839,6 +6886,10 @@ export default function TerminalShell({
             type: "text",
             text: "Usage: board post <content>"
           };
+        // PR #157: billboard is testnet-only — never let the wallet's chain win.
+        const onChain = await ensureWalletChain(chain.id);
+        if (!onChain.ok)
+          return { id: generateId(), type: "text", warn: true, text: onChain.error };
         try {
           const fee = await getClient(chain).readContract({
             address: contract as Address,
@@ -6846,6 +6897,7 @@ export default function TerminalShell({
             functionName: "fee"
           });
           const hash = await writeContractAsync({
+            chainId: chain.id,
             address: contract as Address,
             abi: billboardAbi,
             functionName: "post",
@@ -7065,8 +7117,13 @@ export default function TerminalShell({
         if (!isConnected || !address) {
           return { id: generateId(), type: "text", text: "Wallet not connected." };
         }
+        // PR #157: share contract is Sepolia-only — switch before writing.
+        const onChain = await ensureWalletChain(chain.id);
+        if (!onChain.ok)
+          return { id: generateId(), type: "text", warn: true, text: onChain.error };
         try {
           const hash = await writeContractAsync({
+            chainId: chain.id,
             address: contract,
             abi: shareAbi,
             functionName: "unshare"
@@ -7088,6 +7145,9 @@ export default function TerminalShell({
       if (!isConnected || !address) {
         return { id: generateId(), type: "text", text: "Wallet not connected." };
       }
+      const onChain = await ensureWalletChain(chain.id);
+      if (!onChain.ok)
+        return { id: generateId(), type: "text", warn: true, text: onChain.error };
 
       try {
         const ens = (await ensNameFor(address)) || "";
@@ -7112,6 +7172,7 @@ export default function TerminalShell({
             functionName: "fee"
           })) as bigint;
           const hash = await writeContractAsync({
+            chainId: chain.id,
             address: contract,
             abi: shareAbi,
             functionName: "share",
@@ -7160,6 +7221,7 @@ export default function TerminalShell({
           functionName: "fee"
         })) as bigint;
         const hash = await writeContractAsync({
+          chainId: chain.id,
           address: contract,
           abi: shareAbi,
           functionName: "share",
@@ -7578,8 +7640,12 @@ export default function TerminalShell({
           };
         }
       }
+      const onChain = await ensureWalletChain(chain.id);
+      if (!onChain.ok)
+        return { id: generateId(), type: "text", warn: true, text: onChain.error };
       try {
         const hash = await writeContractAsync({
+          chainId: chain.id,
           address: factory as Address,
           abi: chatFactoryAbi,
           functionName: "deploy",

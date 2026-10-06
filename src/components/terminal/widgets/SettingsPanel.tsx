@@ -270,7 +270,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     if (!networkFocusNonce) return;
     const el = defaultNetworkRef.current;
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
     const focusable = el.querySelector<HTMLElement>(
       "[data-testid='settings-default-network'] button, [data-testid='settings-default-network']"
     );
@@ -693,7 +693,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                         );
                       })}
                     </select>
-                    {!onDefault && !unsupported && (
+                    {override != null && (
                       <GhostChip
                         theme={theme}
                         label="RESET"
@@ -777,7 +777,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                         );
                       })}
                     </select>
-                    {!onDefault && !unsupported && (
+                    {override != null && (
                       <GhostChip
                         theme={theme}
                         label="RESET"
