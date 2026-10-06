@@ -18,11 +18,8 @@ import {
   READ_ACTIONS,
   WRITE_ACTIONS,
   countOverrides,
-  formatDefaultCellLabel,
   formatDefaultOptionLabel,
-  formatUnsupportedOverrideLabel,
   setActionOverride,
-  shortNameForChainId,
   type ActionNetworkOverrides
 } from "../actionNetworks";
 import type { ChannelStore, ChatChannel } from "../chatChannels";
@@ -591,22 +588,32 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       <section className="space-y-1.5" ref={defaultNetworkRef}>
         <SectionLabel theme={theme}>Default network</SectionLabel>
         <div
-          className="flex flex-wrap gap-1"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1"
           data-testid="settings-default-network"
           id="settings-network-default"
         >
           {SUPPORTED_CHAINS.map((c) => {
             const active = c.id === defaultChainId;
-            const short = chainShortName(c);
-            const Chip = active ? PhosphorChip : GhostChip;
             return (
-              <Chip
+              <button
                 key={c.id}
-                theme={theme}
-                label={short}
-                title={`${short} ${c.id}`}
+                type="button"
+                title={String(c.id)}
                 onClick={() => onDefaultChainChange?.(c.id)}
-              />
+                aria-pressed={active}
+                className={`inline-flex items-center justify-start px-2 py-1 text-[11px] font-mono cursor-pointer pointer-coarse:min-h-[44px] border rounded-none text-left ${
+                  active
+                    ? "border-transparent font-bold"
+                    : `border ${theme.border} ${theme.muted} bg-transparent`
+                }`}
+                style={
+                  active
+                    ? { background: theme.phosphor, color: FILL_FG }
+                    : undefined
+                }
+              >
+                {c.name}
+              </button>
             );
           })}
         </div>
@@ -650,21 +657,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 >
                   <span className="font-mono truncate">{action.label}</span>
                   <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                    {unsupported ? (
-                      <span className={`${theme.warn} text-[10px] truncate`}>
-                        {formatUnsupportedOverrideLabel(
-                          shortNameForChainId(override!)
-                        )}
-                      </span>
-                    ) : onDefault ? (
-                      <span className={`${theme.muted} text-[10px] truncate`}>
-                        {formatDefaultCellLabel(defaultChainId)}
-                      </span>
-                    ) : (
-                      <span className={`${theme.primary} text-[10px] truncate`}>
-                        {shortNameForChainId(override!)}
-                      </span>
-                    )}
                     <select
                       aria-label={`${action.label} network`}
                       className={`border ${theme.border} ${theme.bg} ${theme.text} text-[10px] font-mono px-1 py-0.5 max-w-[9rem]`}
@@ -734,21 +726,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 >
                   <span className="font-mono truncate">{action.label}</span>
                   <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                    {unsupported ? (
-                      <span className={`${theme.warn} text-[10px] truncate`}>
-                        {formatUnsupportedOverrideLabel(
-                          shortNameForChainId(override!)
-                        )}
-                      </span>
-                    ) : onDefault ? (
-                      <span className={`${theme.muted} text-[10px] truncate`}>
-                        {formatDefaultCellLabel(defaultChainId)}
-                      </span>
-                    ) : (
-                      <span className={`${theme.primary} text-[10px] truncate`}>
-                        {shortNameForChainId(override!)}
-                      </span>
-                    )}
                     <select
                       aria-label={`${action.label} network`}
                       className={`border ${theme.border} ${theme.bg} ${theme.text} text-[10px] font-mono px-1 py-0.5 max-w-[9rem]`}

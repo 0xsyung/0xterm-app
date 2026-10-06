@@ -13,9 +13,7 @@ import {
   clearAllOverrides,
   countOverrides,
   formatActionNetworkLine,
-  formatDefaultCellLabel,
   formatDefaultOptionLabel,
-  formatUnsupportedOverrideLabel,
   parseActionNetworkOverrides,
   resolveActionChain,
   setActionOverride,
@@ -81,7 +79,6 @@ describe("resolveActionChain", () => {
       chainId: 137,
       usedOverride: false
     });
-    expect(formatDefaultCellLabel(137)).toBe("DEFAULT · POLYGON");
     expect(formatDefaultOptionLabel(8453)).toBe("DEFAULT (BASE)");
   });
 
@@ -93,9 +90,6 @@ describe("resolveActionChain", () => {
     expect(r.usedOverride).toBe(false);
     expect(r.unsupportedOverride?.chainId).toBe(84532);
     expect(r.unsupportedOverride?.shortName).toMatch(/BASE/);
-    expect(
-      formatUnsupportedOverrideLabel(r.unsupportedOverride!.shortName)
-    ).toMatch(/unavailable → default/);
   });
 
   it("clearAllOverrides empties the map", () => {
