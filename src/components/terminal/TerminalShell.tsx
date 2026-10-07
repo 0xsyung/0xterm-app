@@ -7,7 +7,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   useAccount,
   useConnect,
@@ -331,7 +331,10 @@ import { simulateTx } from "./sim/simulate";
 import { traceTx, isTxHash } from "./sim/trace";
 import { simErrorText } from "./sim/errors";
 import PinnedPanel from "./PinnedPanel";
-import SocialPanel from "./SocialPanel";
+import SocialPanel, {
+  type InboxSenderSummary,
+  type InboxThreadView,
+} from "./SocialPanel";
 import FloatingChat from "./widgets/FloatingChat";
 import SettingsPanel from "./widgets/SettingsPanel";
 import {
@@ -1791,6 +1794,57 @@ export default function TerminalShell({
     }
   };
 
+  const loadSendersCb = useCallback(async (): Promise<InboxSenderSummary[]> => {
+    if (!isConnected || !address) return [];
+    const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+    const contract = activeChatContractOnChain(chain?.id);
+    if (!chain || !contract) return [];
+    const me = getAddress(address);
+    const client = getClient(chain);
+    const senders = (await client.readContract({
+      address: contract as Address,
+      abi: chatAbi,
+      functionName: "getSenders",
+      args: [me]
+    })) as readonly Address[];
+    const out: InboxSenderSummary[] = [];
+    for (const s of senders) {
+      const count = Number(
+        await client.readContract({
+          address: contract as Address,
+          abi: chatAbi,
+          functionName: "threadCount",
+          args: [me, s]
+        })
+      );
+      const label = (await ensNameFor(s)) || undefined;
+      out.push({ peer: s, count, label });
+    }
+    return out;
+  }, [isConnected, address, activeChainId, activeChatContractOnChain, ensNameFor]);
+
+  const loadThreadCb = useCallback(async (peer: Address): Promise<InboxThreadView> => {
+    if (!isConnected || !address) throw new Error("Connect a wallet.");
+    const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+    const contract = activeChatContractOnChain(chain?.id);
+    if (!chain || !contract) throw new Error("No chat channel.");
+    const me = getAddress(address);
+    const refreshed = await fetchChatThread(
+      getClient(chain),
+      contract as Address,
+      me,
+      peer,
+      { getChatKeyPair, ensNameFor }
+    );
+    // Social view skips key-change warn when we lack the raw key here
+    // (inbox command still surfaces continuity warnings in the log).
+    return {
+      ...refreshed,
+      peerFingerprint: undefined as string | undefined,
+      keyChanged: false
+    };
+  }, [isConnected, address, activeChainId, activeChatContractOnChain, ensNameFor, getChatKeyPair]);
+
   const handleThemeSwitch = (newTheme: ThemeMode) => {
     onThemeChange(newTheme);
     savePreference("theme", newTheme);
@@ -1808,6 +1862,30 @@ export default function TerminalShell({
       setActiveDexId(null);
       savePreference("dexId", null);
     }
+  };
+
+  /** Channel dropdown pick — save as active (and switch network if needed). */
+  const handleSwitchChannel = (ch: ChatChannel) => {
+    const id = channelId(ch.chainId, ch.address);
+    const exists = channelStore.channels.some(
+      (c) => channelId(c.chainId, c.address) === id
+    );
+    const nextChannels = exists
+      ? channelStore.channels
+      : [...channelStore.channels, { ...ch, source: ch.source || "saved" }];
+    persistChannels({ channels: nextChannels, activeId: id });
+    if (ch.chainId !== activeChainId) {
+      handleChainSwitch(ch.chainId);
+      if (isConnected) {
+        void switchChainAsync({ chainId: ch.chainId }).catch(() => {
+          /* wallet rejected — terminal default still updated */
+        });
+      }
+    }
+    setLogs((prev) => [
+      ...prev,
+      { id: generateId(), type: "text", text: activeChannelSuccessMsg(ch) }
+    ]);
   };
 
   /** Resolve per-action chain and log muted `on X` / `on X (override)` (#156). */
@@ -8452,56 +8530,12 @@ export default function TerminalShell({
                   ? activeChannelChipLabel(activeChatChannel, allChannelsForLabel)
                   : null
               }
+              channels={allChannelsForLabel}
+              activeChannelId={channelStore.activeId}
+              onSwitchChannel={handleSwitchChannel}
               isConnected={!!isConnected && !!address}
-              loadSenders={async () => {
-                if (!isConnected || !address) return [];
-                const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
-                const contract = activeChatContractOnChain(chain?.id);
-                if (!chain || !contract) return [];
-                const me = getAddress(address);
-                const client = getClient(chain);
-                const senders = (await client.readContract({
-                  address: contract as Address,
-                  abi: chatAbi,
-                  functionName: "getSenders",
-                  args: [me]
-                })) as readonly Address[];
-                const out = [];
-                for (const s of senders) {
-                  const count = Number(
-                    await client.readContract({
-                      address: contract as Address,
-                      abi: chatAbi,
-                      functionName: "threadCount",
-                      args: [me, s]
-                    })
-                  );
-                  const label = (await ensNameFor(s)) || undefined;
-                  out.push({ peer: s, count, label });
-                }
-                return out;
-              }}
-              loadThread={async (peer) => {
-                if (!isConnected || !address) throw new Error("Connect a wallet.");
-                const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
-                const contract = activeChatContractOnChain(chain?.id);
-                if (!chain || !contract) throw new Error("No chat channel.");
-                const me = getAddress(address);
-                const refreshed = await fetchChatThread(
-                  getClient(chain),
-                  contract as Address,
-                  me,
-                  peer,
-                  { getChatKeyPair, ensNameFor }
-                );
-                // Social view skips key-change warn when we lack the raw key here
-                // (inbox command still surfaces continuity warnings in the log).
-                return {
-                  ...refreshed,
-                  peerFingerprint: undefined as string | undefined,
-                  keyChanged: false
-                };
-              }}
+              loadSenders={loadSendersCb}
+              loadThread={loadThreadCb}
               loadBoard={async () => {
                 const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
                 const contract = chain ? BILLBOARD_CONTRACT[chain.id] : null;
@@ -8703,6 +8737,9 @@ export default function TerminalShell({
             ? activeChannelChipLabel(activeChatChannel, allChannelsForLabel)
             : null
         }
+        channels={allChannelsForLabel}
+        activeChannelId={channelStore.activeId}
+        onSwitchChannel={handleSwitchChannel}
         isConnected={!!isConnected && !!address}
         promptClearancePx={promptClearancePx}
         primaryTab={primaryTab}
@@ -8714,53 +8751,8 @@ export default function TerminalShell({
         onOpenChange={(open) => {
           floatingChatOpenRef.current = open;
         }}
-        loadSenders={async () => {
-          if (!isConnected || !address) return [];
-          const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
-          const contract = activeChatContractOnChain(chain?.id);
-          if (!chain || !contract) return [];
-          const me = getAddress(address);
-          const client = getClient(chain);
-          const senders = (await client.readContract({
-            address: contract as Address,
-            abi: chatAbi,
-            functionName: "getSenders",
-            args: [me]
-          })) as readonly Address[];
-          const out = [];
-          for (const s of senders) {
-            const count = Number(
-              await client.readContract({
-                address: contract as Address,
-                abi: chatAbi,
-                functionName: "threadCount",
-                args: [me, s]
-              })
-            );
-            const label = (await ensNameFor(s)) || undefined;
-            out.push({ peer: s, count, label });
-          }
-          return out;
-        }}
-        loadThread={async (peer) => {
-          if (!isConnected || !address) throw new Error("Connect a wallet.");
-          const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
-          const contract = activeChatContractOnChain(chain?.id);
-          if (!chain || !contract) throw new Error("No chat channel.");
-          const me = getAddress(address);
-          const refreshed = await fetchChatThread(
-            getClient(chain),
-            contract as Address,
-            me,
-            peer,
-            { getChatKeyPair, ensNameFor }
-          );
-          return {
-            ...refreshed,
-            peerFingerprint: undefined as string | undefined,
-            keyChanged: false
-          };
-        }}
+        loadSenders={loadSendersCb}
+        loadThread={loadThreadCb}
         sendMessage={async (peer, text) => {
           await handleCommand(`chat ${peer} ${text}`);
         }}
