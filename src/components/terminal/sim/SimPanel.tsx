@@ -139,22 +139,24 @@ export default function SimPanel({
       role="dialog"
       aria-label="Sim"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
-        >
-          SIM
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close sim panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="sim-panel-close"
-        >
-          ×
-        </button>
-      </div>
+      {!frameless && (
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
+          >
+            SIM
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close sim panel"
+            className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
+            data-testid="sim-panel-close"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className={`text-[9px] ${theme.muted}`}>
         eth_call dry-run — read-only, never sends.

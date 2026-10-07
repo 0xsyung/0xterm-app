@@ -111,22 +111,24 @@ export default function TracePanel({
       role="dialog"
       aria-label="Trace"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
-        >
-          TRACE
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close trace panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="trace-panel-close"
-        >
-          ×
-        </button>
-      </div>
+      {!frameless && (
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
+          >
+            TRACE
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close trace panel"
+            className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
+            data-testid="trace-panel-close"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className={`text-[9px] ${theme.muted}`}>
         debug_traceTransaction — needs a debug-capable RPC (not the public default).
