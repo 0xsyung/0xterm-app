@@ -31,7 +31,9 @@ export function WorkspaceToolTabs({
     "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
 
   return (
-    <div className="flex flex-wrap gap-1.5 pb-3">
+    <div
+      className={`sticky top-0 z-10 -mx-3 px-3 -mt-3 pt-2 pb-2 flex flex-wrap gap-1.5 ${theme.bg}`}
+    >
       {actions.map((a) => {
         const active = a.panel !== undefined && activeTool === a.panel;
         return (
