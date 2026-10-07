@@ -51,6 +51,9 @@ export function canRunSim(args: {
   );
 }
 
+const INITIAL_TO = "";
+const INITIAL_DATA = "";
+
 export default function SimPanel({
   theme,
   onClose,
@@ -63,14 +66,25 @@ export default function SimPanel({
   /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
   frameless?: boolean;
 }) {
-  const [to, setTo] = useState("");
-  const [data, setData] = useState("");
+  const [to, setTo] = useState(INITIAL_TO);
+  const [data, setData] = useState(INITIAL_DATA);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ReactNode | null>(null);
+  /** After first invalid RUN click this mount — surface yellow field warns (#164). */
+  const [attemptedRun, setAttemptedRun] = useState(false);
+  const [toDirty, setToDirty] = useState(false);
+  const [toBlurred, setToBlurred] = useState(false);
+  const [dataDirty, setDataDirty] = useState(false);
+  const [dataBlurred, setDataBlurred] = useState(false);
 
   const canRun = canRunSim({ to, data, running });
   const preview = `sim ${to.trim() || "…"} ${data.trim() || "0x0"}`;
+
+  const showToWarn =
+    !isValidSimTo(to) && (attemptedRun || (toDirty && toBlurred));
+  const showDataWarn =
+    !isValidSimData(data) && (attemptedRun || (dataDirty && dataBlurred));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -86,6 +100,7 @@ export default function SimPanel({
   const run = async () => {
     if (!canRunSim({ to, data })) return;
     setError(null);
+    setAttemptedRun(false);
     setRunning(true);
     try {
       const res = await onRun({ to: to.trim(), data: normalizeSimData(data) });
@@ -101,6 +116,15 @@ export default function SimPanel({
     } finally {
       setRunning(false);
     }
+  };
+
+  const handleRunClick = () => {
+    if (running) return;
+    if (!canRunSim({ to, data })) {
+      setAttemptedRun(true);
+      return;
+    }
+    void run();
   };
 
   const touch =
@@ -141,7 +165,12 @@ export default function SimPanel({
         <input
           type="text"
           value={to}
-          onChange={(e) => setTo(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setTo(v);
+            setToDirty(v !== INITIAL_TO);
+          }}
+          onBlur={() => setToBlurred(true)}
           placeholder="0x…"
           className={`w-full px-2 py-1.5 border ${theme.border} bg-transparent ${theme.text} font-mono text-[12px] outline-none ${touch}`}
           data-testid="sim-to"
@@ -155,7 +184,12 @@ export default function SimPanel({
         <input
           type="text"
           value={data}
-          onChange={(e) => setData(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setData(v);
+            setDataDirty(v !== INITIAL_DATA);
+          }}
+          onBlur={() => setDataBlurred(true)}
           placeholder="0x… (empty = 0x0)"
           className={`w-full px-2 py-1.5 border ${theme.border} bg-transparent ${theme.text} font-mono text-[12px] outline-none ${touch}`}
           data-testid="sim-data"
@@ -166,9 +200,11 @@ export default function SimPanel({
 
       <button
         type="button"
-        onClick={() => void run()}
-        disabled={!canRun}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+        onClick={handleRunClick}
+        aria-disabled={!canRun}
+        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer ${
+          canRun ? "" : "opacity-40"
+        } ${touch}`}
         style={{ background: theme.phosphor, color: "#000000" }}
         data-testid="sim-run"
       >
@@ -177,7 +213,7 @@ export default function SimPanel({
       <div className={`text-[9px] ${theme.muted} font-mono`} data-testid="sim-preview">
         {preview}
       </div>
-      {!isValidSimTo(to) && (
+      {showToWarn && (
         <div
           className={`text-[10px] ${theme.warn || theme.muted}`}
           data-testid="sim-warn-to"
@@ -186,7 +222,7 @@ export default function SimPanel({
           Enter a target address.
         </div>
       )}
-      {!isValidSimData(data) && (
+      {showDataWarn && (
         <div
           className={`text-[10px] ${theme.warn || theme.muted}`}
           data-testid="sim-warn-data"

@@ -28,6 +28,8 @@ export function canRunTrace(args: { txHash: string; running?: boolean }): boolea
   return isValidTxHash(args.txHash) && !args.running;
 }
 
+const INITIAL_TXHASH = "";
+
 export default function TracePanel({
   theme,
   onClose,
@@ -40,14 +42,21 @@ export default function TracePanel({
   /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
   frameless?: boolean;
 }) {
-  const [txHash, setTxHash] = useState("");
+  const [txHash, setTxHash] = useState(INITIAL_TXHASH);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ReactNode | null>(null);
+  /** After first invalid RUN click this mount — surface yellow field warns (#164). */
+  const [attemptedRun, setAttemptedRun] = useState(false);
+  const [txHashDirty, setTxHashDirty] = useState(false);
+  const [txHashBlurred, setTxHashBlurred] = useState(false);
 
   const txHashOk = isValidTxHash(txHash);
   const canRun = canRunTrace({ txHash, running });
   const preview = `trace ${txHash.trim() || "…"}`;
+
+  const showHashWarn =
+    !txHashOk && (attemptedRun || (txHashDirty && txHashBlurred));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,6 +72,7 @@ export default function TracePanel({
   const run = async () => {
     if (!canRunTrace({ txHash })) return;
     setError(null);
+    setAttemptedRun(false);
     setRunning(true);
     try {
       const res = await onRun({ txHash: txHash.trim() });
@@ -78,6 +88,15 @@ export default function TracePanel({
     } finally {
       setRunning(false);
     }
+  };
+
+  const handleRunClick = () => {
+    if (running) return;
+    if (!canRunTrace({ txHash })) {
+      setAttemptedRun(true);
+      return;
+    }
+    void run();
   };
 
   const touch =
@@ -118,7 +137,12 @@ export default function TracePanel({
         <input
           type="text"
           value={txHash}
-          onChange={(e) => setTxHash(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setTxHash(v);
+            setTxHashDirty(v !== INITIAL_TXHASH);
+          }}
+          onBlur={() => setTxHashBlurred(true)}
           placeholder="0x + 64 hex chars"
           className={`w-full px-2 py-1.5 border ${theme.border} bg-transparent ${theme.text} font-mono text-[12px] outline-none ${touch}`}
           data-testid="trace-txhash"
@@ -129,9 +153,11 @@ export default function TracePanel({
 
       <button
         type="button"
-        onClick={() => void run()}
-        disabled={!canRun}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+        onClick={handleRunClick}
+        aria-disabled={!canRun}
+        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer ${
+          canRun ? "" : "opacity-40"
+        } ${touch}`}
         style={{ background: theme.phosphor, color: "#000000" }}
         data-testid="trace-run"
       >
@@ -140,7 +166,7 @@ export default function TracePanel({
       <div className={`text-[9px] ${theme.muted} font-mono`} data-testid="trace-preview">
         {preview}
       </div>
-      {!txHashOk && (
+      {showHashWarn && (
         <div
           className={`text-[10px] ${theme.warn || theme.muted}`}
           data-testid="trace-warn-hash"
