@@ -20,10 +20,13 @@ describe("ModeEmptyState (#140 A1)", () => {
     ).toBeTruthy();
   });
 
-  it("renders DEV empty card", () => {
+  it("renders DEV empty card with locked empty copy (#162)", () => {
     render(<ModeEmptyState theme={theme} mode="dev" />);
     expect(screen.getByTestId("mode-empty-dev")).toBeTruthy();
-    expect(screen.getByText(MODE_EMPTY_COPY.dev.body)).toBeTruthy();
+    expect(screen.getByText("DEV")).toBeTruthy();
+    expect(screen.getByText("No tools in this mode yet.")).toBeTruthy();
+    expect(MODE_EMPTY_COPY.dev.body).toBe("No tools in this mode yet.");
+    expect(MODE_EMPTY_COPY.dev.body.toLowerCase()).not.toMatch(/coming soon/);
   });
 
   it("renders FORENSIC empty card", () => {

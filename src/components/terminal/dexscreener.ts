@@ -1,6 +1,6 @@
 /**
  * @file dexscreener.ts
- * @description Shared DexScreener pair resolve / refresh helpers (#15, #8)
+ * @description Shared DexScreener pair resolve / refresh helpers (#15, #8, #162)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -16,11 +16,36 @@ export const isTransientFetchError = (e: unknown): boolean => {
   return /Failed to fetch|NetworkError|Load failed|network/i.test(msg);
 };
 
+/**
+ * Background DexScreener polls (ticker) trip browser CORS / network blocks and
+ * spam the console every ~15s. After the first transient failure we skip further
+ * *background* client fetches — no proxy on static export (#162). User-initiated
+ * PRICE/API paths keep calling so in-panel errors still surface.
+ */
+let dexBackgroundBlocked = false;
+
+/** Test hook / diagnostics. */
+export const isDexBackgroundBlocked = (): boolean => dexBackgroundBlocked;
+
+/** Test hook: clear the background CORS circuit breaker. */
+export const resetDexBackgroundBlocked = (): void => {
+  dexBackgroundBlocked = false;
+};
+
+export const noteDexBackgroundFailure = (e: unknown): void => {
+  if (isTransientFetchError(e)) dexBackgroundBlocked = true;
+};
+
 export type FetchWithRetryOpts = {
   /** Total attempts including the first. Default 3. */
   attempts?: number;
   /** Backoff after each failed attempt (ms). Default [200, 400]. */
   delaysMs?: number[];
+};
+
+export type DexFetchOpts = FetchWithRetryOpts & {
+  /** When true, skip the network call once the CORS circuit is open (#162). */
+  background?: boolean;
 };
 
 /**
@@ -31,9 +56,14 @@ export const fetchWithRetry = async (
   input: RequestInfo | URL,
   init?: RequestInit,
   fetchImpl: typeof fetch = fetch,
-  opts?: FetchWithRetryOpts
+  opts?: DexFetchOpts
 ): Promise<Response> => {
-  const attempts = opts?.attempts ?? 3;
+  const background = !!opts?.background;
+  if (background && dexBackgroundBlocked) {
+    throw new TypeError("Failed to fetch");
+  }
+  // Background: single attempt — retries triple CORS console noise (#162).
+  const attempts = background ? 1 : (opts?.attempts ?? 3);
   const delays = opts?.delaysMs ?? [200, 400];
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
@@ -41,6 +71,7 @@ export const fetchWithRetry = async (
       return await fetchImpl(input, init);
     } catch (e) {
       lastErr = e;
+      if (background) noteDexBackgroundFailure(e);
       if (!isTransientFetchError(e) || i === attempts - 1) throw e;
       const delay = delays[Math.min(i, delays.length - 1)] ?? 300;
       if (delay > 0) {
@@ -237,9 +268,11 @@ export type QuotePairResult = {
 export const quoteDexScreenerPairs = async (
   dsChain: string,
   pairAddresses: string[],
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  opts?: DexFetchOpts
 ): Promise<Map<string, QuotePairResult>> => {
   const out = new Map<string, QuotePairResult>();
+  if (opts?.background && dexBackgroundBlocked) return out;
   const unique = [
     ...new Set(
       pairAddresses
@@ -254,7 +287,7 @@ export const quoteDexScreenerPairs = async (
   for (let i = 0; i < unique.length; i += 30) {
     const batch = unique.slice(i, i + 30);
     const url = `${DEXSCREENER_API}/latest/dex/pairs/${encodeURIComponent(dsChain)}/${batch.join(",")}`;
-    const res = await fetchWithRetry(url, undefined, fetchImpl);
+    const res = await fetchWithRetry(url, undefined, fetchImpl, opts);
     if (!res.ok) {
       throw new Error(`DexScreener returned ${res.status}`);
     }
@@ -278,31 +311,36 @@ export const quoteDexScreenerPairs = async (
 export const quoteDexScreenerPair = async (
   dsChain: string,
   pairAddress: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  opts?: DexFetchOpts
 ): Promise<QuotePairResult | null> => {
-  const map = await quoteDexScreenerPairs(dsChain, [pairAddress], fetchImpl);
+  const map = await quoteDexScreenerPairs(dsChain, [pairAddress], fetchImpl, opts);
   return map.get(pairAddress.toLowerCase()) ?? null;
 };
 
 export const fetchTokensV1 = async (
   dsChain: string,
   tokenAddresses: string[],
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  opts?: DexFetchOpts
 ): Promise<DexPair[]> => {
+  if (opts?.background && dexBackgroundBlocked) return [];
   const addrs = tokenAddresses.filter(Boolean).slice(0, 30);
   if (!dsChain || addrs.length === 0) return [];
   const url = `${DEXSCREENER_API}/tokens/v1/${encodeURIComponent(dsChain)}/${addrs.join(",")}`;
-  const res = await fetchWithRetry(url, undefined, fetchImpl);
+  const res = await fetchWithRetry(url, undefined, fetchImpl, opts);
   if (!res.ok) throw new Error(`DexScreener returned ${res.status}`);
   return parseTokensV1Response(await res.json());
 };
 
 export const fetchSearchPairs = async (
   query: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = fetch,
+  opts?: DexFetchOpts
 ): Promise<DexPair[]> => {
+  if (opts?.background && dexBackgroundBlocked) return [];
   const url = `${DEXSCREENER_API}/latest/dex/search?q=${encodeURIComponent(query)}`;
-  const res = await fetchWithRetry(url, undefined, fetchImpl);
+  const res = await fetchWithRetry(url, undefined, fetchImpl, opts);
   if (!res.ok) throw new Error(`DexScreener returned ${res.status}`);
   return parseSearchResponse(await res.json());
 };

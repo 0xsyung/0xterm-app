@@ -1,8 +1,8 @@
 /**
  * @file dexscreener.test.ts
- * @description Unit tests for DexScreener pair pick / parsers / refresh (#15)
+ * @description Unit tests for DexScreener pair pick / parsers / refresh (#15/#162)
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   DEX_FETCH_FAILED_MSG,
   fetchWithRetry,
@@ -10,6 +10,9 @@ import {
   parseTokensV1Response,
   pickDexPair,
   quoteDexScreenerPairs,
+  resetDexBackgroundBlocked,
+  isDexBackgroundBlocked,
+  noteDexBackgroundFailure,
   type DexPair
 } from "./dexscreener";
 
@@ -48,6 +51,10 @@ const ethUsdt: DexPair = {
   volume: { h24: 900_000 },
   priceChange: { h24: -2.5 }
 };
+
+beforeEach(() => {
+  resetDexBackgroundBlocked();
+});
 
 describe("pickDexPair", () => {
   it("never returns junk ETH/WETH <0.01 when a liquid USDC pair exists", () => {
@@ -249,5 +256,59 @@ describe("fetchWithRetry (#84)", () => {
   it("exports neutral DexScreener failure copy without ad-blocker", () => {
     expect(DEX_FETCH_FAILED_MSG.toLowerCase()).not.toMatch(/ad-?blocker/);
     expect(DEX_FETCH_FAILED_MSG).toMatch(/DexScreener|unreachable|quote/i);
+  });
+});
+
+describe("background CORS circuit (#162)", () => {
+  beforeEach(() => {
+    resetDexBackgroundBlocked();
+  });
+
+  it("notes transient failures and skips further background fetches", async () => {
+    noteDexBackgroundFailure(new TypeError("Failed to fetch"));
+    expect(isDexBackgroundBlocked()).toBe(true);
+
+    const fetchMock = vi.fn(async () => {
+      throw new Error("should not be called");
+    });
+    const map = await quoteDexScreenerPairs(
+      "ethereum",
+      ["0xabc"],
+      fetchMock as unknown as typeof fetch,
+      { background: true }
+    );
+    expect(map.size).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still fetches for non-background (user PRICE) when circuit is open", async () => {
+    noteDexBackgroundFailure(new TypeError("Failed to fetch"));
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ pairs: [{ ...ethUsdc, pairAddress: "0xethusdc" }] })
+    }));
+    const map = await quoteDexScreenerPairs(
+      "ethereum",
+      ["0xethusdc"],
+      fetchMock as unknown as typeof fetch
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(map.has("0xethusdc")).toBe(true);
+  });
+
+  it("opens the circuit after a background transient fetch failure (no retry)", async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    await expect(
+      fetchWithRetry(
+        "https://api.dexscreener.com/x",
+        undefined,
+        fetchMock as unknown as typeof fetch,
+        { background: true }
+      )
+    ).rejects.toThrow(/Failed to fetch/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(isDexBackgroundBlocked()).toBe(true);
   });
 });

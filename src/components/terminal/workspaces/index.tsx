@@ -1,12 +1,12 @@
 /**
  * @file workspaces/index.tsx
- * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148/#160)
+ * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148/#160/#162)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import type { ThemeConfig } from "../types";
 import type { TerminalMode } from "../mode";
 import { WorkspaceFrame } from "./WorkspaceFrame";
@@ -118,10 +118,35 @@ export function WorkspaceSurface({
     (a) => a.tab === activeSubTab
   );
 
+  const loneReadyPanel = (
+    tab: string
+  ): WorkspacePanelId | null => {
+    const ready = readyWorkspaceActions(MODE_ACTIONS[mode]).filter(
+      (a) => a.tab === tab
+    );
+    if (ready.length === 1 && ready[0].panel) return ready[0].panel;
+    return null;
+  };
+
+  /**
+   * Auto-open the lone wired tool when a sub-tab becomes active (#162).
+   * Clear (via onSubTabChange → setOpenPanel(null)) then open in the same
+   * event tick so React 18 batches and nothing flashes empty.
+   */
   const handleSubTabChange = (tab: string) => {
     setActiveSubTab(tab);
     onSubTabChange?.(tab);
+    const panel = loneReadyPanel(tab);
+    if (panel) onOpenPanel?.(panel);
   };
+
+  // Mode remount (shell keys WorkspaceSurface by mode): open lone tool on entry.
+  useLayoutEffect(() => {
+    const panel = loneReadyPanel(activeSubTab);
+    if (panel) onOpenPanel?.(panel);
+    // Only on mount / mode identity — do not re-open after user closes the panel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   return (
     <WorkspaceFrame
