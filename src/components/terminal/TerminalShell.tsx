@@ -719,6 +719,8 @@ export default function TerminalShell({
   const [openPanel, setOpenPanel] = useState<WorkspacePanelId | null>(() =>
     terminalMode === "invest" ? "news" : null
   );
+  // Re-clicking the active NEWS tab force-refreshes the panel.
+  const [newsRefreshKey, setNewsRefreshKey] = useState(0);
 
   // Pending interactive confirmation (e.g. register an unverified contract).
   // When set, the next Enter routes the typed input through this resolver.
@@ -8314,7 +8316,14 @@ export default function TerminalShell({
           />
         );
       case "news":
-        return <NewsPanel theme={theme} onClose={close} frameless />;
+        return (
+          <NewsPanel
+            theme={theme}
+            onClose={close}
+            refreshKey={newsRefreshKey}
+            frameless
+          />
+        );
       case "sim":
         return (
           <SimPanel
@@ -8572,7 +8581,12 @@ export default function TerminalShell({
                     void handleCommand(cmd);
                   }}
                   onOpenPanel={(panel) => {
-                    setOpenPanel(panel);
+                    if (panel === openPanel && panel === "news") {
+                      // Re-click on the active NEWS tab → force-refresh.
+                      setNewsRefreshKey((n) => n + 1);
+                    } else {
+                      setOpenPanel(panel);
+                    }
                   }}
                   onSubTabChange={() => {
                     setOpenPanel(null);

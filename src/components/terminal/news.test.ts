@@ -511,13 +511,18 @@ describe("parseNewsDate / formatNewsTime (#90)", () => {
     );
   });
 
-  it("formatNewsTime matches formatLocalHm / formatNewsAsOf prefix (local TZ)", () => {
+  it("formatNewsTime matches formatLocalHm / formatNewsAsOf includes date (local TZ)", () => {
     const ms = Date.parse("2026-09-19T20:24:00.000Z");
     expect(formatNewsTime(ms)).toBe(formatLocalHm(ms));
-    expect(formatNewsAsOf(ms)).toBe(formatLocalHms(ms));
-    // as-of is HH:MM:SS; TIME is the HH:MM prefix of the same local clock.
-    expect(formatNewsAsOf(ms).startsWith(formatNewsTime(ms))).toBe(true);
+    // as-of now includes the calendar date + HH:MM:SS local clock.
+    expect(formatNewsAsOf(ms)).toMatch(/\w{3} \d{1,2}, \d{4} · \d{2}:\d{2}:\d{2}/);
+    expect(formatNewsAsOf(ms)).toContain(formatLocalHms(ms));
+    expect(formatNewsAsOf(ms)).toContain("2026");
+    // as-of ends with HH:MM:SS; TIME is the HH:MM prefix of the same local clock.
+    expect(formatNewsAsOf(ms).endsWith(formatLocalHms(ms))).toBe(true);
+    expect(formatNewsAsOf(ms).slice(-8).startsWith(formatNewsTime(ms))).toBe(true);
     expect(formatNewsTime(null)).toBe("—");
+    expect(formatNewsAsOf(Number.NaN)).toBe("—");
   });
 
   it("parseRss2Json applies UTC-default parse to TZ-less pubDate", () => {
@@ -541,11 +546,16 @@ describe("parseNewsDate / formatNewsTime (#90)", () => {
 
 
 describe("categoryOf / filterByCategory (#83)", () => {
-  it("maps allowlisted sources to News / Insights / Reports", () => {
-    expect(categoryOf("cointelegraph")).toBe("News");
-    expect(categoryOf("coindesk")).toBe("News");
-    expect(categoryOf("decrypt")).toBe("Insights");
-    expect(categoryOf("defiant")).toBe("Reports");
+  it("maps titles to topic buckets", () => {
+    expect(categoryOf("Bitcoin mining difficulty hits record")).toBe("Blockchain");
+    expect(categoryOf("Ethereum rollups scale at lower cost")).toBe("Blockchain");
+    expect(categoryOf("SEC sues crypto exchange over registration")).toBe("Regulation");
+    expect(categoryOf("Uniswap TVL surges as Lido staking yields climb")).toBe("DeFi");
+    expect(categoryOf("OpenAI launches crypto agent tooling")).toBe("AI");
+    expect(categoryOf("Bitcoin price rallies to new high")).toBe("Market");
+    expect(categoryOf("Bitcoin ETFs see record inflows")).toBe("Market");
+    expect(categoryOf("Traders turn bullish as fear and greed shifts")).toBe("Sentiment");
+    expect(categoryOf("Weekend headlines roundup")).toBe("General");
   });
 
   it("filterByCategory intersects the set", () => {
@@ -553,29 +563,30 @@ describe("categoryOf / filterByCategory (#83)", () => {
       {
         id: "1",
         sourceId: "cointelegraph",
-        title: "A",
+        title: "Bitcoin mining difficulty hits record",
         url: "https://cointelegraph.com/a",
         publishedAt: 1
       },
       {
         id: "2",
         sourceId: "decrypt",
-        title: "B",
+        title: "SEC fines exchange",
         url: "https://decrypt.co/b",
         publishedAt: 2
       },
       {
         id: "3",
         sourceId: "defiant",
-        title: "C",
+        title: "Aave lending rates spike",
         url: "https://thedefiant.io/c",
         publishedAt: 3
       }
     ];
     expect(filterByCategory(items, "All")).toHaveLength(3);
-    expect(filterByCategory(items, "News").map((i) => i.id)).toEqual(["1"]);
-    expect(filterByCategory(items, "Insights").map((i) => i.id)).toEqual(["2"]);
-    expect(filterByCategory(items, "Reports").map((i) => i.id)).toEqual(["3"]);
+    expect(filterByCategory(items, "Blockchain").map((i) => i.id)).toEqual(["1"]);
+    expect(filterByCategory(items, "Regulation").map((i) => i.id)).toEqual(["2"]);
+    expect(filterByCategory(items, "DeFi").map((i) => i.id)).toEqual(["3"]);
+    expect(filterByCategory(items, "Sentiment")).toHaveLength(0);
   });
 });
 

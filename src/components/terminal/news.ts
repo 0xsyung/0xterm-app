@@ -6,7 +6,6 @@
  */
 import {
   NEWS_ALLOWLIST,
-  NEWS_ALLOWLIST_BY_ID,
   NEWS_ALLOWLIST_BY_URL,
   NEWS_FOOTER_BASE,
   NEWS_FOOTER_RSS2JSON,
@@ -510,29 +509,215 @@ export const formatNewsTime = (ms: number | null): string => {
   }
 };
 
-/** Widget "as of" — browser local TZ (aligned with header clock). */
+/** Widget "as of" — date + time, browser local TZ (aligned with header clock). */
 export const formatNewsAsOf = (ms: number): string => {
-  return formatLocalHms(ms);
+  if (!Number.isFinite(ms)) return "—";
+  try {
+    const d = new Date(ms);
+    const datePart = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+    return `${datePart} · ${formatLocalHms(ms)}`;
+  } catch {
+    return "—";
+  }
 };
 
 export const sourceLabel = (id: NewsSourceId): string => id.toUpperCase();
 
-/** Editorial taxonomy pills for NewsReader (#83). */
+/** Editorial taxonomy pills for NewsReader (#83) — topic-based on titles. */
 export const NEWS_READER_CATEGORIES = [
   "All",
-  "News",
-  "Insights",
-  "Reports"
+  "Blockchain",
+  "Market",
+  "DeFi",
+  "AI",
+  "Regulation",
+  "Sentiment"
 ] as const;
 
 export type NewsReaderCategoryFilter = (typeof NEWS_READER_CATEGORIES)[number];
 
-/** Fallback source→category when allowlist omits `category`. */
-const CATEGORY_FALLBACK: Record<NewsSourceId, NewsCategory> = {
-  cointelegraph: "News",
-  coindesk: "News",
-  decrypt: "Insights",
-  defiant: "Reports"
+/** Ordered topic keyword rules — first match wins (headline titles only). */
+const CATEGORY_KEYWORDS: ReadonlyArray<{
+  category: Exclude<NewsCategory, "General">;
+  keywords: string[];
+}> = [
+  {
+    category: "Blockchain",
+    keywords: [
+      "blockchain",
+      "chainlink",
+      "oracle",
+      "node",
+      "nodes",
+      "mainnet",
+      "testnet",
+      "layer 2",
+      "layer-2",
+      "l2",
+      "rollup",
+      "sidechain",
+      "consensus",
+      "proof of stake",
+      "proof-of-stake",
+      "proof of work",
+      "proof-of-work",
+      "mining",
+      "miner",
+      "mempool",
+      "wallet",
+      "hard fork",
+      "soft fork",
+      "fork",
+      "interoperability",
+      "bridges"
+    ]
+  },
+  {
+    category: "DeFi",
+    keywords: [
+      "defi",
+      "decentralized finance",
+      "uniswap",
+      "aave",
+      "compound",
+      "lido",
+      "curve",
+      "lending",
+      "liquidity",
+      "stablecoin",
+      "stablecoins",
+      "stake",
+      "staking",
+      "yield",
+      "amm",
+      "dex",
+      "dexs",
+      "token launch",
+      "airdrop",
+      "collateral",
+      "protocol revenue"
+    ]
+  },
+  {
+    category: "AI",
+    keywords: [
+      "ai",
+      "artificial intelligence",
+      "llm",
+      "machine learning",
+      "gpt",
+      "chatgpt",
+      "copilot",
+      "openai",
+      "deepmind",
+      "agent",
+      "agents",
+      "autonomous",
+      "neural"
+    ]
+  },
+  {
+    category: "Regulation",
+    keywords: [
+      "regulation",
+      "regulatory",
+      "sec",
+      "lawsuit",
+      "lawsuit",
+      "court",
+      "ruling",
+      "prosecutor",
+      "sued",
+      "fine",
+      "fines",
+      "ban",
+      "banned",
+      "legal",
+      "senate",
+      "congress",
+      "bill",
+      "legislation",
+      "approval",
+      "etf approval",
+      "custody",
+      "compliance",
+      "tax",
+      "taxes",
+      "aml",
+      "kyc"
+    ]
+  },
+  {
+    category: "Market",
+    keywords: [
+      "price",
+      "prices",
+      "market",
+      "markets",
+      "rally",
+      "crash",
+      "surges",
+      "plunges",
+      "bull run",
+      "bear market",
+      "correction",
+      "token unlocks",
+      "inflows",
+      "outflows",
+      "trading volume",
+      "volatility",
+      "shares",
+      "stock",
+      "stocks",
+      "earnings",
+      "futures",
+      "options",
+      "etf",
+      "etfs",
+      "tether",
+      "usdt",
+      "whale",
+      "whales",
+      "new high",
+      "all-time high",
+      "record high"
+    ]
+  },
+  {
+    category: "Sentiment",
+    keywords: [
+      "sentiment",
+      "optimism",
+      "pessimism",
+      "fear and greed",
+      "fear",
+      "bullish",
+      "bearish",
+      "neutral",
+      "analyst",
+      "analysts",
+      "survey",
+      "poll",
+      "sentiment shift",
+      "confidence",
+      "retail investors",
+      "institutional investors",
+      "fund managers"
+    ]
+  }
+];
+
+/** Title → topic bucket. General when nothing matches. */
+export const categoryOf = (title: string): NewsCategory => {
+  const t = String(title || "").toLowerCase();
+  for (const rule of CATEGORY_KEYWORDS) {
+    if (rule.keywords.some((k) => t.includes(k))) return rule.category;
+  }
+  return "General";
 };
 
 const THUMB_MONOGRAM: Record<NewsSourceId, string> = {
@@ -548,13 +733,6 @@ const THUMB_HUE_OFFSET: Record<NewsSourceId, number> = {
   decrypt: 48,
   coindesk: 200,
   defiant: 280
-};
-
-export const categoryOf = (sourceId: NewsSourceId | string): NewsCategory => {
-  const id = sourceId as NewsSourceId;
-  const fromList = NEWS_ALLOWLIST_BY_ID.get(id)?.category;
-  if (fromList) return fromList;
-  return CATEGORY_FALLBACK[id] ?? "News";
 };
 
 /**
@@ -719,7 +897,7 @@ export const filterByCategory = (
   category: NewsReaderCategoryFilter
 ): NewsItem[] => {
   if (category === "All") return items;
-  return items.filter((it) => categoryOf(it.sourceId) === category);
+  return items.filter((it) => categoryOf(it.title) === category);
 };
 
 
