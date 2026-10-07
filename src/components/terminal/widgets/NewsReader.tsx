@@ -221,7 +221,7 @@ export default function NewsReader({
           rootRef.current?.focus();
           openAt(idx);
         }}
-        className={`w-full text-left cursor-pointer border ${theme.border} ${theme.cardBg} ${theme.rounded} p-1.5 space-y-1.5 outline-none ${
+        className={`w-full h-full text-left cursor-pointer border ${theme.border} ${theme.cardBg} ${theme.rounded} p-1.5 space-y-1.5 outline-none ${
           active ? theme.glow : ""
         }`}
         style={
@@ -359,13 +359,13 @@ export default function NewsReader({
         <>
           {lead && (
             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-              <div>{renderCard(lead, 0, "lead")}</div>
+              <div className="min-h-0">{renderCard(lead, 0, "lead")}</div>
               {supporting.length > 0 && (
                 <div
                   className={
                     supporting.length === 1
-                      ? "grid grid-cols-1 gap-2 md:flex md:flex-col"
-                      : "grid grid-cols-2 gap-2 md:flex md:flex-col"
+                      ? "grid grid-cols-1 gap-2 md:grid md:grid-cols-1 md:grid-rows-1"
+                      : "grid grid-cols-2 gap-2 md:grid md:grid-cols-1 md:grid-rows-2"
                   }
                 >
                   {supporting.map((it, i) =>
