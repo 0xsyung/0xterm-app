@@ -114,33 +114,26 @@ export default function NewsPanel({
       role="dialog"
       aria-label="News"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          aria-label="Refresh news"
+          title="Refresh"
+          className={`uppercase text-[9px] px-1 py-0.5 border ${theme.border} ${theme.cardBg} ${theme.primary} cursor-pointer ${touch}`}
         >
-          NEWS
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            aria-label="Refresh news"
-            title="Refresh"
-            className={`uppercase text-[9px] px-1 py-0.5 border ${theme.border} ${theme.cardBg} ${theme.primary} cursor-pointer ${touch}`}
-          >
-            {refreshing ? "…" : "↻"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close news panel"
-            title="Close news panel"
-            className={`inline-flex items-center justify-center cursor-pointer bg-transparent border-0 p-0 text-[18px] leading-none min-h-[28px] min-w-[28px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] max-md:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px] ${theme.primary}`}
-            data-testid="news-panel-close"
-          >
-            ×
-          </button>
-        </div>
+          {refreshing ? "…" : "↻"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close news panel"
+          title="Close news panel"
+          className={`inline-flex items-center justify-center cursor-pointer bg-transparent border-0 p-0 text-[18px] leading-none min-h-[28px] min-w-[28px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] max-md:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px] ${theme.primary}`}
+          data-testid="news-panel-close"
+        >
+          ×
+        </button>
       </div>
 
       {error ? (
