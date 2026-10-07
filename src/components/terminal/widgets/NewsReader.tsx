@@ -141,7 +141,7 @@ export default function NewsReader({
 
   const lead = items[0] ?? null;
   const supportingCount = lead
-    ? Math.min(4, Math.max(0, items.length - 1))
+    ? Math.min(2, Math.max(0, items.length - 1))
     : 0;
   const supporting = lead ? items.slice(1, 1 + supportingCount) : [];
   const grid = lead ? items.slice(1 + supportingCount) : [];
@@ -201,7 +201,7 @@ export default function NewsReader({
     variant: "lead" | "supporting" | "grid"
   ) => {
     const active = focused && idx === activeIdx;
-    const cat = categoryOf(item.sourceId);
+    const cat = categoryOf(item.title);
     const isLead = variant === "lead";
     return (
       <button

@@ -79,9 +79,9 @@ describe("NewsPanel", () => {
     expect(screen.queryByTitle("Pin to right panel")).toBeNull();
     const panel = screen.getByTestId("news-panel");
     expect(panel.textContent).not.toContain("▣");
-    // Header chrome: NEWS + refresh + close only
-    expect(screen.getByRole("button", { name: "Refresh news" })).toBeTruthy();
-    expect(screen.getByTestId("news-panel-close")).toBeTruthy();
+    // No header chrome — panel opens directly to the reader.
+    expect(screen.queryByRole("button", { name: "Refresh news" })).toBeNull();
+    expect(screen.queryByTestId("news-panel-close")).toBeNull();
   });
 
   it("panel shell is full-width with no max-w cap (#130)", async () => {
@@ -97,35 +97,40 @@ describe("NewsPanel", () => {
     expect(panel.className).not.toMatch(/max-w-/);
   });
 
-  it("close button fires onClose", () => {
+  it("Escape fires onClose (parity with other panels)", () => {
     const onClose = vi.fn();
     render(<NewsPanel theme={theme} onClose={onClose} />);
-    fireEvent.click(screen.getByTestId("news-panel-close"));
+    fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("close glyph is 18px phosphor with 28px hit and 44px coarse (#140 B1)", () => {
+  it("panel shell is full-width with no header chrome", async () => {
+    vi.spyOn(news, "fetchNewsHeadlines").mockResolvedValue({
+      items: fixtures,
+      usedRss2json: false,
+      missing: []
+    });
     render(<NewsPanel theme={theme} onClose={vi.fn()} />);
-    const close = screen.getByTestId("news-panel-close");
-    expect(close.getAttribute("aria-label")).toBe("Close news panel");
-    expect(close.className).toMatch(/text-\[18px\]/);
-    expect(close.className).toContain(theme.primary);
-    expect(close.className).not.toContain(theme.muted);
-    expect(close.className).toMatch(/min-h-\[28px\]/);
-    expect(close.className).toMatch(/min-w-\[28px\]/);
-    expect(close.className).toMatch(/pointer-coarse:min-h-\[44px\]/);
-    expect(close.className).toMatch(/pointer-coarse:min-w-\[44px\]/);
-    expect(close.className).toMatch(/max-md:min-h-\[44px\]/);
-    expect(close.className).toMatch(/max-md:min-w-\[44px\]/);
-    expect(close.className).toMatch(/\[@media\(hover:none\)\]:min-h-\[44px\]/);
-    expect(close.className).toMatch(/\[@media\(hover:none\)\]:min-w-\[44px\]/);
-    const refresh = screen.getByRole("button", { name: "Refresh news" });
-    expect(refresh.className).not.toMatch(/text-\[18px\]/);
     const panel = screen.getByTestId("news-panel");
     expect(panel.className).toMatch(/\bp-3\b/);
     expect(panel.className).toMatch(/md:p-4/);
     expect(panel.className).not.toMatch(/overflow-hidden/);
     expect(panel.className).not.toMatch(/(?:^|\s)-m/);
     expect(screen.getByTestId("news-panel-end-pad")).toBeTruthy();
+  });
+
+  it("bumping refreshKey force-refreshes via fetchNewsHeadlines({force:true})", async () => {
+    const spy = vi.spyOn(news, "fetchNewsHeadlines").mockResolvedValue({
+      items: fixtures,
+      usedRss2json: false,
+      missing: []
+    });
+    const { rerender } = render(
+      <NewsPanel theme={theme} onClose={vi.fn()} refreshKey={0} />
+    );
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    rerender(<NewsPanel theme={theme} onClose={vi.fn()} refreshKey={1} />);
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+    expect(spy.mock.calls[1][1]).toEqual({ force: true });
   });
 });

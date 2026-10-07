@@ -74,9 +74,12 @@ describe("NewsReader", () => {
     const reader = screen.getByTestId("news-reader");
     expect(reader.textContent).toMatch(/0xTERM\s*research/);
     expect(screen.getByRole("tab", { name: "All" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "News" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Insights" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Reports" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Blockchain" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Market" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "DeFi" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "AI" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Regulation" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Sentiment" })).toBeTruthy();
     expect(screen.getAllByText("Bitcoin hits new research high").length).toBeGreaterThan(0);
     expect(screen.getByText("MORE")).toBeTruthy();
     expect(screen.getByText(NEWS_FOOTER_BASE, { exact: false })).toBeTruthy();
@@ -106,15 +109,17 @@ describe("NewsReader", () => {
   });
 
   it("filters to empty via category pill", () => {
-    // Only News sources — Insights filter empties
-    const newsOnly = fixtures.filter((i) => i.sourceId === "cointelegraph");
+    // Titles with no Regulation keywords — Regulation filter empties.
+    const noReg = fixtures.filter(
+      (i) => !/sec|regulation|fine|ban|court|legal/i.test(i.title)
+    );
     render(
       <NewsReader
-        data={{ ...baseData, items: newsOnly }}
+        data={{ ...baseData, items: noReg }}
         theme={theme}
       />
     );
-    fireEvent.click(screen.getByRole("tab", { name: "Insights" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Regulation" }));
     expect(screen.getByText("No items found.")).toBeTruthy();
   });
 
@@ -122,7 +127,7 @@ describe("NewsReader", () => {
     render(<NewsReader data={baseData} theme={theme} />);
     // Lead title present
     expect(screen.getAllByText("Bitcoin hits new research high").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("tab", { name: "Insights" }));
+    fireEvent.click(screen.getByRole("tab", { name: "DeFi" }));
     expect(screen.getAllByText("ETH staking insights").length).toBeGreaterThan(0);
     expect(screen.queryAllByText("Bitcoin hits new research high")).toHaveLength(0);
   });

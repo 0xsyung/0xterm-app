@@ -30,17 +30,20 @@ type NewsPanelData = {
 export default function NewsPanel({
   theme,
   onClose,
+  refreshKey = 0,
   frameless = false
 }: {
   theme: ThemeConfig;
+  /** Escape-close parity with other tool panels. */
   onClose: () => void;
+  /** Bump to force-refresh (re-clicking the active NEWS tool tab). */
+  refreshKey?: number;
   /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
   frameless?: boolean;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<NewsPanelData | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const applyFetched = (fetched: NewsFetchResult, now: number) => {
     if (fetched.error === "NEWS_TRANSPORT") {
@@ -77,17 +80,32 @@ export default function NewsPanel({
   }, []);
 
   const refresh = async () => {
-    setRefreshing(true);
     setError(null);
     try {
       const fetched = await fetchNewsHeadlines(undefined, { force: true });
       applyFetched(fetched, Date.now());
     } catch {
       setError(NEWS_ERROR.NEWS_TRANSPORT);
-    } finally {
-      setRefreshing(false);
     }
   };
+
+  // Re-clicking the active NEWS tool tab bumps refreshKey → force refresh.
+  useEffect(() => {
+    if (refreshKey <= 0) return;
+    void refresh();
+  }, [refreshKey]);
+
+  // Escape closes the panel — parity with Price/Swap/Sim/Trace.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const tag = "";
   const page = pageNewsItems(filterByTag(data?.items || [], tag), 0);
@@ -102,9 +120,6 @@ export default function NewsPanel({
     loading
   };
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
-
   return (
     <div
       className={`w-full min-h-full flex flex-col gap-3 ${
@@ -114,35 +129,6 @@ export default function NewsPanel({
       role="dialog"
       aria-label="News"
     >
-      <div className="flex items-center justify-between gap-2">
-        <span
-          className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
-        >
-          NEWS
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void refresh()}
-            aria-label="Refresh news"
-            title="Refresh"
-            className={`uppercase text-[9px] px-1 py-0.5 border ${theme.border} ${theme.cardBg} ${theme.primary} cursor-pointer ${touch}`}
-          >
-            {refreshing ? "…" : "↻"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close news panel"
-            title="Close news panel"
-            className={`inline-flex items-center justify-center cursor-pointer bg-transparent border-0 p-0 text-[18px] leading-none min-h-[28px] min-w-[28px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] max-md:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px] ${theme.primary}`}
-            data-testid="news-panel-close"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-
       {error ? (
         <div
           className={`text-[10px] ${theme.warn || theme.muted}`}
