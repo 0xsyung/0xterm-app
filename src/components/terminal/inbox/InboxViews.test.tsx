@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { THEMES } from "../constants";
 import {
+  ChannelSwitcher,
   InboxThreadList,
   InboxThreadMessages,
   NewConversationForm,
@@ -14,10 +15,18 @@ import {
   type InboxThreadView
 } from "./InboxViews";
 import type { Address } from "viem";
+import { channelId } from "../chatChannels";
 
 const theme = THEMES.matrix;
 const peer = "0x1111111111111111111111111111111111111111" as Address;
 const self = "0x2222222222222222222222222222222222222222" as Address;
+
+const SEPOLIA_CHANNEL = {
+  chainId: 11155111,
+  address: "0x6248F070A2f849ee1410BC35aa86A0e0F08e96a5",
+  name: "lobby"
+} as const;
+const ACTIVE_ID = channelId(SEPOLIA_CHANNEL.chainId, SEPOLIA_CHANNEL.address);
 
 describe("shortAddr", () => {
   it("abbreviates long addresses", () => {
@@ -110,8 +119,43 @@ describe("InboxThreadMessages", () => {
   });
 });
 
+describe("ChannelSwitcher", () => {
+  it("renders active channel in a dropdown", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={ACTIVE_ID}
+        onSwitch={() => {}}
+      />
+    );
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel).toBeTruthy();
+    expect(sel.value).toBe(ACTIVE_ID);
+    expect(sel.options.length).toBe(1);
+  });
+
+  it("fires onSwitch when a channel is picked", () => {
+    const onSwitch = vi.fn();
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={null}
+        onSwitch={onSwitch}
+      />
+    );
+    fireEvent.change(screen.getByLabelText("Chat channel"), {
+      target: { value: ACTIVE_ID }
+    });
+    expect(onSwitch).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "lobby", chainId: 11155111 })
+    );
+  });
+});
+
 describe("NewConversationForm (#140 A2)", () => {
-  it("renders NEW, peer, message, SEND, and CLI hint when open", () => {
+  it("renders NEW, peer, message, and SEND when open", () => {
     render(
       <NewConversationForm
         theme={theme}
@@ -125,9 +169,7 @@ describe("NewConversationForm (#140 A2)", () => {
     expect(screen.getByPlaceholderText("0x… or ENS")).toBeTruthy();
     expect(screen.getByTestId("new-conversation-message")).toBeTruthy();
     expect(screen.getByTestId("new-conversation-send").textContent).toMatch(/SEND/i);
-    expect(screen.getByTestId("new-conversation-cli-hint").textContent).toMatch(
-      /or: chat/
-    );
+    expect(screen.queryByTestId("new-conversation-cli-hint")).toBeNull();
   });
 
   it("starts collapsed when defaultOpen is false", () => {

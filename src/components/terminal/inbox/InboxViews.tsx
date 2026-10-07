@@ -10,6 +10,12 @@ import React, { useState } from "react";
 import type { Address } from "viem";
 import type { ThemeConfig } from "../types";
 import type { ChatMessage } from "../widgets/ChatWidget";
+import {
+  chainName,
+  channelId,
+  formatChannelLabel,
+  type ChatChannel,
+} from "../chatChannels";
 
 export type InboxSenderSummary = {
   peer: Address;
@@ -75,6 +81,60 @@ export function InboxThreadList({
         );
       })}
     </div>
+  );
+}
+
+export type ChannelSwitcherProps = {
+  theme: ThemeConfig;
+  channels: ChatChannel[];
+  activeId: string | null;
+  /** Called when the user picks a different channel. */
+  onSwitch: (channel: ChatChannel) => void;
+  radius?: string;
+};
+
+/**
+ * Channel selector (#58/#140) — replaces the read-only label. Lists the
+ * known channels (presets + saved + recent); switching updates the active.
+ */
+export function ChannelSwitcher({
+  theme,
+  channels,
+  activeId,
+  onSwitch,
+  radius = "rounded-none"
+}: ChannelSwitcherProps) {
+  return (
+    <label
+      data-testid="channel-switcher"
+      className={`inline-flex items-center gap-1.5 ${theme.muted}`}
+    >
+      <span className="uppercase tracking-widest text-[10px] font-bold shrink-0">
+        Channel
+      </span>
+      <select
+        value={activeId ?? ""}
+        onChange={(e) => {
+          const picked = channels.find(
+            (c) => channelId(c.chainId, c.address) === e.target.value
+          );
+          if (picked) onSwitch(picked);
+        }}
+        aria-label="Chat channel"
+        className={`px-1.5 py-1 text-xs bg-black/30 border ${theme.border} ${theme.text} outline-none cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] ${radius}`}
+      >
+        {!activeId && <option value="">—</option>}
+        {channels.map((c) => {
+          const id = channelId(c.chainId, c.address);
+          const label = formatChannelLabel(c, { disambiguate: true, all: channels });
+          return (
+            <option key={id} value={id}>
+              {label} · {chainName(c.chainId)}
+            </option>
+          );
+        })}
+      </select>
+    </label>
   );
 }
 
@@ -190,9 +250,6 @@ export function NewConversationForm({
             >
               SEND
             </button>
-          </div>
-          <div className={`text-[9px] ${theme.muted}`} data-testid="new-conversation-cli-hint">
-            or: chat &lt;address|ens&gt; &lt;message&gt;
           </div>
         </div>
       )}

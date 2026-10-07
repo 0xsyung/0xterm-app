@@ -12,6 +12,7 @@ import type { ThemeConfig } from "../types";
 import type { PrimaryTab } from "../socialUnread";
 import { formatBadgeCount } from "../socialUnread";
 import {
+  ChannelSwitcher,
   InboxThreadList,
   InboxThreadMessages,
   NewConversationForm,
@@ -19,6 +20,7 @@ import {
   type InboxThreadView
 } from "../inbox/InboxViews";
 import type { WorkspacePanelId } from "../workspaces/WorkspaceTile";
+import type { ChatChannel, ChannelId } from "../chatChannels";
 
 function errMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "message" in err) {
@@ -50,6 +52,12 @@ export type FloatingChatProps = {
   /** NEW conversation — resolve + send via existing chat path; returns peer Address. */
   startConversation?: (peer: string, message: string) => Promise<Address>;
   onFocusPrompt?: () => void;
+  /** Known channels for the switcher dropdown (#58). */
+  channels?: ChatChannel[];
+  /** Active channel id (matches `channels`), or null. */
+  activeChannelId?: ChannelId | null;
+  /** User picked a different channel in the dropdown. */
+  onSwitchChannel?: (channel: ChatChannel) => void;
 };
 
 const PANEL_W = 360;
@@ -83,7 +91,10 @@ export default function FloatingChat({
   onOpenChange,
   sendMessage,
   startConversation,
-  onFocusPrompt
+  onFocusPrompt,
+  channels,
+  activeChannelId,
+  onSwitchChannel
 }: FloatingChatProps) {
   const [open, setOpen] = useState(false);
   const [senders, setSenders] = useState<InboxSenderSummary[] | null>(null);
@@ -95,6 +106,12 @@ export default function FloatingChat({
   const panelRef = useRef<HTMLDivElement>(null);
   const prevTabRef = useRef(primaryTab);
   const prevPanelRef = useRef(openPanel);
+  // Latest loader in a ref so the open-effect below stays stable across parent
+  // re-renders (otherwise inline loader props retrigger fetch every render).
+  const loadSendersRef = useRef(loadSenders);
+  useEffect(() => {
+    loadSendersRef.current = loadSenders;
+  }, [loadSenders]);
 
   const radius =
     themeKey === "macintosh" || (theme.rounded && theme.rounded !== "rounded-none")
@@ -147,7 +164,7 @@ export default function FloatingChat({
     setInboxLoading(true);
     setInboxError(null);
     try {
-      const list = await loadSenders();
+      const list = await loadSendersRef.current();
       setSenders(list);
     } catch (err: unknown) {
       setInboxError(errMessage(err, "Failed to load inbox."));
@@ -155,7 +172,7 @@ export default function FloatingChat({
     } finally {
       setInboxLoading(false);
     }
-  }, [loadSenders]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -275,10 +292,17 @@ export default function FloatingChat({
             {!isConnected && (
               <div className={theme.muted}>Connect a wallet to read chat.</div>
             )}
-            {isConnected && !channelLabel && (
-              <div className={theme.muted}>
-                No active channel · type channel
-              </div>
+            {isConnected && !channelLabel && channels && channels.length > 0 && (
+              <ChannelSwitcher
+                theme={theme}
+                channels={channels}
+                activeId={activeChannelId ?? null}
+                onSwitch={onSwitchChannel ?? (() => {})}
+                radius={radius}
+              />
+            )}
+            {isConnected && !channelLabel && !(channels && channels.length > 0) && (
+              <div className={theme.muted}>No active channel</div>
             )}
             {isConnected &&
               channelLabel &&

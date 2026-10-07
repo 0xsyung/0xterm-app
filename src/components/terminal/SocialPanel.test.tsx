@@ -9,14 +9,22 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { THEMES } from "./constants";
 import SocialPanel from "./SocialPanel";
+import { channelId } from "./chatChannels";
 
 const theme = THEMES.matrix;
 
 const ALICE = "0x1111111111111111111111111111111111111111";
 const BOB = "0x2222222222222222222222222222222222222222";
 
+const SEPOLIA_CHANNEL = {
+  chainId: 11155111,
+  address: "0x6248F070A2f849ee1410BC35aa86A0e0F08e96a5",
+  name: "lobby"
+} as const;
+const ACTIVE_ID = channelId(SEPOLIA_CHANNEL.chainId, SEPOLIA_CHANNEL.address);
+
 describe("SocialPanel inbox tab", () => {
-  it("renders INBOX/BOARD segments and channel hint", () => {
+  it("renders INBOX/BOARD segments and channel dropdown", () => {
     render(
       <SocialPanel
         theme={theme}
@@ -24,16 +32,43 @@ describe("SocialPanel inbox tab", () => {
         onSubTabChange={vi.fn()}
         inboxUnread={3}
         boardUnread={0}
-        channelLabel="0xterm.eth"
+        channelLabel="lobby"
         isConnected
         loadSenders={vi.fn(async () => [])}
         loadThread={vi.fn()}
         loadBoard={vi.fn()}
+        channels={[SEPOLIA_CHANNEL]}
+        activeChannelId={ACTIVE_ID}
       />
     );
     expect(screen.getByRole("button", { name: /INBOX/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /BOARD/ })).toBeTruthy();
-    expect(screen.getByText(/CHANNEL: 0xterm\.eth/)).toBeTruthy();
+    expect(screen.getByLabelText("Chat channel")).toBeTruthy();
+  });
+
+  it("switches channel via dropdown", () => {
+    const onSwitchChannel = vi.fn();
+    render(
+      <SocialPanel
+        theme={theme}
+        subTab="inbox"
+        onSubTabChange={vi.fn()}
+        inboxUnread={0}
+        boardUnread={0}
+        channelLabel="lobby"
+        isConnected
+        loadSenders={vi.fn(async () => [])}
+        loadThread={vi.fn()}
+        loadBoard={vi.fn()}
+        channels={[SEPOLIA_CHANNEL]}
+        activeChannelId={ACTIVE_ID}
+        onSwitchChannel={onSwitchChannel}
+      />
+    );
+    fireEvent.change(screen.getByLabelText("Chat channel"), {
+      target: { value: ACTIVE_ID }
+    });
+    expect(onSwitchChannel).toHaveBeenCalledTimes(1);
   });
 
   it("prompts to connect when not connected", () => {
@@ -80,7 +115,7 @@ describe("SocialPanel inbox tab", () => {
     expect(screen.getByTestId("new-conversation-form")).toBeTruthy();
     expect(screen.getByTestId("new-conversation-peer")).toBeTruthy();
     expect(screen.getByTestId("new-conversation-send")).toBeTruthy();
-    expect(screen.getByTestId("new-conversation-cli-hint").textContent).toMatch(/or: chat/);
+    expect(screen.queryByTestId("new-conversation-cli-hint")).toBeNull();
   });
 
   it("thread view exposes composer when sendMessage provided", async () => {

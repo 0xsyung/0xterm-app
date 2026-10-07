@@ -7,19 +7,21 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import type { ThemeConfig } from "./types";
 import type { SocialSubTab } from "./socialUnread";
 import type { BillboardPost } from "./widgets/BillboardWidget";
 import { SegmentButton } from "./widgets/SegmentButton";
 import {
+  ChannelSwitcher,
   InboxThreadList,
   InboxThreadMessages,
   NewConversationForm,
   type InboxSenderSummary,
   type InboxThreadView
 } from "./inbox/InboxViews";
+import type { ChatChannel, ChannelId } from "./chatChannels";
 
 export type { InboxSenderSummary, InboxThreadView };
 
@@ -50,14 +52,17 @@ export default function SocialPanel({
   loadThread,
   loadBoard,
   sendMessage,
-  startConversation
+  startConversation,
+  channels,
+  activeChannelId,
+  onSwitchChannel
 }: {
   theme: ThemeConfig;
   subTab: SocialSubTab;
   onSubTabChange: (tab: SocialSubTab) => void;
   inboxUnread: number;
   boardUnread: number;
-  /** Active chat channel name/address, or null when none. */
+  /** Active chat channel label (display), or null when none. */
   channelLabel: string | null;
   isConnected: boolean;
   loadSenders: () => Promise<InboxSenderSummary[]>;
@@ -67,6 +72,12 @@ export default function SocialPanel({
   sendMessage?: (peer: Address, text: string) => Promise<void>;
   /** NEW conversation — resolve + send via existing chat path; returns peer Address. */
   startConversation?: (peer: string, message: string) => Promise<Address>;
+  /** Known channels for the switcher dropdown (#58). */
+  channels?: ChatChannel[];
+  /** Active channel id (matches `channels`), or null. */
+  activeChannelId?: ChannelId | null;
+  /** User picked a different channel in the dropdown. */
+  onSwitchChannel?: (channel: ChatChannel) => void;
 }) {
   const [senders, setSenders] = useState<InboxSenderSummary[] | null>(null);
   const [inboxError, setInboxError] = useState<string | null>(null);
@@ -81,11 +92,20 @@ export default function SocialPanel({
   const [boardItems, setBoardItems] = useState<BillboardPost[]>([]);
   const [boardOffset, setBoardOffset] = useState(0);
 
+  // Keep the latest loaders in refs so the tab effect below stays stable
+  // across parent re-renders (otherwise inline loader props retrigger fetch).
+  const loadSendersRef = useRef(loadSenders);
+  const loadBoardRef = useRef(loadBoard);
+  useEffect(() => {
+    loadSendersRef.current = loadSenders;
+    loadBoardRef.current = loadBoard;
+  }, [loadSenders, loadBoard]);
+
   const refreshSenders = useCallback(async () => {
     setInboxLoading(true);
     setInboxError(null);
     try {
-      const list = await loadSenders();
+      const list = await loadSendersRef.current();
       setSenders(list);
     } catch (err: unknown) {
       setInboxError(errMessage(err, "Failed to load inbox."));
@@ -93,13 +113,13 @@ export default function SocialPanel({
     } finally {
       setInboxLoading(false);
     }
-  }, [loadSenders]);
+  }, []);
 
   const refreshBoard = useCallback(async () => {
     setBoardLoading(true);
     setBoardError(null);
     try {
-      const view = await loadBoard();
+      const view = await loadBoardRef.current();
       setBoard(view);
       setBoardItems(view?.posts ?? []);
       setBoardOffset(0);
@@ -110,7 +130,7 @@ export default function SocialPanel({
     } finally {
       setBoardLoading(false);
     }
-  }, [loadBoard]);
+  }, []);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- tab-driven Social fetch */
@@ -201,9 +221,19 @@ export default function SocialPanel({
       </div>
 
       {subTab === "inbox" && (
-        <div className={`text-[10px] ${theme.muted} mb-2 shrink-0`}>
-          CHANNEL: {channelLabel || "—"}
-          <span className="opacity-70"> · type channel</span>
+        <div className="mb-2 shrink-0">
+          {channels && channels.length > 0 && (
+            <ChannelSwitcher
+              theme={theme}
+              channels={channels}
+              activeId={activeChannelId ?? null}
+              onSwitch={onSwitchChannel ?? (() => {})}
+              radius={radius}
+            />
+          )}
+          {(!channels || channels.length === 0) && (
+            <div className={`text-[10px] ${theme.muted}`}>CHANNEL: —</div>
+          )}
         </div>
       )}
 
@@ -216,11 +246,7 @@ export default function SocialPanel({
               <div className={theme.muted}>Connect a wallet to read chat.</div>
             )}
             {isConnected && !channelLabel && (
-              <div className={theme.muted}>
-                No active chat channel. Type{" "}
-                <span className={theme.primary}>channel list</span> or{" "}
-                <span className={theme.primary}>channel deploy &lt;name&gt;</span>.
-              </div>
+              <div className={theme.muted}>No active chat channel.</div>
             )}
             {isConnected && channelLabel && inboxLoading && !senders && (
               <div className={theme.muted}>Loading inbox…</div>

@@ -12,6 +12,12 @@ import type { Address } from "viem";
 const theme = THEMES.matrix;
 const peer = "0x1111111111111111111111111111111111111111" as Address;
 const self = "0x2222222222222222222222222222222222222222" as Address;
+const SEPOLIA_CHANNEL = {
+  chainId: 11155111,
+  address: "0x6248F070A2f849ee1410BC35aa86A0e0F08e96a5",
+  name: "lobby"
+} as const;
+const ACTIVE_ID = "11155111:0x6248f070a2f849ee1410bc35aa86a0e0f08e96a5";
 
 function renderFloater(overrides: Partial<Parameters<typeof FloatingChat>[0]> = {}) {
   const onAckInbox = vi.fn();
@@ -127,6 +133,22 @@ describe("FloatingChat (#82)", () => {
     await waitFor(() =>
       expect(screen.getByText(/No active channel/)).toBeTruthy()
     );
+  });
+
+  it("shows channel dropdown when no active channel but channels exist", async () => {
+    const onSwitchChannel = vi.fn();
+    const { container } = renderFloater({
+      channelLabel: null,
+      channels: [SEPOLIA_CHANNEL],
+      activeChannelId: null,
+      onSwitchChannel
+    });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    await waitFor(() => expect(screen.getByLabelText("Chat channel")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Chat channel"), {
+      target: { value: ACTIVE_ID }
+    });
+    expect(onSwitchChannel).toHaveBeenCalledTimes(1);
   });
 
   it("does not steal focus path when collapsed (bubble outside retain-focus)", () => {
