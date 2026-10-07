@@ -545,7 +545,7 @@ export type ChatPreset = {
 
 export const CHAT_PRESETS: Record<number, ChatPreset> = {
   11155111: {
-    address: '0x694eA7938238037731bD0F3a3aE9F6FD2C2097ce',
+    address: '0x6248F070A2f849ee1410BC35aa86A0e0F08e96a5',
     name: 'lobby',
   },
 }
