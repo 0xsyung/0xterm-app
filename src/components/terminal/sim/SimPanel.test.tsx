@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * @file SimPanel.test.tsx
- * @description Sim tool panel render + validation + RUN dispatch tests (#18)
+ * @description Sim tool panel render + validation + RUN dispatch tests (#18, #164)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -52,21 +52,53 @@ describe("SimPanel", () => {
     expect(screen.getByTestId("sim-run")).toBeTruthy();
   });
 
-  it("RUN is disabled until TO is filled", () => {
+  it("pristine open shows no yellow field warns (#164)", () => {
     render(<SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
-    expect(screen.getByTestId("sim-run").hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByTestId("sim-warn-to")).toBeNull();
+    expect(screen.queryByTestId("sim-warn-data")).toBeNull();
+    expect(screen.getByTestId("sim-preview")).toBeTruthy();
+    expect(screen.getByText(/eth_call dry-run/i)).toBeTruthy();
+  });
+
+  it("RUN is visually gated (aria-disabled) until TO is filled", () => {
+    render(<SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
+    const run = screen.getByTestId("sim-run");
+    expect(run.hasAttribute("disabled")).toBe(false);
+    expect(run.getAttribute("aria-disabled")).toBe("true");
+    expect(run.className).toContain("opacity-40");
   });
 
   it("RUN is enabled with a valid TO and empty DATA", () => {
     render(<SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
     fireEvent.change(screen.getByTestId("sim-to"), { target: { value: "0xAbC123" } });
-    expect(screen.getByTestId("sim-run").hasAttribute("disabled")).toBe(false);
+    const run = screen.getByTestId("sim-run");
+    expect(run.getAttribute("aria-disabled")).toBe("false");
+    expect(run.className).not.toContain("opacity-40");
   });
 
-  it("shows a warning when DATA is invalid hex", () => {
+  it("invalid RUN click sets attemptedRun, shows warn, and does not run (#164)", () => {
+    const onRun = vi.fn();
+    render(<SimPanel theme={theme} onClose={vi.fn()} onRun={onRun} />);
+    fireEvent.click(screen.getByTestId("sim-run"));
+    expect(screen.getByTestId("sim-warn-to").textContent).toContain("Enter a target address.");
+    expect(screen.getByTestId("sim-warn-to").getAttribute("role")).toBe("alert");
+    expect(screen.getByTestId("sim-warn-to").className).toContain(theme.warn);
+    expect(onRun).not.toHaveBeenCalled();
+  });
+
+  it("blur-on-dirty shows DATA warn without RUN (#164)", () => {
+    render(<SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
+    const data = screen.getByTestId("sim-data");
+    fireEvent.change(data, { target: { value: "nothex" } });
+    expect(screen.queryByTestId("sim-warn-data")).toBeNull();
+    fireEvent.blur(data);
+    expect(screen.getByTestId("sim-warn-data").textContent).toContain("0x-prefixed hex");
+  });
+
+  it("typing invalid DATA without blur stays silent (#164)", () => {
     render(<SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
     fireEvent.change(screen.getByTestId("sim-data"), { target: { value: "nothex" } });
-    expect(screen.getByTestId("sim-warn-data").textContent).toContain("0x-prefixed hex");
+    expect(screen.queryByTestId("sim-warn-data")).toBeNull();
   });
 
   it("dispatches normalized args on RUN and renders the result component", async () => {
@@ -80,6 +112,8 @@ describe("SimPanel", () => {
     fireEvent.click(screen.getByTestId("sim-run"));
     expect(await screen.findByTestId("sim-out")).toBeTruthy();
     expect(onRun).toHaveBeenCalledWith({ to: "0xAbC", data: "0xabc" });
+    expect(screen.queryByTestId("sim-warn-to")).toBeNull();
+    expect(screen.queryByTestId("sim-warn-data")).toBeNull();
   });
 
   it("renders the error when onRun fails", async () => {
@@ -91,6 +125,18 @@ describe("SimPanel", () => {
     fireEvent.click(screen.getByTestId("sim-run"));
     expect(await screen.findByTestId("sim-error")).toBeTruthy();
     expect(screen.getByTestId("sim-error").textContent).toContain("sim.revert");
+  });
+
+  it("remount clears attemptedRun and dirty/blur state (#164)", () => {
+    const { unmount } = render(
+      <SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />
+    );
+    fireEvent.click(screen.getByTestId("sim-run"));
+    expect(screen.getByTestId("sim-warn-to")).toBeTruthy();
+    unmount();
+    render(<SimPanel theme={theme} onClose={vi.fn()} onRun={vi.fn()} />);
+    expect(screen.queryByTestId("sim-warn-to")).toBeNull();
+    expect(screen.queryByTestId("sim-warn-data")).toBeNull();
   });
 
   it("closes on Escape", () => {
