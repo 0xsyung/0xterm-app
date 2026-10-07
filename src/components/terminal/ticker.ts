@@ -1,6 +1,6 @@
 /**
  * @file ticker.ts
- * @description Crypto ticker watchlist: prefs, resolve, refresh, command parse (#15)
+ * @description Crypto ticker watchlist: prefs, resolve, refresh, command parse (#15/#162)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -537,7 +537,9 @@ export const refreshTickerRows = async (
 
   for (const [chain, addrs] of byChain) {
     try {
-      const map = await quoteDexScreenerPairs(chain, addrs, fetchImpl);
+      const map = await quoteDexScreenerPairs(chain, addrs, fetchImpl, {
+        background: true
+      });
       for (const [addr, q] of map) {
         quoted.set(`${chain}:${addr.toLowerCase()}`, {
           priceUsd: q.priceUsd,

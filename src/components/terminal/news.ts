@@ -1,6 +1,6 @@
 /**
  * @file news.ts
- * @description Allowlisted RSS headlines: sanitize, parse, fetch, filter, pin (#14)
+ * @description Allowlisted RSS headlines: sanitize, parse, fetch, filter, pin, dedupe (#14/#162)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All Rights Reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -165,19 +165,68 @@ export const filterByTag = (items: NewsItem[], tag: string): NewsItem[] => {
   });
 };
 
+/** Tracking / share params stripped for canonical URL dedupe (#162). */
+const TRACKING_PARAM =
+  /^(utm_|fbclid|gclid|mc_|msclkid|yclid|dclid|twclid|igshid|si$|ref$|ref_src$|spm$|scm$|ncid$|cmpid$)/i;
+
 export const normalizeArticleUrl = (url: string): string => {
   try {
     const u = new URL(url);
     u.hash = "";
+    // Strip common tracking / share params before comparing.
+    const drop: string[] = [];
+    u.searchParams.forEach((_v, k) => {
+      if (TRACKING_PARAM.test(k)) drop.push(k);
+    });
+    for (const k of drop) u.searchParams.delete(k);
     // drop trailing slash for dedup (except root)
     let href = u.href;
     if (href.endsWith("/") && u.pathname !== "/") href = href.slice(0, -1);
+    // URL may still end with `?` after deleting all params
+    if (href.endsWith("?")) href = href.slice(0, -1);
     return href;
   } catch {
     return url;
   }
 };
 
+/** Collapse whitespace / punctuation for title-level near-dupes (#162). */
+export const normalizeNewsTitle = (title: string): string =>
+  sanitizeHeadline(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+export const newsStoryDedupeKey = (item: NewsItem): string => {
+  const url = normalizeArticleUrl(item.url).toLowerCase();
+  if (url && isSafeArticleUrl(item.url)) return `url:${url}`;
+  return `title:${normalizeNewsTitle(item.title)}|src:${item.sourceId}`;
+};
+
+/**
+ * Story-level dedupe before render (#162).
+ * Key order: canonical URL (normalized) → else normalized title + source.
+ * Also drops later items whose title+source matches an earlier keeper
+ * (syndication with distinct paths). Keeps first in feed order.
+ */
+export const dedupeNewsStories = (items: NewsItem[]): NewsItem[] => {
+  const seenUrl = new Set<string>();
+  const seenTitleSrc = new Set<string>();
+  const out: NewsItem[] = [];
+  for (const it of items) {
+    const urlKey = normalizeArticleUrl(it.url).toLowerCase();
+    const titleKey = `${normalizeNewsTitle(it.title)}|${it.sourceId}`;
+    const hasUrl = !!(urlKey && isSafeArticleUrl(it.url));
+    if (hasUrl && seenUrl.has(urlKey)) continue;
+    if (seenTitleSrc.has(titleKey)) continue;
+    if (hasUrl) seenUrl.add(urlKey);
+    seenTitleSrc.add(titleKey);
+    out.push(it);
+  }
+  return out;
+};
+
+/** @deprecated Prefer dedupeNewsStories — URL-only helper retained for tests. */
 export const dedupByUrl = (items: NewsItem[]): NewsItem[] => {
   const seen = new Set<string>();
   const out: NewsItem[] = [];
@@ -795,7 +844,7 @@ export const fetchNewsHeadlines = async (
     };
   }
 
-  const deduped = dedupByUrl(merged).sort((a, b) => {
+  const deduped = dedupeNewsStories(merged).sort((a, b) => {
     const ta = a.publishedAt ?? 0;
     const tb = b.publishedAt ?? 0;
     return tb - ta;

@@ -45,4 +45,14 @@ describe("HelpManual", () => {
     expect(theme.rounded).toBeTypeOf("string");
     expect(theme.text).toBeTypeOf("string");
   });
+
+  it("Social tab help describes header INVEST/DEV/FORENSIC/SOCIAL (#162)", () => {
+    render(<HelpManual theme={theme} mode="console" />);
+    expect(screen.getByText("Social tab")).toBeTruthy();
+    expect(
+      screen.getByText(/Header modes: INVEST · DEV · FORENSIC · SOCIAL/)
+    ).toBeTruthy();
+    expect(screen.queryByText(/Header TERMINAL \| SOCIAL/)).toBeNull();
+  });
+
 });

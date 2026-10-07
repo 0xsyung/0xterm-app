@@ -332,3 +332,14 @@ describe("console enter scrollback (#140 B2)", () => {
     expect(stale[0]).toBe("old output");
   });
 });
+
+describe("Social tab help copy (#162)", () => {
+  it("describes header INVEST · DEV · FORENSIC · SOCIAL", () => {
+    const row = helpRowsForMode("console").find((r) => r.command === "Social tab");
+    expect(row).toBeTruthy();
+    expect(row!.description).toBe(
+      "Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live under SOCIAL (not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* still work from the prompt."
+    );
+    expect(row!.description).not.toMatch(/TERMINAL \| SOCIAL/);
+  });
+});

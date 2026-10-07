@@ -80,7 +80,7 @@ export default function TickerWidget({
         let failedAny = false;
         for (const [chain, addrs] of byChain) {
           try {
-            const map = await quoteDexScreenerPairs(chain, addrs);
+            const map = await quoteDexScreenerPairs(chain, addrs, fetch, { background: true });
             for (const [addr, q] of map) {
               quoted.set(`${chain}:${addr.toLowerCase()}`, {
                 priceUsd: q.priceUsd,

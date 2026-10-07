@@ -11,6 +11,9 @@ import {
   _resetNewsCache,
   buildNewsFooter,
   dedupByUrl,
+  dedupeNewsStories,
+  normalizeArticleUrl,
+  normalizeNewsTitle,
   fetchNewsHeadlines,
   filterByTag,
   isAllowedNewsUrl,
@@ -128,6 +131,90 @@ describe("dedupByUrl", () => {
     ];
     expect(dedupByUrl(items)).toHaveLength(1);
     expect(dedupByUrl(items)[0].id).toBe("a");
+  });
+});
+
+describe("dedupeNewsStories (#162)", () => {
+  it("strips tracking params when comparing canonical URLs", () => {
+    expect(
+      normalizeArticleUrl("https://decrypt.co/okx?utm_source=x&utm_medium=y&fbclid=1")
+    ).toBe("https://decrypt.co/okx");
+    const items: NewsItem[] = [
+      {
+        id: "a",
+        sourceId: "decrypt",
+        title: "OKX raises funds",
+        url: "https://decrypt.co/okx-raise",
+        publishedAt: 3
+      },
+      {
+        id: "b",
+        sourceId: "decrypt",
+        title: "OKX raises funds (mirror)",
+        url: "https://decrypt.co/okx-raise?utm_source=twitter&fbclid=abc",
+        publishedAt: 2
+      }
+    ];
+    const out = dedupeNewsStories(items);
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe("a");
+  });
+
+  it("falls back to normalized title + source when URLs differ", () => {
+    expect(normalizeNewsTitle("  OKX Raises Funds!!! ")).toBe("okx raises funds");
+    const items: NewsItem[] = [
+      {
+        id: "a",
+        sourceId: "cointelegraph",
+        title: "Glamsterdam live on Sepolia",
+        url: "https://cointelegraph.com/news/glamsterdam-a",
+        publishedAt: 5
+      },
+      {
+        id: "b",
+        sourceId: "cointelegraph",
+        title: "Glamsterdam live on Sepolia",
+        url: "https://cointelegraph.com/news/glamsterdam-b",
+        publishedAt: 4
+      },
+      {
+        id: "c",
+        sourceId: "decrypt",
+        title: "Glamsterdam live on Sepolia",
+        url: "https://decrypt.co/glamsterdam",
+        publishedAt: 3
+      }
+    ];
+    const out = dedupeNewsStories(items);
+    // Same source+title → keep first; different source kept
+    expect(out.map((i) => i.id)).toEqual(["a", "c"]);
+  });
+
+  it("keeps first in feed order and drops later near-dupes silently", () => {
+    const items: NewsItem[] = [
+      {
+        id: "1",
+        sourceId: "decrypt",
+        title: "OKX raise",
+        url: "https://decrypt.co/1",
+        publishedAt: 1
+      },
+      {
+        id: "2",
+        sourceId: "decrypt",
+        title: "OKX raise",
+        url: "https://decrypt.co/2",
+        publishedAt: 2
+      },
+      {
+        id: "3",
+        sourceId: "decrypt",
+        title: "OKX raise",
+        url: "https://decrypt.co/3",
+        publishedAt: 3
+      }
+    ];
+    expect(dedupeNewsStories(items).map((i) => i.id)).toEqual(["1"]);
   });
 });
 

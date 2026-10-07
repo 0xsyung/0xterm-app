@@ -2,7 +2,7 @@
  * @file ticker.test.ts
  * @description Unit tests for ticker prefs / command / pin key (#15)
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   TICKER_MAX,
   TICKER_WIDGET_ID,
@@ -19,7 +19,11 @@ import {
   resolveTickerSymbol,
   type TickerRow
 } from "./ticker";
-import { DEX_FETCH_FAILED_MSG } from "./dexscreener";
+import { DEX_FETCH_FAILED_MSG, resetDexBackgroundBlocked } from "./dexscreener";
+
+beforeEach(() => {
+  resetDexBackgroundBlocked();
+});
 
 describe("tickerPinKey", () => {
   it("is stable ticker:watchlist regardless of symbol order", () => {

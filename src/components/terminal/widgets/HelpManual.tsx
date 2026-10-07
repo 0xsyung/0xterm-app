@@ -68,7 +68,7 @@ function HelpRowView({
   description: string;
   theme: ThemeConfig;
 }) {
-  // Social tab row embeds bold command names in the description.
+  // Social tab row embeds bold command names in the description (#162).
   if (command === "Social tab") {
     return (
       <>
@@ -78,13 +78,13 @@ function HelpRowView({
           {command}
         </div>
         <div>
-          Header TERMINAL | SOCIAL switch — Inbox + Board live here (not
-          pinnable). Unread badges poll ~60s. Commands{" "}
+          Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live
+          under SOCIAL (not pinnable). Unread badges poll ~60s. Commands{" "}
           <span className="font-bold">inbox</span> /{" "}
           <span className="font-bold">chat</span> /{" "}
           <span className="font-bold">board</span> /{" "}
-          <span className="font-bold">channel*</span> still work from the prompt
-          on either tab.
+          <span className="font-bold">channel*</span> still work from the
+          prompt.
         </div>
       </>
     );

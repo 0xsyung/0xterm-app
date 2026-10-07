@@ -516,7 +516,7 @@ export const HELP_ROWS: HelpRow[] = [
   {
     command: "Social tab",
     description:
-      "Header TERMINAL | SOCIAL switch — Inbox + Board live here (not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* still work from the prompt on either tab.",
+      "Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live under SOCIAL (not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* still work from the prompt.",
     modes: ["global"]
   },
 

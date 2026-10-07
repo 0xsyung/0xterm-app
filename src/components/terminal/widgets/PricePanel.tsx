@@ -1,6 +1,6 @@
 /**
  * @file PricePanel.tsx
- * @description INVEST Price tool panel — base/quote/SOURCE ON-CHAIN|API + DEX/fee → PriceCard (#117/#121)
+ * @description INVEST Price tool panel — base/quote/SOURCE ON-CHAIN|API + DEX/fee → PriceCard (#117/#121/#162)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { DexProtocol, ThemeConfig } from "../types";
+import { SUPPORTED_CHAINS } from "../constants";
 import PriceCard, { type PriceCardData } from "./PriceCard";
 import PinButton from "./PinButton";
 
@@ -78,6 +79,23 @@ export function sanitizePricePanelError(msg: string): string {
     return "No DexScreener quote — try on-chain pool.";
   }
   return msg;
+}
+
+/** True when the PRICE action's active/default network is a testnet (#162). */
+export function isPriceActionTestnet(
+  chainId: number | null | undefined
+): boolean {
+  if (chainId == null) return false;
+  const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId);
+  if (!chain) return false;
+  if (chain.testnet) return true;
+  const name = chain.name.toLowerCase();
+  return (
+    name.includes("sepolia") ||
+    name.includes("amoy") ||
+    name.includes("testnet") ||
+    /\btest\b/.test(name)
+  );
 }
 
 export default function PricePanel({
@@ -279,6 +297,15 @@ export default function PricePanel({
           ×
         </button>
       </div>
+
+      {isPriceActionTestnet(activeChainId) ? (
+        <div
+          className={`text-[10px] ${theme.muted}`}
+          data-testid="price-testnet-caveat"
+        >
+          Testnet rates are not real market prices.
+        </div>
+      ) : null}
 
       <label className="flex flex-col gap-1">
         <span className={`uppercase text-[9px] ${theme.muted}`}>BASE</span>

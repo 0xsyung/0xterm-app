@@ -237,10 +237,14 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(2);
     expect(screen.getAllByRole("button", { name: /^TRACE$/i }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("button", { name: /^READ$/i })).toBeTruthy();
+    // #162 — entering forensic auto-opens the lone SIM tool
+    expect(onOpenPanel).toHaveBeenCalledWith("sim");
+    onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^READ$/i }));
     expect(onSubTabChange).toHaveBeenCalledWith("READ");
-    fireEvent.click(screen.getByRole("button", { name: /^PRICE/i }));
+    // Auto-open lone PRICE on READ (tool tab still present)
     expect(onOpenPanel).toHaveBeenCalledWith("price");
+    expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
   });
 
   it("DEV with zero live sub-tabs shows ModeEmptyState (#160)", () => {
@@ -305,8 +309,9 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    const simButtons = screen.getAllByRole("button", { name: /^SIM/i });
-    fireEvent.click(simButtons[0]);
+    // Mount auto-opens SIM; clicking the tool tab still opens sim
+    expect(onOpenPanel).toHaveBeenCalledWith("sim");
+    onOpenPanel.mockClear();
     fireEvent.click(screen.getAllByRole("button", { name: /^SIM/i })[1]);
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
   });
@@ -461,3 +466,56 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.queryByRole("button", { name: /TOKEN INFO/i })).toBeNull();
   });
 });
+
+describe("lone-tool auto-open (#162)", () => {
+  it("auto-opens Sim on FORENSIC mount (SIM is first live sub-tab)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    expect(onOpenPanel).toHaveBeenCalledWith("sim");
+    // Tool tab row kept — SIM still present as a tool button
+    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(2);
+  });
+
+  it("auto-opens Trace when switching to TRACE", () => {
+    const onOpenPanel = vi.fn();
+    const onSubTabChange = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        onSubTabChange={onSubTabChange}
+      />
+    );
+    onOpenPanel.mockClear();
+    // Sub-tab is the first TRACE control in the frame row
+    fireEvent.click(screen.getAllByRole("button", { name: /^TRACE$/i })[0]);
+    expect(onSubTabChange).toHaveBeenCalledWith("TRACE");
+    expect(onOpenPanel).toHaveBeenCalledWith("trace");
+  });
+
+  it("does not auto-open MARKET (multiple ready tools)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    expect(onOpenPanel).not.toHaveBeenCalled();
+  });
+});
+

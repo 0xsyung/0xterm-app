@@ -12,6 +12,7 @@ import type { DexProtocol } from "../types";
 import PricePanel, {
   buildPriceCli,
   DEFAULT_PRICE_SOURCE,
+  isPriceActionTestnet,
   resolveDefaultPriceSource,
   sanitizePricePanelError
 } from "./PricePanel";
@@ -472,4 +473,44 @@ describe("PricePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "ON-CHAIN" }));
     expect(screen.queryByTestId("price-error")).toBeNull();
   });
+
+describe("testnet PRICE caveat (#162)", () => {
+  it("detects Sepolia / Amoy-style testnets", () => {
+    expect(isPriceActionTestnet(11155111)).toBe(true); // eth sepolia
+    expect(isPriceActionTestnet(84532)).toBe(true); // base sepolia
+    expect(isPriceActionTestnet(80002)).toBe(true); // amoy
+    expect(isPriceActionTestnet(1)).toBe(false);
+    expect(isPriceActionTestnet(8453)).toBe(false);
+    expect(isPriceActionTestnet(null)).toBe(false);
+  });
+
+  it("shows muted caveat under PRICE title on testnet", () => {
+    render(
+      <PricePanel
+        theme={theme}
+        activeChainId={11155111}
+        dexes={[V3]}
+        onClose={vi.fn()}
+        onRun={vi.fn()}
+      />
+    );
+    const caveat = screen.getByTestId("price-testnet-caveat");
+    expect(caveat.textContent).toBe("Testnet rates are not real market prices.");
+    expect(caveat.className).toMatch(/text-\[10px\]/);
+    expect(caveat.className).toContain(theme.muted);
+  });
+
+  it("hides caveat on mainnet", () => {
+    render(
+      <PricePanel
+        theme={theme}
+        activeChainId={1}
+        dexes={[V3]}
+        onClose={vi.fn()}
+        onRun={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId("price-testnet-caveat")).toBeNull();
+  });
+});
 
