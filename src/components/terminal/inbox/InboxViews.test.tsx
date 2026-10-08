@@ -154,6 +154,56 @@ describe("ChannelSwitcher", () => {
   });
 });
 
+describe("ChannelSwitcher header variant (#172)", () => {
+  it("hideLabel drops the caption and placeholder shows when no active", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={null}
+        onSwitch={() => {}}
+        hideLabel
+        placeholder="No active channel"
+      />
+    );
+    expect(screen.queryByText("Channel")).toBeNull();
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.value).toBe("");
+    expect(sel.options[0].textContent).toBe("No active channel");
+    expect(sel.options.length).toBe(2);
+  });
+
+  it("unknown active id falls back to placeholder", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId="1:0xdead"
+        onSwitch={() => {}}
+      />
+    );
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.value).toBe("");
+    expect(sel.options[0].textContent).toBe("—");
+  });
+
+  it("ignores a change to an id not in the list", () => {
+    const onSwitch = vi.fn();
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={ACTIVE_ID}
+        onSwitch={onSwitch}
+      />
+    );
+    fireEvent.change(screen.getByLabelText("Chat channel"), {
+      target: { value: "" }
+    });
+    expect(onSwitch).not.toHaveBeenCalled();
+  });
+});
+
 describe("NewConversationForm (#140 A2)", () => {
   it("renders NEW, peer, message, and SEND when open", () => {
     render(
@@ -197,5 +247,55 @@ describe("NewConversationForm (#140 A2)", () => {
     });
     fireEvent.click(screen.getByTestId("new-conversation-send"));
     await waitFor(() => expect(onStart).toHaveBeenCalledWith(peer, "hello"));
+  });
+});
+
+describe("InboxViews composer edge paths (#172 coverage)", () => {
+  it("NEW toggle opens the form; Enter submits; error message is shown", async () => {
+    const onStart = vi.fn().mockRejectedValue(new Error("bad peer"));
+    render(<NewConversationForm theme={theme} onStart={onStart} defaultOpen={false} />);
+    expect(screen.queryByTestId("new-conversation-peer")).toBeNull();
+    fireEvent.click(screen.getByTestId("new-conversation-toggle"));
+    // Enter with empty fields is a no-op.
+    fireEvent.keyDown(screen.getByTestId("new-conversation-message"), { key: "Enter" });
+    expect(onStart).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByTestId("new-conversation-peer"), { target: { value: "bob.eth" } });
+    fireEvent.change(screen.getByTestId("new-conversation-message"), { target: { value: "yo" } });
+    fireEvent.keyDown(screen.getByTestId("new-conversation-message"), { key: "a" });
+    expect(onStart).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByTestId("new-conversation-message"), { key: "Enter" });
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith("bob.eth", "yo"));
+    expect((await screen.findByTestId("new-conversation-error")).textContent).toBe("bad peer");
+  });
+
+  it("NEW form falls back to 'Send failed' for non-Error rejections", async () => {
+    const onStart = vi.fn().mockRejectedValue("x");
+    render(<NewConversationForm theme={theme} onStart={onStart} defaultOpen />);
+    fireEvent.change(screen.getByTestId("new-conversation-peer"), { target: { value: "bob.eth" } });
+    fireEvent.change(screen.getByTestId("new-conversation-message"), { target: { value: "yo" } });
+    fireEvent.click(screen.getByTestId("new-conversation-send"));
+    expect((await screen.findByTestId("new-conversation-error")).textContent).toBe("Send failed");
+  });
+
+  it("thread composer: Enter sends, empty is a no-op, errors surface", async () => {
+    const onSend = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("out of gas"))
+      .mockRejectedValueOnce(42);
+    const thread: InboxThreadView = { peer, self, peerLabel: "alice", messages: [] };
+    render(<InboxThreadMessages theme={theme} thread={thread} onSend={onSend} />);
+    const input = screen.getByLabelText("Message") as HTMLInputElement;
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSend).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: "gm" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith("gm"));
+    await waitFor(() => expect(input.value).toBe(""));
+    fireEvent.change(input, { target: { value: "again" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(await screen.findByText("out of gas")).toBeTruthy();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(await screen.findByText("Send failed")).toBeTruthy();
   });
 });

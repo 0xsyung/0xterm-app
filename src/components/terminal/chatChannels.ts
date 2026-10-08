@@ -230,6 +230,19 @@ export function bootActiveChannel(
   return null;
 }
 
+/**
+ * Effective active channel id for channel dropdowns (#172): the saved active
+ * channel, else the current network's preset (e.g. Sepolia lobby), else null.
+ * Same rule as `bootActiveChannel`, so the dropdown matches the CHAT label.
+ */
+export function effectiveActiveChannelId(
+  store: ChannelStore,
+  currentChainId: number | null | undefined
+): ChannelId | null {
+  const ch = bootActiveChannel(store, currentChainId);
+  return ch ? channelId(ch.chainId, ch.address) : null;
+}
+
 export function getActiveChannel(store: ChannelStore): ChatChannel | null {
   if (!store.activeId) return null;
   const all = mergeChannelLists(presetsAsChannels(), store.channels);

@@ -3,11 +3,13 @@
  * @file FloatingChat.test.tsx
  * @description Floating messenger badge / focus-retain / expand (#82)
  */
+import React, { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { THEMES } from "../constants";
 import FloatingChat from "./FloatingChat";
 import type { Address } from "viem";
+import { channelId, type ChatChannel } from "../chatChannels";
 
 const theme = THEMES.matrix;
 const peer = "0x1111111111111111111111111111111111111111" as Address;
@@ -130,12 +132,15 @@ describe("FloatingChat (#82)", () => {
   it("no-channel muted one-liner", async () => {
     const { container } = renderFloater({ channelLabel: null });
     fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    // Body one-liner (div) + header select placeholder (option).
     await waitFor(() =>
-      expect(screen.getByText(/No active channel/)).toBeTruthy()
+      expect(
+        screen.getByText(/No active channel/, { selector: "div" })
+      ).toBeTruthy()
     );
   });
 
-  it("shows channel dropdown when no active channel but channels exist", async () => {
+  it("header dropdown still renders with placeholder when no active channel (#172)", async () => {
     const onSwitchChannel = vi.fn();
     const { container } = renderFloater({
       channelLabel: null,
@@ -144,11 +149,21 @@ describe("FloatingChat (#82)", () => {
       onSwitchChannel
     });
     fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
-    await waitFor(() => expect(screen.getByLabelText("Chat channel")).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("Chat channel"), {
-      target: { value: ACTIVE_ID }
-    });
+    const header = await waitFor(() => headerOf(container));
+    const sel = within(header).getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.value).toBe("");
+    expect(sel.options[0].textContent).toBe("No active channel");
+    fireEvent.change(sel, { target: { value: ACTIVE_ID } });
     expect(onSwitchChannel).toHaveBeenCalledTimes(1);
+  });
+
+  it("header dropdown renders without channels prop (no crash)", async () => {
+    const { container } = renderFloater({ channelLabel: null });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const header = await waitFor(() => headerOf(container));
+    const sel = within(header).getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.options.length).toBe(1);
+    expect(sel.options[0].textContent).toBe("No active channel");
   });
 
   it("does not steal focus path when collapsed (bubble outside retain-focus)", () => {
@@ -233,5 +248,185 @@ describe("FloatingChat collapse (#140 A3)", () => {
     await waitFor(() => expect(screen.getByText("No conversations")).toBeTruthy());
     expect(screen.getByTestId("new-conversation-form")).toBeTruthy();
     expect(screen.getByTestId("new-conversation-peer")).toBeTruthy();
+  });
+});
+
+const OTHER_CHANNEL: ChatChannel = {
+  chainId: 11155111,
+  address: "0x3333333333333333333333333333333333333333",
+  name: "desk",
+  source: "saved"
+};
+const OTHER_ID = channelId(OTHER_CHANNEL.chainId, OTHER_CHANNEL.address);
+
+function headerOf(container: HTMLElement): HTMLElement {
+  const panel = container.querySelector("[data-floating-chat-panel]");
+  if (!panel) throw new Error("panel not open");
+  return panel.firstElementChild as HTMLElement;
+}
+
+describe("FloatingChat header channel dropdown (#172)", () => {
+  it("renders in the header when a channel is active, with it selected", async () => {
+    const { container } = renderFloater({
+      channelLabel: "lobby",
+      channels: [SEPOLIA_CHANNEL, OTHER_CHANNEL],
+      activeChannelId: ACTIVE_ID,
+      onSwitchChannel: vi.fn()
+    });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const header = await waitFor(() => headerOf(container));
+    expect(header.textContent).toContain("CHAT");
+    expect(header.textContent).not.toContain("CHAT · lobby");
+    // Header variant hides the "Channel" caption (aria-label carries it).
+    expect(within(header).queryByText("Channel")).toBeNull();
+    const sel = within(header).getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.value).toBe(ACTIVE_ID);
+    expect(sel.selectedOptions[0].textContent).toContain("lobby");
+    expect(sel.options.length).toBe(2);
+    // Collapse control still lives in the header and works.
+    fireEvent.click(within(header).getByLabelText("Collapse chat"));
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeNull()
+    );
+  });
+
+  it("switching channel calls the shared switch path, resets thread, reloads senders", async () => {
+    const onSwitch = vi.fn();
+    const sendersFor: Record<string, { peer: Address; count: number; label: string }[]> = {
+      [ACTIVE_ID]: [{ peer, count: 1, label: "alice" }],
+      [OTHER_ID]: [{ peer: self, count: 2, label: "bob" }]
+    };
+    const channels: ChatChannel[] = [SEPOLIA_CHANNEL, OTHER_CHANNEL];
+
+    function Harness() {
+      const [active, setActive] = useState<string>(ACTIVE_ID);
+      const label = channels.find((c) => channelId(c.chainId, c.address) === active)!.name;
+      return (
+        <div style={{ position: "relative", height: 800, width: 1280 }}>
+          <FloatingChat
+            theme={theme}
+            themeKey="matrix"
+            inboxUnread={0}
+            channelLabel={label}
+            isConnected
+            promptClearancePx={100}
+            primaryTab="social"
+            channels={channels}
+            activeChannelId={active}
+            onSwitchChannel={(ch) => {
+              onSwitch(ch);
+              setActive(channelId(ch.chainId, ch.address));
+            }}
+            loadSenders={async () => sendersFor[active]}
+            loadThread={async (p) => ({
+              peer: p,
+              self,
+              peerLabel: p === peer ? "alice" : "bob",
+              messages: []
+            })}
+            onAckInbox={() => {}}
+          />
+        </div>
+      );
+    }
+
+    const { container } = render(<Harness />);
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    fireEvent.click(await screen.findByText("alice"));
+    await screen.findByText(/threads/);
+
+    const sel = within(headerOf(container)).getByLabelText("Chat channel") as HTMLSelectElement;
+    fireEvent.change(sel, { target: { value: OTHER_ID } });
+
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+    expect(onSwitch).toHaveBeenCalledWith(expect.objectContaining({ name: "desk" }));
+    await screen.findByText("bob");
+    expect(screen.queryByText(/threads/)).toBeNull();
+    expect(screen.queryByText("alice")).toBeNull();
+    expect(
+      (within(headerOf(container)).getByLabelText("Chat channel") as HTMLSelectElement).value
+    ).toBe(OTHER_ID);
+  });
+});
+
+describe("FloatingChat inbox / thread paths", () => {
+  const open = (container: HTMLElement) =>
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+
+  it("surfaces loadSenders error message", async () => {
+    const { container } = renderFloater({
+      loadSenders: vi.fn().mockRejectedValue(new Error("rpc down"))
+    });
+    open(container);
+    expect(await screen.findByText("rpc down")).toBeTruthy();
+  });
+
+  it("falls back to generic inbox error for non-Error rejections", async () => {
+    const { container } = renderFloater({
+      loadSenders: vi.fn().mockRejectedValue("nope")
+    });
+    open(container);
+    expect(await screen.findByText("Failed to load inbox.")).toBeTruthy();
+  });
+
+  it("shows thread load error and stays on the list", async () => {
+    const { container } = renderFloater({
+      loadThread: vi.fn().mockRejectedValue({ message: "" })
+    });
+    open(container);
+    fireEvent.click(await screen.findByText("alice"));
+    expect(await screen.findByText("Failed to load thread.")).toBeTruthy();
+    expect(screen.queryByText(/threads/)).toBeNull();
+  });
+
+  it("sends in an open thread, reloads thread + senders, back returns to list", async () => {
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+    const { container, loadThread, loadSenders } = renderFloater({ sendMessage });
+    open(container);
+    fireEvent.click(await screen.findByText("alice"));
+    await screen.findByText(/threads/);
+    const sendersCalls = loadSenders.mock.calls.length;
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "gm" } });
+    fireEvent.click(screen.getByLabelText("Send"));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledWith(peer, "gm"));
+    await waitFor(() => expect(loadThread).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(loadSenders.mock.calls.length).toBeGreaterThan(sendersCalls)
+    );
+    fireEvent.click(screen.getByText(/threads/));
+    await screen.findByText("alice");
+    expect(screen.queryByText(/threads/)).toBeNull();
+  });
+
+  it("starts a new conversation and opens its thread", async () => {
+    const startConversation = vi.fn().mockResolvedValue(peer);
+    const { container, loadThread } = renderFloater({
+      loadSenders: vi.fn().mockResolvedValue([]),
+      startConversation
+    });
+    open(container);
+    await screen.findByText("No conversations");
+    fireEvent.change(screen.getByTestId("new-conversation-peer"), {
+      target: { value: "alice.eth" }
+    });
+    fireEvent.change(screen.getByTestId("new-conversation-message"), {
+      target: { value: "hi" }
+    });
+    fireEvent.click(screen.getByTestId("new-conversation-send"));
+    await waitFor(() =>
+      expect(startConversation).toHaveBeenCalledWith("alice.eth", "hi")
+    );
+    await waitFor(() => expect(loadThread).toHaveBeenCalledWith(peer));
+    expect(await screen.findByText(/threads/)).toBeTruthy();
+  });
+
+  it("ignores non-Escape keys and Escape when focus is outside the panel", async () => {
+    const { container } = renderFloater();
+    open(container);
+    await screen.findByText("alice");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(container.querySelector("[data-floating-chat-panel]")).toBeTruthy();
   });
 });

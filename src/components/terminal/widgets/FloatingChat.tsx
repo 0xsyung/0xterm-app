@@ -180,7 +180,7 @@ export default function FloatingChat({
     setThread(null);
     void refreshSenders();
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, refreshSenders, channelLabel]);
+  }, [open, refreshSenders, channelLabel, activeChannelId]);
 
   useEffect(() => {
     if (!open) return;
@@ -241,7 +241,6 @@ export default function FloatingChat({
     return addr;
   };
 
-  const title = channelLabel ? `CHAT · ${channelLabel}` : "CHAT";
   const canCompose = isConnected && !!channelLabel && !!startConversation;
 
   const panelStyle: React.CSSProperties = {
@@ -273,11 +272,24 @@ export default function FloatingChat({
           <div
             className={`flex items-center justify-between gap-2 px-3 py-2 border-b ${theme.border} shrink-0`}
           >
-            <span
-              className={`font-bold uppercase tracking-widest text-[11px] ${theme.primary} truncate`}
-            >
-              {title}
-            </span>
+            {/* #172: always-on channel dropdown replaces the static `· <channel>` suffix. */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span
+                className={`font-bold uppercase tracking-widest text-[11px] ${theme.primary} shrink-0`}
+              >
+                CHAT
+              </span>
+              <ChannelSwitcher
+                theme={theme}
+                channels={channels ?? []}
+                activeId={activeChannelId ?? null}
+                onSwitch={onSwitchChannel ?? (() => {})}
+                radius={radius}
+                hideLabel
+                placeholder={channelLabel || "No active channel"}
+                className="flex-1"
+              />
+            </div>
             <button
               type="button"
               aria-label="Collapse chat"
@@ -292,16 +304,7 @@ export default function FloatingChat({
             {!isConnected && (
               <div className={theme.muted}>Connect a wallet to read chat.</div>
             )}
-            {isConnected && !channelLabel && channels && channels.length > 0 && (
-              <ChannelSwitcher
-                theme={theme}
-                channels={channels}
-                activeId={activeChannelId ?? null}
-                onSwitch={onSwitchChannel ?? (() => {})}
-                radius={radius}
-              />
-            )}
-            {isConnected && !channelLabel && !(channels && channels.length > 0) && (
+            {isConnected && !channelLabel && (
               <div className={theme.muted}>No active channel</div>
             )}
             {isConnected &&
