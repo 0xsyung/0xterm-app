@@ -91,6 +91,12 @@ export type ChannelSwitcherProps = {
   /** Called when the user picks a different channel. */
   onSwitch: (channel: ChatChannel) => void;
   radius?: string;
+  /** Hide the visible "Channel" caption (e.g. floating chat header, #172). */
+  hideLabel?: boolean;
+  /** Option text shown when no channel is active (default "—"). */
+  placeholder?: string;
+  /** Extra classes on the wrapper (e.g. flex sizing in a header). */
+  className?: string;
 };
 
 /**
@@ -102,18 +108,28 @@ export function ChannelSwitcher({
   channels,
   activeId,
   onSwitch,
-  radius = "rounded-none"
+  radius = "rounded-none",
+  hideLabel = false,
+  placeholder = "—",
+  className = ""
 }: ChannelSwitcherProps) {
+  // Unknown / null active id → placeholder row so the select never lies.
+  const selected =
+    activeId && channels.some((c) => channelId(c.chainId, c.address) === activeId)
+      ? activeId
+      : "";
   return (
     <label
       data-testid="channel-switcher"
-      className={`inline-flex items-center gap-1.5 ${theme.muted}`}
+      className={`inline-flex items-center gap-1.5 min-w-0 ${theme.muted} ${className}`}
     >
-      <span className="uppercase tracking-widest text-[10px] font-bold shrink-0">
-        Channel
-      </span>
+      {!hideLabel && (
+        <span className="uppercase tracking-widest text-[10px] font-bold shrink-0">
+          Channel
+        </span>
+      )}
       <select
-        value={activeId ?? ""}
+        value={selected}
         onChange={(e) => {
           const picked = channels.find(
             (c) => channelId(c.chainId, c.address) === e.target.value
@@ -121,9 +137,9 @@ export function ChannelSwitcher({
           if (picked) onSwitch(picked);
         }}
         aria-label="Chat channel"
-        className={`px-1.5 py-1 text-xs bg-black/30 border ${theme.border} ${theme.text} outline-none cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] ${radius}`}
+        className={`min-w-0 max-w-full truncate px-1.5 py-1 text-xs bg-black/30 border ${theme.border} ${theme.text} outline-none cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] ${radius}`}
       >
-        {!activeId && <option value="">—</option>}
+        {!selected && <option value="">{placeholder}</option>}
         {channels.map((c) => {
           const id = channelId(c.chainId, c.address);
           const label = formatChannelLabel(c, { disambiguate: true, all: channels });

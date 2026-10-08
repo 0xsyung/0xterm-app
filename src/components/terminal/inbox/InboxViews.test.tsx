@@ -154,6 +154,56 @@ describe("ChannelSwitcher", () => {
   });
 });
 
+describe("ChannelSwitcher header variant (#172)", () => {
+  it("hideLabel drops the caption and placeholder shows when no active", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={null}
+        onSwitch={() => {}}
+        hideLabel
+        placeholder="No active channel"
+      />
+    );
+    expect(screen.queryByText("Channel")).toBeNull();
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.value).toBe("");
+    expect(sel.options[0].textContent).toBe("No active channel");
+    expect(sel.options.length).toBe(2);
+  });
+
+  it("unknown active id falls back to placeholder", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId="1:0xdead"
+        onSwitch={() => {}}
+      />
+    );
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.value).toBe("");
+    expect(sel.options[0].textContent).toBe("—");
+  });
+
+  it("ignores a change to an id not in the list", () => {
+    const onSwitch = vi.fn();
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={ACTIVE_ID}
+        onSwitch={onSwitch}
+      />
+    );
+    fireEvent.change(screen.getByLabelText("Chat channel"), {
+      target: { value: "" }
+    });
+    expect(onSwitch).not.toHaveBeenCalled();
+  });
+});
+
 describe("NewConversationForm (#140 A2)", () => {
   it("renders NEW, peer, message, and SEND when open", () => {
     render(
