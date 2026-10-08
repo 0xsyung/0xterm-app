@@ -601,6 +601,50 @@ describe("FloatingChat mobile height cap (#185)", () => {
     });
   });
 
+  it("sheet overrides bottom so header row stays ≥49px (390×400 QA)", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 400
+    });
+    // beforeEach header getBoundingClientRect height is 180; for this case use 128
+    // so top = 136 like Alex's repro.
+    Object.defineProperty(headerEl!, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        height: 128,
+        width: 390,
+        top: 0,
+        left: 0,
+        bottom: 128,
+        right: 390,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return {};
+        }
+      })
+    });
+    window.dispatchEvent(new Event("resize"));
+    // bubbleBottom = 218 + 12 = 230; raw available = 400 - 128 - 8 - 230 = 34
+    const { container } = renderFloater({ promptClearancePx: 218 });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    await waitFor(() => {
+      expect(panel.getAttribute("data-floating-chat-layout")).toBe("sheet");
+      expect(panel.style.top).toBe("136px");
+      expect(Number.parseFloat(panel.style.height)).toBeGreaterThanOrEqual(49);
+      expect(panel.style.height).toBe("49px");
+      expect(Number.parseFloat(panel.style.bottom)).toBeLessThan(230);
+      expect(panel.style.bottom).toBe("215px"); // 400 - 136 - 49
+    });
+  });
+
   it("keeps ≥768 layout as min(60vh, 480) even with a tall measured chrome", async () => {
     Object.defineProperty(window, "innerWidth", {
       configurable: true,

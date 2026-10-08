@@ -17,6 +17,8 @@ export const FLOATING_CHAT_RIGHT_PX = 12;
 export const FLOATING_CHAT_TOP_GAP_PX = 8;
 /** Below this available height, use a full-width sheet (#185). */
 export const FLOATING_CHAT_SHEET_BELOW_PX = 200;
+/** Floating chat panel header row (CHAT + select + ×) — must stay fully visible in sheet mode. */
+export const FLOATING_CHAT_HEADER_ROW_PX = 49;
 /** md breakpoint — desktop/tablet layout unchanged at and above. */
 export const FLOATING_CHAT_MD_MIN_PX = 768;
 /** Fallback chrome heights when the live header isn't measurable (matches HEADER_H). */
@@ -51,7 +53,9 @@ export type ComputeFloatingChatPanelLayoutArgs = {
 /**
  * Desktop/tablet (≥768): same card as before — bottom-anchored, min(60vh, 480).
  * Narrow: cap height to space above bubbleBottom with ≥8px under top chrome.
- * If that space is under ~200px, switch to a full-width sheet below the chrome.
+ * If that space is under ~200px, switch to a full-width sheet below the chrome;
+ * when that sheet would be shorter than the 49px header row, shrink the bottom
+ * inset so the header stays fully visible.
  */
 export function computeFloatingChatPanelLayout({
   viewportWidth,
@@ -85,20 +89,33 @@ export function computeFloatingChatPanelLayout({
   }
 
   if (availableHeight < FLOATING_CHAT_SHEET_BELOW_PX) {
+    const top = safeChrome + FLOATING_CHAT_TOP_GAP_PX;
+    // Prefer clearing the prompt (bubbleBottom). If that leaves the sheet shorter
+    // than the header row, shrink bottom so the header stays fully visible (#186 QA).
+    let bottom = safeBottom;
+    let height = availableHeight;
+    if (height < FLOATING_CHAT_HEADER_ROW_PX) {
+      const maxBottomForHeader = Math.max(
+        0,
+        viewportHeight - top - FLOATING_CHAT_HEADER_ROW_PX
+      );
+      bottom = Math.min(safeBottom, maxBottomForHeader);
+      height = Math.max(0, viewportHeight - top - bottom);
+    }
     return {
       mode: "sheet",
       availableHeight,
-      top: safeChrome + FLOATING_CHAT_TOP_GAP_PX,
+      top,
       left: 0,
       right: 0,
-      bottom: safeBottom,
+      bottom,
       width: "100%",
       // top + bottom define height; keep an explicit px for tests / minHeight.
-      height: availableHeight,
+      height,
       minWidth: "0px",
-      minHeight: 0,
+      minHeight: Math.min(FLOATING_CHAT_HEADER_ROW_PX, height),
       maxWidth: "100%",
-      maxHeight: availableHeight
+      maxHeight: height
     };
   }
 

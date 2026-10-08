@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   FLOATING_CHAT_FALLBACK_CHROME_MD_PX,
   FLOATING_CHAT_FALLBACK_CHROME_NARROW_PX,
+  FLOATING_CHAT_HEADER_ROW_PX,
   FLOATING_CHAT_MD_MIN_PX,
   FLOATING_CHAT_PANEL_H,
   FLOATING_CHAT_SHEET_BELOW_PX,
@@ -105,6 +106,47 @@ describe("computeFloatingChatPanelLayout (#185)", () => {
     expect(layout.mode).toBe("anchored");
     expect(layout.height).toBe(309);
     expect(layout.minHeight).toBeLessThanOrEqual(309);
+  });
+
+  it("sheet shrinks bottom inset so height stays ≥ header row (390×400 QA)", () => {
+    // Alex QA FAIL: top=136, bubbleBottom=230 → raw available 34px clipped the header.
+    const viewportHeight = 400;
+    const topChromeHeight = 128; // top = 128 + 8 = 136
+    const bubbleBottom = 230;
+    const rawAvailable =
+      viewportHeight - topChromeHeight - FLOATING_CHAT_TOP_GAP_PX - bubbleBottom;
+    expect(rawAvailable).toBe(34);
+    expect(rawAvailable).toBeLessThan(FLOATING_CHAT_HEADER_ROW_PX);
+
+    const layout = computeFloatingChatPanelLayout({
+      viewportWidth: 390,
+      viewportHeight,
+      bubbleBottom,
+      topChromeHeight
+    });
+    expect(layout.mode).toBe("sheet");
+    expect(layout.top).toBe(topChromeHeight + FLOATING_CHAT_TOP_GAP_PX);
+    expect(layout.height).toBeGreaterThanOrEqual(FLOATING_CHAT_HEADER_ROW_PX);
+    expect(layout.height).toBe(FLOATING_CHAT_HEADER_ROW_PX);
+    // Bottom overridden below bubbleBottom so the 49px header fits.
+    expect(layout.bottom).toBeLessThan(bubbleBottom);
+    expect(layout.bottom).toBe(
+      viewportHeight - (layout.top as number) - FLOATING_CHAT_HEADER_ROW_PX
+    );
+    expect(layout.minHeight).toBe(FLOATING_CHAT_HEADER_ROW_PX);
+  });
+
+  it("sheet keeps bubbleBottom when available already clears the header row", () => {
+    const layout = computeFloatingChatPanelLayout({
+      viewportWidth: 260,
+      viewportHeight: 500,
+      bubbleBottom: 160,
+      topChromeHeight: 180
+    });
+    // available = 152 ≥ 49 — no bottom override
+    expect(layout.mode).toBe("sheet");
+    expect(layout.bottom).toBe(160);
+    expect(layout.height).toBe(152);
   });
 });
 
