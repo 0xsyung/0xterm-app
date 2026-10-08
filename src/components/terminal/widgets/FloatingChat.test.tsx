@@ -348,3 +348,85 @@ describe("FloatingChat header channel dropdown (#172)", () => {
     ).toBe(OTHER_ID);
   });
 });
+
+describe("FloatingChat inbox / thread paths", () => {
+  const open = (container: HTMLElement) =>
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+
+  it("surfaces loadSenders error message", async () => {
+    const { container } = renderFloater({
+      loadSenders: vi.fn().mockRejectedValue(new Error("rpc down"))
+    });
+    open(container);
+    expect(await screen.findByText("rpc down")).toBeTruthy();
+  });
+
+  it("falls back to generic inbox error for non-Error rejections", async () => {
+    const { container } = renderFloater({
+      loadSenders: vi.fn().mockRejectedValue("nope")
+    });
+    open(container);
+    expect(await screen.findByText("Failed to load inbox.")).toBeTruthy();
+  });
+
+  it("shows thread load error and stays on the list", async () => {
+    const { container } = renderFloater({
+      loadThread: vi.fn().mockRejectedValue({ message: "" })
+    });
+    open(container);
+    fireEvent.click(await screen.findByText("alice"));
+    expect(await screen.findByText("Failed to load thread.")).toBeTruthy();
+    expect(screen.queryByText(/threads/)).toBeNull();
+  });
+
+  it("sends in an open thread, reloads thread + senders, back returns to list", async () => {
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+    const { container, loadThread, loadSenders } = renderFloater({ sendMessage });
+    open(container);
+    fireEvent.click(await screen.findByText("alice"));
+    await screen.findByText(/threads/);
+    const sendersCalls = loadSenders.mock.calls.length;
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "gm" } });
+    fireEvent.click(screen.getByLabelText("Send"));
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledWith(peer, "gm"));
+    await waitFor(() => expect(loadThread).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(loadSenders.mock.calls.length).toBeGreaterThan(sendersCalls)
+    );
+    fireEvent.click(screen.getByText(/threads/));
+    await screen.findByText("alice");
+    expect(screen.queryByText(/threads/)).toBeNull();
+  });
+
+  it("starts a new conversation and opens its thread", async () => {
+    const startConversation = vi.fn().mockResolvedValue(peer);
+    const { container, loadThread } = renderFloater({
+      loadSenders: vi.fn().mockResolvedValue([]),
+      startConversation
+    });
+    open(container);
+    await screen.findByText("No conversations");
+    fireEvent.change(screen.getByTestId("new-conversation-peer"), {
+      target: { value: "alice.eth" }
+    });
+    fireEvent.change(screen.getByTestId("new-conversation-message"), {
+      target: { value: "hi" }
+    });
+    fireEvent.click(screen.getByTestId("new-conversation-send"));
+    await waitFor(() =>
+      expect(startConversation).toHaveBeenCalledWith("alice.eth", "hi")
+    );
+    await waitFor(() => expect(loadThread).toHaveBeenCalledWith(peer));
+    expect(await screen.findByText(/threads/)).toBeTruthy();
+  });
+
+  it("ignores non-Escape keys and Escape when focus is outside the panel", async () => {
+    const { container } = renderFloater();
+    open(container);
+    await screen.findByText("alice");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(container.querySelector("[data-floating-chat-panel]")).toBeTruthy();
+  });
+});

@@ -356,6 +356,7 @@ import {
   activeChannelSuccessMsg,
   bootActiveChannel,
   channelId,
+  effectiveActiveChannelId,
   exportChannelsPayload,
   formatChannelLabel,
   getActiveChannel,
@@ -604,9 +605,7 @@ export default function TerminalShell({
   const allChannelsForLabel = listChannelsOrdered(channelStore);
   // Effective active id for channel dropdowns (#172): includes the boot preset
   // fallback (e.g. Sepolia lobby) when nothing has been persisted yet.
-  const activeChatChannelId = activeChatChannel
-    ? channelId(activeChatChannel.chainId, activeChatChannel.address)
-    : null;
+  const activeChatChannelId = effectiveActiveChannelId(channelStore, activeChainId);
   const chatChipLabel = activeChannelChipLabel(activeChatChannel, allChannelsForLabel);
 
   const theme = THEMES[resolveThemeKey(currentThemeKey)];

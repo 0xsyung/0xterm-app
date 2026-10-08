@@ -5,8 +5,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   activeChannelChipLabel,
+  activeChannelSuccessMsg,
+  notChatContractMsg,
+  savedChannelSuccessMsg,
   bootActiveChannel,
   channelId,
+  effectiveActiveChannelId,
   exportChannelsPayload,
   formatChannelLabel,
   getActiveChannel,
@@ -207,5 +211,103 @@ describe("copy helpers", () => {
     const merged = mergeChannelLists([lobby], [{ ...lobby, name: "x", source: "saved" }]);
     expect(merged).toHaveLength(1);
     expect(merged[0].source).toBe("preset");
+  });
+});
+
+describe("effectiveActiveChannelId (#172)", () => {
+  const LOBBY_ID = channelId(11155111, "0x6248F070A2f849ee1410BC35aa86A0e0F08e96a5");
+  const empty: ChannelStore = { channels: [], activeId: null };
+
+  it("returns the saved active channel id when it is known", () => {
+    const store: ChannelStore = {
+      channels: [room],
+      activeId: channelId(room.chainId, room.address),
+    };
+    expect(effectiveActiveChannelId(store, 11155111)).toBe(store.activeId);
+    // Saved active wins even on a chain with no preset / no chain.
+    expect(effectiveActiveChannelId(store, 1)).toBe(store.activeId);
+    expect(effectiveActiveChannelId(store, null)).toBe(store.activeId);
+  });
+
+  it("falls back to the current network preset (Sepolia lobby) when nothing is saved", () => {
+    expect(effectiveActiveChannelId(empty, 11155111)).toBe(LOBBY_ID);
+  });
+
+  it("falls back to the preset when the saved active id is unknown", () => {
+    const stale: ChannelStore = { channels: [], activeId: "11155111:0xdead" };
+    expect(effectiveActiveChannelId(stale, 11155111)).toBe(LOBBY_ID);
+  });
+
+  it("returns null with no saved channel and no preset for the chain", () => {
+    expect(effectiveActiveChannelId(empty, 1)).toBeNull();
+    expect(effectiveActiveChannelId(empty, null)).toBeNull();
+    expect(effectiveActiveChannelId(empty, undefined)).toBeNull();
+  });
+
+  it("matches bootActiveChannel (same rule as the CHAT label)", () => {
+    const ch = bootActiveChannel(empty, 11155111)!;
+    expect(effectiveActiveChannelId(empty, 11155111)).toBe(
+      channelId(ch.chainId, ch.address)
+    );
+  });
+});
+
+describe("chatChannels small helpers (coverage)", () => {
+  it("chip label is an em dash with no active channel", () => {
+    expect(activeChannelChipLabel(null, [])).toBe("—");
+  });
+
+  it("success / not-chat copy strings", () => {
+    expect(activeChannelSuccessMsg(room)).toBe(
+      `[✓] Active channel: my-room · Sepolia · ${room.address}`
+    );
+    expect(savedChannelSuccessMsg(room)).toBe(
+      `[✓] Channel saved: my-room · Sepolia · ${room.address}`
+    );
+    expect(notChatContractMsg("0xabc")).toBe("[!] Not a Chat contract at 0xabc — not saved.");
+  });
+
+  it("mergeChannelLists adds recent only when unknown", () => {
+    const other: ChatChannel = { ...room, address: "0x4444444444444444444444444444444444444444" };
+    const merged = mergeChannelLists([lobby], [room], [room, other]);
+    expect(merged.map((c) => c.source)).toEqual(["preset", "saved", "recent"]);
+  });
+
+  it("resolveChannelUse: empty query and address with no network", () => {
+    const store: ChannelStore = { channels: [], activeId: null };
+    const empty = resolveChannelUse("   ", store, 11155111);
+    expect(empty.ok).toBe(false);
+    if (!empty.ok) expect(empty.reason).toBe("empty");
+    const noNet = resolveChannelUse(room.address, store, null);
+    expect(noNet.ok).toBe(false);
+    if (!noNet.ok) expect(noNet.message).toMatch(/Set a network first/);
+  });
+
+  it("verifyChatContract reports getCode / fee / getPublicKey failures", async () => {
+    const mk = (fail: string) =>
+      ({
+        getCode: vi.fn(async () => {
+          if (fail === "code") throw new Error("rpc");
+          return "0x6000";
+        }),
+        readContract: vi.fn(async ({ functionName }: { functionName: string }) => {
+          if (functionName === fail) throw new Error("revert");
+          if (functionName === "fee") return 1n;
+          if (functionName === "name") return "x";
+          return "0x";
+        }),
+      }) as unknown as Parameters<typeof verifyChatContract>[0];
+    expect(await verifyChatContract(mk("code"), room.address)).toEqual({
+      ok: false,
+      reason: "code check failed",
+    });
+    expect(await verifyChatContract(mk("fee"), room.address)).toEqual({
+      ok: false,
+      reason: "fee() failed",
+    });
+    expect(await verifyChatContract(mk("getPublicKey"), room.address)).toEqual({
+      ok: false,
+      reason: "getPublicKey() failed",
+    });
   });
 });
