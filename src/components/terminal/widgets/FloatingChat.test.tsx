@@ -4,7 +4,7 @@
  * @description Floating messenger badge / focus-retain / expand (#82)
  */
 import React, { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { THEMES } from "../constants";
 import FloatingChat from "./FloatingChat";
@@ -490,5 +490,181 @@ describe("FloatingChat inbox / thread paths", () => {
     (document.activeElement as HTMLElement | null)?.blur();
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     expect(container.querySelector("[data-floating-chat-panel]")).toBeTruthy();
+  });
+});
+
+describe("FloatingChat mobile height cap (#185)", () => {
+  const originalWidth = window.innerWidth;
+  const originalHeight = window.innerHeight;
+  let headerEl: HTMLDivElement | null = null;
+
+  beforeEach(() => {
+    class FakeRO {
+      private cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe(target: Element) {
+        this.cb(
+          [{ target } as ResizeObserverEntry],
+          this as unknown as ResizeObserver
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("ResizeObserver", FakeRO);
+
+    headerEl = document.createElement("div");
+    headerEl.setAttribute("data-terminal-header", "");
+    Object.defineProperty(headerEl, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        height: 180,
+        width: 390,
+        top: 0,
+        left: 0,
+        bottom: 180,
+        right: 390,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return {};
+        }
+      })
+    });
+    document.body.appendChild(headerEl);
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 844
+    });
+  });
+
+  afterEach(() => {
+    headerEl?.remove();
+    headerEl = null;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalWidth
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: originalHeight
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it("caps panel height so it clears measured top chrome on narrow CONSOLE-sized viewports", async () => {
+    const { container } = renderFloater({ promptClearancePx: 188 });
+    // bubbleBottom = 188 + 12 = 200; available = 844 - 180 - 8 - 200 = 456
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    await waitFor(() => {
+      expect(panel.getAttribute("data-floating-chat-layout")).toBe("anchored");
+      expect(panel.style.height).toBe("456px");
+      expect(panel.style.maxHeight).toBe("456px");
+    });
+    // Header chrome unchanged: 49px row (py-2 + content), × stays 32×32 (+ coarse 44).
+    const header = panel.children[0] as HTMLElement;
+    expect(header.className).toMatch(/py-2/);
+    const closeBtn = within(header).getByLabelText("Collapse chat");
+    expect(closeBtn.className).toMatch(/w-8/);
+    expect(closeBtn.className).toMatch(/h-8/);
+    expect(panel.className).toMatch(/z-\[25\]/);
+  });
+
+  it("uses a full-width sheet when available height is under ~200px", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 500
+    });
+    window.dispatchEvent(new Event("resize"));
+    const { container } = renderFloater({ promptClearancePx: 148 });
+    // bubbleBottom = 160; available = 500 - 180 - 8 - 160 = 152 < 200
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    await waitFor(() => {
+      expect(panel.getAttribute("data-floating-chat-layout")).toBe("sheet");
+      expect(panel.style.top).toBe("188px"); // 180 + 8
+      expect(panel.style.left).toBe("0px");
+      expect(panel.style.width).toBe("100%");
+      expect(panel.style.bottom).toBe("160px");
+    });
+  });
+
+  it("sheet overrides bottom so header row stays ≥49px (390×400 QA)", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 400
+    });
+    // beforeEach header getBoundingClientRect height is 180; for this case use 128
+    // so top = 136 like Alex's repro.
+    Object.defineProperty(headerEl!, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({
+        height: 128,
+        width: 390,
+        top: 0,
+        left: 0,
+        bottom: 128,
+        right: 390,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return {};
+        }
+      })
+    });
+    window.dispatchEvent(new Event("resize"));
+    // bubbleBottom = 218 + 12 = 230; raw available = 400 - 128 - 8 - 230 = 34
+    const { container } = renderFloater({ promptClearancePx: 218 });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    await waitFor(() => {
+      expect(panel.getAttribute("data-floating-chat-layout")).toBe("sheet");
+      expect(panel.style.top).toBe("136px");
+      expect(Number.parseFloat(panel.style.height)).toBeGreaterThanOrEqual(49);
+      expect(panel.style.height).toBe("49px");
+      expect(Number.parseFloat(panel.style.bottom)).toBeLessThan(230);
+      expect(panel.style.bottom).toBe("215px"); // 400 - 136 - 49
+    });
+  });
+
+  it("keeps ≥768 layout as min(60vh, 480) even with a tall measured chrome", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 768
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 1024
+    });
+    window.dispatchEvent(new Event("resize"));
+    const { container } = renderFloater({ promptClearancePx: 200 });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    await waitFor(() => {
+      expect(panel.getAttribute("data-floating-chat-layout")).toBe("anchored");
+      expect(panel.style.height.replace(/\s+/g, "")).toMatch(/min\(60vh,/);
+      expect(panel.style.maxHeight).toBe("480px");
+      expect(panel.style.top).toBe("");
+    });
   });
 });
