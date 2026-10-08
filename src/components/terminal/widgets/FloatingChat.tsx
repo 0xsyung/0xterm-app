@@ -6,7 +6,7 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address } from "viem";
 import type { ThemeConfig } from "../types";
 import type { PrimaryTab } from "../socialUnread";
@@ -21,6 +21,11 @@ import {
 } from "../inbox/InboxViews";
 import type { WorkspacePanelId } from "../workspaces/WorkspaceTile";
 import type { ChatChannel, ChannelId } from "../chatChannels";
+import {
+  FLOATING_CHAT_MD_MIN_PX,
+  computeFloatingChatPanelLayout,
+  fallbackTopChromeHeight
+} from "./floatingChatLayout";
 
 function errMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "message" in err) {
@@ -60,10 +65,6 @@ export type FloatingChatProps = {
   onSwitchChannel?: (channel: ChatChannel) => void;
 };
 
-const PANEL_W = 360;
-const PANEL_H = 480;
-const PANEL_MIN_W = 280;
-const PANEL_MIN_H = 360;
 const BUBBLE = 48;
 const GAP = 12;
 
@@ -123,6 +124,55 @@ export default function FloatingChat({
   const rightPx = 12;
   // Panel bottom shares bubble clearance (≥12px above prompt). Bubble hides while open
   // so it does not cover the panel; collapse via × / Esc (or re-show bubble).
+
+  // #185: measure viewport + live top chrome so the panel never runs under the nav/F-row.
+  // Default to md-sized so SSR / first paint matches the unchanged ≥768 path.
+  const [viewport, setViewport] = useState({
+    width: FLOATING_CHAT_MD_MIN_PX,
+    height: 768
+  });
+  const [topChromeHeight, setTopChromeHeight] = useState(() =>
+    fallbackTopChromeHeight(FLOATING_CHAT_MD_MIN_PX)
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const read = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const el = document.querySelector("[data-terminal-header]");
+    if (!el || typeof ResizeObserver === "undefined") {
+      /* eslint-disable react-hooks/set-state-in-effect -- #185 fallback when header unmeasurable */
+      setTopChromeHeight(fallbackTopChromeHeight(viewport.width));
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
+    const apply = () => {
+      setTopChromeHeight(Math.ceil(el.getBoundingClientRect().height));
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [viewport.width]);
+
+  const panelLayout = useMemo(
+    () =>
+      computeFloatingChatPanelLayout({
+        viewportWidth: viewport.width,
+        viewportHeight: viewport.height,
+        bubbleBottom,
+        topChromeHeight
+      }),
+    [viewport.width, viewport.height, bubbleBottom, topChromeHeight]
+  );
 
   const setExpanded = useCallback(
     (next: boolean) => {
@@ -243,17 +293,20 @@ export default function FloatingChat({
 
   const canCompose = isConnected && !!channelLabel && !!startConversation;
 
+  // #183: never wider than the viewport (minus margins) — sub-296px viewports
+  // used to clip the panel because the 280px floor beat the 100vw cap.
+  // #185: on narrow viewports, height is capped to space under the top chrome.
   const panelStyle: React.CSSProperties = {
-    bottom: bubbleBottom,
-    right: rightPx,
-    width: `min(calc(100vw - 16px), ${PANEL_W}px)`,
-    height: `min(60vh, ${PANEL_H}px)`,
-    // #183: never wider than the viewport (minus margins) — sub-296px viewports
-    // used to clip the panel because the 280px floor beat the 100vw cap.
-    minWidth: `min(${PANEL_MIN_W}px, calc(100vw - 16px))`,
-    minHeight: Math.min(PANEL_MIN_H, 240),
-    maxWidth: PANEL_W,
-    maxHeight: PANEL_H
+    bottom: panelLayout.bottom,
+    right: panelLayout.right,
+    width: panelLayout.width,
+    height: panelLayout.height,
+    minWidth: panelLayout.minWidth,
+    minHeight: panelLayout.minHeight,
+    maxWidth: panelLayout.maxWidth,
+    maxHeight: panelLayout.maxHeight,
+    ...(panelLayout.top !== undefined ? { top: panelLayout.top } : {}),
+    ...(panelLayout.left !== undefined ? { left: panelLayout.left } : {})
   };
 
   return (
@@ -265,6 +318,7 @@ export default function FloatingChat({
           aria-label="Floating chat"
           data-retain-focus=""
           data-floating-chat-panel=""
+          data-floating-chat-layout={panelLayout.mode}
           tabIndex={-1}
           className={`absolute z-[25] flex flex-col border ${theme.border} ${theme.cardBg} ${radius} text-xs shadow-xl overflow-hidden outline-none`}
           style={panelStyle}
