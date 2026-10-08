@@ -129,15 +129,77 @@ describe("FloatingChat (#82)", () => {
     expect(cl).toBe(true);
   });
 
-  it("no-channel muted one-liner", async () => {
-    const { container } = renderFloater({ channelLabel: null });
+  it("no-channel body drops the old 'No active channel' line and nudges to the header (#183)", async () => {
+    const { container } = renderFloater({
+      channelLabel: null,
+      channels: [SEPOLIA_CHANNEL],
+      activeChannelId: null
+    });
     fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
-    // Body one-liner (div) + header select placeholder (option).
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    const body = panel.children[1] as HTMLElement;
+    expect(within(body).queryByText(/No active channel/)).toBeNull();
+    const nudge = within(body).getByText("Pick a channel above.");
+    expect(nudge.className).toContain(theme.muted);
+    // Placeholder lives only in the header select now.
+    const sel = within(headerOf(container)).getByLabelText("Chat channel") as HTMLSelectElement;
+    expect(sel.options[0].textContent).toBe("No active channel");
+  });
+
+  it("no-channel body stays empty when there is nothing to pick (#183)", async () => {
+    const { container, loadSenders } = renderFloater({ channelLabel: null });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    await waitFor(() => expect(loadSenders).toHaveBeenCalled());
+    const body = panel.children[1] as HTMLElement;
+    expect(within(body).queryByText(/No active channel/)).toBeNull();
+    expect(within(body).queryByText("Pick a channel above.")).toBeNull();
+  });
+
+  it("disconnected copy is unchanged and never shows the pick nudge (#183)", async () => {
+    const { container } = renderFloater({
+      isConnected: false,
+      channelLabel: null,
+      channels: [SEPOLIA_CHANNEL],
+      activeChannelId: null
+    });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    const line = within(panel).getByText("Connect a wallet to read chat.");
+    expect(line.className).toContain(theme.muted);
+    expect(within(panel).queryByText("Pick a channel above.")).toBeNull();
+    expect(within(panel.children[1] as HTMLElement).queryByText(/No active channel/)).toBeNull();
+  });
+
+  it("disconnected copy also shows with an active channel (#183)", async () => {
+    const { container } = renderFloater({ isConnected: false });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
     await waitFor(() =>
-      expect(
-        screen.getByText(/No active channel/, { selector: "div" })
-      ).toBeTruthy()
+      expect(screen.getByText("Connect a wallet to read chat.")).toBeTruthy()
     );
+  });
+
+  it("panel min-width never exceeds the viewport (sub-296px clip, #183)", async () => {
+    const { container } = renderFloater();
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    const panel = (await waitFor(() =>
+      container.querySelector("[data-floating-chat-panel]")
+    )) as HTMLElement;
+    const minW = panel.style.minWidth.replace(/\s+/g, "");
+    const w = panel.style.width.replace(/\s+/g, "");
+    // jsdom normalises calc() (e.g. "min(280px,-16px+100vw)"), so match parts.
+    expect(minW).toMatch(/^min\(280px,/);
+    expect(minW).toContain("100vw");
+    expect(minW).toContain("16px");
+    expect(minW).not.toBe("280px");
+    expect(w).toContain("100vw");
+    expect(w).toContain("360px");
   });
 
   it("header dropdown still renders with placeholder when no active channel (#172)", async () => {

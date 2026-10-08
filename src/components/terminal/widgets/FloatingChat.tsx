@@ -248,7 +248,9 @@ export default function FloatingChat({
     right: rightPx,
     width: `min(calc(100vw - 16px), ${PANEL_W}px)`,
     height: `min(60vh, ${PANEL_H}px)`,
-    minWidth: Math.min(PANEL_MIN_W, 280),
+    // #183: never wider than the viewport (minus margins) — sub-296px viewports
+    // used to clip the panel because the 280px floor beat the 100vw cap.
+    minWidth: `min(${PANEL_MIN_W}px, calc(100vw - 16px))`,
     minHeight: Math.min(PANEL_MIN_H, 240),
     maxWidth: PANEL_W,
     maxHeight: PANEL_H
@@ -304,8 +306,10 @@ export default function FloatingChat({
             {!isConnected && (
               <div className={theme.muted}>Connect a wallet to read chat.</div>
             )}
-            {isConnected && !channelLabel && (
-              <div className={theme.muted}>No active channel</div>
+            {/* #183: header placeholder already says "No active channel"; the body
+                only nudges toward the dropdown when there is something to pick. */}
+            {isConnected && !channelLabel && (channels?.length ?? 0) > 0 && (
+              <div className={theme.muted}>Pick a channel above.</div>
             )}
             {isConnected &&
               channelLabel &&
