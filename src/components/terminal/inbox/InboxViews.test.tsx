@@ -299,3 +299,68 @@ describe("InboxViews composer edge paths (#172 coverage)", () => {
     expect(await screen.findByText("Send failed")).toBeTruthy();
   });
 });
+
+describe("ChannelSwitcher chrome (#183)", () => {
+  it("uses the theme cardBg token, not bg-black/30", () => {
+    const tt = THEMES.teletype;
+    render(
+      <ChannelSwitcher
+        theme={tt}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={ACTIVE_ID}
+        onSwitch={() => {}}
+      />
+    );
+    const sel = screen.getByLabelText("Chat channel");
+    expect(sel.className).toContain(tt.cardBg);
+    expect(sel.className).not.toContain("bg-black/30");
+  });
+
+  it("has a keyboard focus-visible ring in the theme accent", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={ACTIVE_ID}
+        onSwitch={() => {}}
+      />
+    );
+    const cls = screen.getByLabelText("Chat channel").className.split(/\s+/);
+    expect(cls).toContain("focus-visible:ring-1");
+    expect(cls).toContain("focus-visible:ring-[color:var(--phosphor)]");
+    expect(cls).toContain("outline-none");
+  });
+
+  it("placeholder row + select text are muted; channel options keep theme.text", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={null}
+        onSwitch={() => {}}
+        placeholder="No active channel"
+      />
+    );
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    const cls = sel.className.split(/\s+/);
+    expect(cls).toContain(theme.muted);
+    expect(cls).not.toContain(theme.text);
+    expect(sel.options[0].className).toBe(theme.muted);
+    expect(sel.options[1].className).toBe(theme.text);
+  });
+
+  it("selected channel renders in theme.text (not muted)", () => {
+    render(
+      <ChannelSwitcher
+        theme={theme}
+        channels={[SEPOLIA_CHANNEL]}
+        activeId={ACTIVE_ID}
+        onSwitch={() => {}}
+      />
+    );
+    const sel = screen.getByLabelText("Chat channel") as HTMLSelectElement;
+    const cls = sel.className.split(/\s+/);
+    expect(cls).toContain(theme.text);
+    expect(cls).not.toContain(theme.muted);
+  });
+});

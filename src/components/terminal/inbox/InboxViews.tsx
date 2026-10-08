@@ -137,14 +137,23 @@ export function ChannelSwitcher({
           if (picked) onSwitch(picked);
         }}
         aria-label="Chat channel"
-        className={`min-w-0 max-w-full truncate px-1.5 py-1 text-xs bg-black/30 border ${theme.border} ${theme.text} outline-none cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] ${radius}`}
+        // #183: theme-token bg (panel cardBg, not bg-black/30 — muddy on teletype),
+        // keyboard-only focus ring in the theme accent (--phosphor, set on the shell
+        // root), and muted text while the placeholder row is showing.
+        className={`min-w-0 max-w-full truncate px-1.5 py-1 text-xs ${theme.cardBg} border ${theme.border} ${
+          selected ? theme.text : theme.muted
+        } outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--phosphor)] cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] ${radius}`}
       >
-        {!selected && <option value="">{placeholder}</option>}
+        {!selected && (
+          <option value="" className={theme.muted}>
+            {placeholder}
+          </option>
+        )}
         {channels.map((c) => {
           const id = channelId(c.chainId, c.address);
           const label = formatChannelLabel(c, { disambiguate: true, all: channels });
           return (
-            <option key={id} value={id}>
+            <option key={id} value={id} className={theme.text}>
               {label} · {chainName(c.chainId)}
             </option>
           );
