@@ -35,7 +35,8 @@ export type ActionId =
   | "addliq"
   | "ens"
   | "sim"
-  | "trace";
+  | "trace"
+  | "perps";
 
 export type ActionDef = {
   id: ActionId;
@@ -173,6 +174,12 @@ export const ACTION_NETWORK_REGISTRY: readonly ActionDef[] = [
     label: "trace",
     kind: "read",
     supportedChainIds: allChainIds()
+  },
+  {
+    id: "perps",
+    label: "perps",
+    kind: "write",
+    supportedChainIds: [998, 999]
   }
 ];
 

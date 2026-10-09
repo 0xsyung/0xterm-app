@@ -70,6 +70,7 @@ const GAP = 12;
 
 /** Large panels that should collapse expanded CHAT when opened (#140 A3). */
 const LARGE_PANELS: ReadonlySet<WorkspacePanelId> = new Set([
+  "perps",
   "news",
   "price",
   "swap",

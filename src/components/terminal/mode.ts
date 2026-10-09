@@ -141,6 +141,7 @@ const COMMAND_AFFINITY: Record<string, CommandAffinity> = {
   provideliq: "invest",
   ticker: "invest",
   news: "invest",
+  perps: "invest",
   vault: "invest",
   poly: "invest",
   plan: "invest",
@@ -630,6 +631,11 @@ export const HELP_ROWS: HelpRow[] = [
   {
     command: "news",
     description: "Latest headlines (allowlisted RSS; titles only)",
+    modes: ["invest"]
+  },
+  {
+    command: "perps",
+    description: "Open Hyperliquid perps ticket (builder fee routed)",
     modes: ["invest"]
   },
   {

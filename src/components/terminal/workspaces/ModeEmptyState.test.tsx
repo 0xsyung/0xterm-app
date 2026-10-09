@@ -16,7 +16,7 @@ describe("ModeEmptyState (#140 A1)", () => {
     expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
     expect(screen.getByText("INVEST")).toBeTruthy();
     expect(
-      screen.getByText("Pick a tool above — Price, Swap, News, or Portfolio.")
+      screen.getByText("Pick a tool above — Price, Swap, News, Portfolio, or Perps.")
     ).toBeTruthy();
   });
 

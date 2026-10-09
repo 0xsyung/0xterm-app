@@ -40,6 +40,7 @@ describe("safe anon key gate", () => {
     expect(isSafeAnonPrefKey("pinned")).toBe(false);
     expect(isSafeAnonPrefKey("bindings")).toBe(false);
     expect(isSafeAnonPrefKey("portfolioSnapshot")).toBe(false);
+    expect(isSafeAnonPrefKey("hlBuilderFeeBp")).toBe(true);
   });
 
   it("pickSafeAnonPrefs strips unsafe keys", () => {

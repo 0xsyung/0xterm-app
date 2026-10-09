@@ -181,7 +181,7 @@ describe("WorkspaceStrip", () => {
 });
 
 describe("WorkspaceSurface (#148/#160)", () => {
-  it("shows only live INVEST sub-tabs (MARKET; PORTFOLIO+DEX hidden)", () => {
+  it("shows live INVEST sub-tabs (MARKET + PERPS; PORTFOLIO+DEX hidden)", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -192,6 +192,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PERPS$/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /PORTFOLIO/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /DEX/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
@@ -362,9 +363,9 @@ describe("WorkspaceTile", () => {
 });
 
 describe("rendered tool buttons map to wired panels (#160)", () => {
-  it("WIRED_WORKSPACE_PANELS lists the five TerminalShell inline panels", () => {
+  it("WIRED_WORKSPACE_PANELS lists the TerminalShell inline panels", () => {
     expect([...WIRED_WORKSPACE_PANELS].sort()).toEqual(
-      ["news", "price", "sim", "swap", "trace"].sort()
+      ["news", "perps", "price", "sim", "swap", "trace"].sort()
     );
   });
 
@@ -404,7 +405,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
 
   it("empty sub-tabs are omitted from live SUB_TABS filtering", () => {
     expect(liveSubTabs(INVEST_SUB_TABS, INVEST_ACTIONS).map((t) => t.id)).toEqual([
-      "MARKET"
+      "MARKET",
+      "PERPS"
     ]);
     expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS)).toEqual([]);
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toEqual([

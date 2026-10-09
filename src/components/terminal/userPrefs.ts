@@ -26,7 +26,8 @@ export const SAFE_ANON_PREF_KEYS = [
   "theme",
   "mode",
   "actionNetworks",
-  "news"
+  "news",
+  "hlBuilderFeeBp"
 ] as const;
 
 export type SafeAnonPrefKey = (typeof SAFE_ANON_PREF_KEYS)[number];

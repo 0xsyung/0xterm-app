@@ -16,7 +16,8 @@ export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
   "swap",
   "news",
   "sim",
-  "trace"
+  "trace",
+  "perps"
 ] as const;
 
 const WIRED_SET: ReadonlySet<WorkspacePanelId> = new Set(WIRED_WORKSPACE_PANELS);

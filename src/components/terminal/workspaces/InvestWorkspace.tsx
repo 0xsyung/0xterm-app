@@ -14,7 +14,8 @@ import { readyWorkspaceActions } from "./wiredPanels";
 export const INVEST_SUB_TABS: { id: InvestSubTab; label: string }[] = [
   { id: "MARKET", label: "MARKET" },
   { id: "PORTFOLIO", label: "PORTFOLIO" },
-  { id: "DEX", label: "DEX" }
+  { id: "DEX", label: "DEX" },
+  { id: "PERPS", label: "PERPS" }
 ];
 
 /**
@@ -51,7 +52,14 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
   { cmd: "pnl", label: "PNL", hint: "vs last snapshot", tab: "PORTFOLIO" },
   { cmd: "createpool", label: "CREATE POOL", hint: "create a pool", tab: "DEX" },
   { cmd: "getpool", label: "GET POOL", hint: "look up a pool", tab: "DEX" },
-  { cmd: "addliq", label: "ADD LIQUIDITY", hint: "add liquidity", tab: "DEX" }
+  { cmd: "addliq", label: "ADD LIQUIDITY", hint: "add liquidity", tab: "DEX" },
+  {
+    cmd: "perps",
+    label: "PERPS",
+    hint: "Hyperliquid perps",
+    panel: "perps",
+    tab: "PERPS"
+  }
 ];
 
 export function InvestWorkspace({

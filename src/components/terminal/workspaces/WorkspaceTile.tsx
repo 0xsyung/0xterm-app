@@ -8,10 +8,10 @@
 
 import type { ThemeConfig } from "../types";
 
-export type WorkspacePanelId = "price" | "swap" | "news" | "sim" | "trace";
+export type WorkspacePanelId = "price" | "swap" | "news" | "sim" | "trace" | "perps";
 
 /** Sub-tab ids per workspace mode (#145). */
-export type InvestSubTab = "MARKET" | "PORTFOLIO" | "DEX";
+export type InvestSubTab = "MARKET" | "PORTFOLIO" | "DEX" | "PERPS";
 export type DevSubTab = "SOURCE" | "BUILD" | "SHIP";
 export type ForensicSubTab = "SCREEN" | "SIM" | "TRACE" | "READ";
 
