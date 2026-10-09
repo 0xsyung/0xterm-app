@@ -168,6 +168,29 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(screen.getByTestId("header-network")).toBeTruthy();
   });
 
+  it("NETWORK border flashes phosphor when networkFlash is set (#180)", () => {
+    const { rerender } = render(
+      <TerminalHeader
+        {...baseProps}
+        activeChainId={11155111}
+        networkFlash={false}
+      />
+    );
+    const chip = screen.getByTestId("header-network");
+    expect(chip.getAttribute("data-network-flash")).toBeNull();
+    expect(chip.style.borderColor).toBe("");
+    rerender(
+      <TerminalHeader
+        {...baseProps}
+        activeChainId={11155111}
+        networkFlash
+      />
+    );
+    const flashed = screen.getByTestId("header-network");
+    expect(flashed.getAttribute("data-network-flash")).toBe("true");
+    expect(flashed.style.borderColor).toMatch(/rgb\(0,\s*255,\s*102\)|#00ff66/i);
+  });
+
   it("disconnected CONNECT chip opens via onWalletOpen (#134)", () => {
     const onWalletOpen = vi.fn();
     render(

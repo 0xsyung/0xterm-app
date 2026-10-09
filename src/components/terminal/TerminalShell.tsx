@@ -341,6 +341,7 @@ import SocialPanel, {
   type InboxThreadView,
 } from "./SocialPanel";
 import FloatingChat from "./widgets/FloatingChat";
+import ChannelSwitchToast from "./widgets/ChannelSwitchToast";
 import SettingsPanel from "./widgets/SettingsPanel";
 import {
   ACTION_NETWORKS_PREF_KEY,
@@ -357,10 +358,13 @@ import { applyImportBlob } from "./settingsPrefs";
 import {
   DEFAULT_CHAT_FEE_WEI,
   NO_ACTIVE_CHANNEL_MSG,
+  NETWORK_BORDER_FLASH_MS,
   activeChannelChipLabel,
   activeChannelSuccessMsg,
+  activeChannelToastMsg,
   bootActiveChannel,
   channelId,
+  channelSwitchToastDurationMs,
   effectiveActiveChannelId,
   exportChannelsPayload,
   formatChannelLabel,
@@ -373,6 +377,7 @@ import {
   saveChannelStore,
   savedChannelSuccessMsg,
   shortAddress,
+  shouldShowChannelSwitchToast,
   verifyChatContract,
   wrongChainMsg,
   type ChatChannel,
@@ -1928,8 +1933,9 @@ export default function TerminalShell({
     const nextChannels = exists
       ? channelStore.channels
       : [...channelStore.channels, { ...ch, source: ch.source || "saved" }];
+    const networkChanged = ch.chainId !== activeChainId;
     persistChannels({ channels: nextChannels, activeId: id });
-    if (ch.chainId !== activeChainId) {
+    if (networkChanged) {
       handleChainSwitch(ch.chainId);
       if (isConnected) {
         void switchChainAsync({ chainId: ch.chainId }).catch(() => {
@@ -1937,10 +1943,34 @@ export default function TerminalShell({
         });
       }
     }
+    // Always append CONSOLE log line (#180 keeps this path).
     setLogs((prev) => [
       ...prev,
       { id: generateId(), type: "text", text: activeChannelSuccessMsg(ch) }
     ]);
+    // Out-of-CONSOLE only: brief toast (+ NETWORK flash when chain changes) (#180).
+    if (shouldShowChannelSwitchToast(primaryTab, terminalMode)) {
+      const text = activeChannelToastMsg(ch, { networkChanged });
+      const ms = channelSwitchToastDurationMs(networkChanged);
+      setChannelSwitchToast({ text, key: Date.now() });
+      if (channelSwitchToastTimerRef.current) {
+        clearTimeout(channelSwitchToastTimerRef.current);
+      }
+      channelSwitchToastTimerRef.current = setTimeout(() => {
+        setChannelSwitchToast(null);
+        channelSwitchToastTimerRef.current = null;
+      }, ms);
+      if (networkChanged) {
+        setNetworkFlash(true);
+        if (networkFlashTimerRef.current) {
+          clearTimeout(networkFlashTimerRef.current);
+        }
+        networkFlashTimerRef.current = setTimeout(() => {
+          setNetworkFlash(false);
+          networkFlashTimerRef.current = null;
+        }, NETWORK_BORDER_FLASH_MS);
+      }
+    }
   };
 
   /** Resolve per-action chain and log muted `on X` / `on X (override)` (#156). */
@@ -2457,6 +2487,26 @@ export default function TerminalShell({
   const floatingChatOpenRef = useRef(false);
   const promptWrapRef = useRef<HTMLDivElement>(null);
   const [promptClearancePx, setPromptClearancePx] = useState(112);
+  // #180 — out-of-CONSOLE channel-switch toast + NETWORK border flash
+  const [channelSwitchToast, setChannelSwitchToast] = useState<{
+    text: string;
+    key: number;
+  } | null>(null);
+  const [networkFlash, setNetworkFlash] = useState(false);
+  const channelSwitchToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const networkFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (channelSwitchToastTimerRef.current) {
+        clearTimeout(channelSwitchToastTimerRef.current);
+      }
+      if (networkFlashTimerRef.current) {
+        clearTimeout(networkFlashTimerRef.current);
+      }
+    };
+  }, []);
   useEffect(() => {
     primaryTabRef.current = primaryTab;
   }, [primaryTab]);
@@ -8532,6 +8582,7 @@ export default function TerminalShell({
         socialBadge={inboxUnread + boardUnread}
         bindings={bindings}
         activeChainId={activeChainId}
+        networkFlash={networkFlash}
         onOpenNetworkSettings={() => {
           handlePrimaryTabChange("settings");
           setNetworkFocusNonce((n) => n + 1);
@@ -8792,6 +8843,17 @@ export default function TerminalShell({
         </div>
         )}
       </div>
+
+      {/* #180 — out-of-CONSOLE channel-switch toast (under chat panel z-25). */}
+      {channelSwitchToast && (
+        <ChannelSwitchToast
+          key={channelSwitchToast.key}
+          theme={theme}
+          themeKey={currentThemeKey}
+          text={channelSwitchToast.text}
+          promptClearancePx={promptClearancePx}
+        />
+      )}
 
       {/* Floating messenger (#82) — shell root, all tabs/modes. */}
       <FloatingChat
