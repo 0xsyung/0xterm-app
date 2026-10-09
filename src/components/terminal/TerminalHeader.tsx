@@ -212,11 +212,14 @@ function SettingsTab({
 function NetworkControl({
   theme,
   activeChainId,
-  onOpenNetworkSettings
+  onOpenNetworkSettings,
+  networkFlash = false
 }: {
   theme: ThemeConfig;
   activeChainId?: number | null;
   onOpenNetworkSettings?: () => void;
+  /** Brief phosphor border flash when a channel switch also changes network (#180). */
+  networkFlash?: boolean;
 }) {
   const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
   const label = chain ? chainShortName(chain) : "NETWORK";
@@ -228,6 +231,7 @@ function NetworkControl({
     <button
       type="button"
       data-testid="header-network"
+      data-network-flash={networkFlash ? "true" : undefined}
       aria-label={tip}
       title={tip}
       onClick={() => onOpenNetworkSettings?.()}
@@ -237,11 +241,12 @@ function NetworkControl({
           onOpenNetworkSettings?.();
         }
       }}
-      className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${TOUCH} ${
+      className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border transition-[border-color] duration-150 ${TOUCH} ${
         chain
           ? `${theme.border} ${theme.primary} bg-transparent`
           : `${theme.border} ${theme.muted} bg-transparent`
       }`}
+      style={networkFlash ? { borderColor: theme.phosphor } : undefined}
     >
       <span className="truncate max-w-[7rem]">{label}</span>
     </button>
@@ -295,6 +300,7 @@ export default function TerminalHeader({
   bindings,
   activeChainId = null,
   onOpenNetworkSettings,
+  networkFlash = false,
   walletAddress = null,
   isWalletConnected = false,
   onWalletOpen
@@ -312,6 +318,8 @@ export default function TerminalHeader({
   activeChainId?: number | null;
   /** Opens SETTINGS scrolled to NETWORK default selector (#156). */
   onOpenNetworkSettings?: () => void;
+  /** Phosphor border flash on NETWORK when channel switch changes chain (#180). */
+  networkFlash?: boolean;
   /** Connected wallet address for account chip (#134). */
   walletAddress?: string | null;
   /** Whether a wallet is connected (#134). */
@@ -418,6 +426,7 @@ export default function TerminalHeader({
           theme={theme}
           activeChainId={activeChainId}
           onOpenNetworkSettings={onOpenNetworkSettings}
+          networkFlash={networkFlash}
         />
         <ConnectControl
           theme={theme}

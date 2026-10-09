@@ -6,8 +6,15 @@ import { describe, expect, it, vi } from "vitest";
 import {
   activeChannelChipLabel,
   activeChannelSuccessMsg,
+  activeChannelToastMsg,
+  CHANNEL_SWITCH_TOAST_MS_NETWORK,
+  CHANNEL_SWITCH_TOAST_MS_SAME,
+  channelSwitchToastBottomPx,
+  channelSwitchToastDurationMs,
+  NETWORK_BORDER_FLASH_MS,
   notChatContractMsg,
   savedChannelSuccessMsg,
+  shouldShowChannelSwitchToast,
   bootActiveChannel,
   channelId,
   effectiveActiveChannelId,
@@ -309,5 +316,57 @@ describe("chatChannels small helpers (coverage)", () => {
       ok: false,
       reason: "getPublicKey() failed",
     });
+  });
+});
+
+
+describe("channel switch toast helpers (#180)", () => {
+  it("same-network toast drops address; network-change appends short name", () => {
+    expect(activeChannelToastMsg(lobby)).toBe(
+      "[✓] Active channel: lobby · Sepolia"
+    );
+    expect(activeChannelToastMsg(lobby, { networkChanged: false })).toBe(
+      "[✓] Active channel: lobby · Sepolia"
+    );
+    expect(activeChannelToastMsg(lobby, { networkChanged: true })).toBe(
+      "[✓] Active channel: lobby · Sepolia — network → SEPOLIA"
+    );
+  });
+
+  it("toast falls back to short address when channel has no name", () => {
+    const anon: ChatChannel = {
+      chainId: 8453,
+      address: "0x1111111111111111111111111111111111111111",
+      name: "",
+      source: "saved",
+    };
+    expect(activeChannelToastMsg(anon)).toBe(
+      "[✓] Active channel: 0x1111…1111 · Base"
+    );
+    expect(activeChannelToastMsg(anon, { networkChanged: true })).toBe(
+      "[✓] Active channel: 0x1111…1111 · Base — network → BASE"
+    );
+  });
+
+  it("durations and flash ms match Design soft ACK", () => {
+    expect(CHANNEL_SWITCH_TOAST_MS_SAME).toBe(2500);
+    expect(CHANNEL_SWITCH_TOAST_MS_NETWORK).toBe(3500);
+    expect(NETWORK_BORDER_FLASH_MS).toBe(600);
+    expect(channelSwitchToastDurationMs(false)).toBe(2500);
+    expect(channelSwitchToastDurationMs(true)).toBe(3500);
+  });
+
+  it("toast only when not already on CONSOLE", () => {
+    expect(shouldShowChannelSwitchToast("terminal", "console")).toBe(false);
+    expect(shouldShowChannelSwitchToast("terminal", "invest")).toBe(true);
+    expect(shouldShowChannelSwitchToast("social", "console")).toBe(true);
+    expect(shouldShowChannelSwitchToast("settings", "invest")).toBe(true);
+  });
+
+  it("toast bottom sits above floating chat bubble", () => {
+    // bubbleBottom = max(12, 100+12)=112; +48 bubble +12 gap = 172
+    expect(channelSwitchToastBottomPx(100)).toBe(172);
+    // promptClearance 0 → bubbleBottom 12; +48+12 = 72
+    expect(channelSwitchToastBottomPx(0)).toBe(72);
   });
 });

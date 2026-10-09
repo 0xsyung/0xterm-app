@@ -9,6 +9,7 @@ import {
   CHAT_PRESETS,
   chatAbi,
   SUPPORTED_CHAINS,
+  chainShortName,
 } from "./constants";
 
 /** Default per-message fee (wei) when `channel deploy` omits fee — Sepolia current. */
@@ -434,6 +435,57 @@ export function notChatContractMsg(addr: string): string {
 export function activeChannelSuccessMsg(ch: ChatChannel): string {
   const label = formatChannelLabel(ch) || shortAddress(ch.address);
   return `[✓] Active channel: ${label} · ${chainName(ch.chainId)} · ${ch.address}`;
+}
+
+/** Out-of-CONSOLE toast duration — same-network (#180). */
+export const CHANNEL_SWITCH_TOAST_MS_SAME = 2500;
+/** Out-of-CONSOLE toast duration — network also changed (#180). */
+export const CHANNEL_SWITCH_TOAST_MS_NETWORK = 3500;
+/** Header NETWORK border phosphor flash when channel switch changes chain (#180). */
+export const NETWORK_BORDER_FLASH_MS = 600;
+
+/**
+ * Brief toast copy for out-of-CONSOLE channel switches (#180).
+ * Drops the address (full address stays in the CONSOLE log line).
+ * When networkChanged, appends `— network → SHORT` using chainShortName.
+ */
+export function activeChannelToastMsg(
+  ch: ChatChannel,
+  opts?: { networkChanged?: boolean }
+): string {
+  const label = formatChannelLabel(ch) || shortAddress(ch.address);
+  const base = `[✓] Active channel: ${label} · ${chainName(ch.chainId)}`;
+  if (!opts?.networkChanged) return base;
+  const chain = SUPPORTED_CHAINS.find((c) => c.id === ch.chainId);
+  const short = chain
+    ? chainShortName(chain)
+    : chainName(ch.chainId).toUpperCase().slice(0, 10);
+  return `${base} — network → ${short}`;
+}
+
+export function channelSwitchToastDurationMs(networkChanged: boolean): number {
+  return networkChanged
+    ? CHANNEL_SWITCH_TOAST_MS_NETWORK
+    : CHANNEL_SWITCH_TOAST_MS_SAME;
+}
+
+/** Toast is for FloatingChat / SOCIAL INBOX only — never while CONSOLE logs are visible (#180). */
+export function shouldShowChannelSwitchToast(
+  primaryTab: string,
+  terminalMode: string
+): boolean {
+  return !(primaryTab === "terminal" && terminalMode === "console");
+}
+
+/**
+ * Bottom offset for the toast — sits above the floating chat bubble
+ * (bubble uses max(12, promptClearancePx+12) + 48px height + 12px gap) (#180).
+ */
+export function channelSwitchToastBottomPx(promptClearancePx: number): number {
+  const GAP = 12;
+  const BUBBLE = 48;
+  const bubbleBottom = Math.max(GAP, promptClearancePx + GAP);
+  return bubbleBottom + BUBBLE + GAP;
 }
 
 export function savedChannelSuccessMsg(ch: ChatChannel): string {
