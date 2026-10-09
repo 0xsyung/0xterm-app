@@ -69,8 +69,7 @@ export const FUTURE_COMMANDS = [
   "pf",
   "ipfs",
   "share",
-  "bind",
-  "wallet"
+  "bind"
 ];
 
 /** Issue tracker number per FUTURE_COMMANDS entry ("not shipped yet — #N"). */
@@ -87,8 +86,7 @@ export const COMMAND_ISSUE: Record<string, number> = {
   when: 12,
   pf: 13,
   ipfs: 14,
-  bind: 28,
-  wallet: 25
+  bind: 28
 };
 
 /** Command prefixes that must be typed-YES-confirmed when bound AND when fired. */

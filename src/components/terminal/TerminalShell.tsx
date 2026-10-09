@@ -264,6 +264,27 @@ import {
 } from "./keybindings";
 import FkeyListener from "./FkeyListener";
 import BindWidget from "./widgets/BindWidget";
+import WalletWidget, {
+  type WalletWidgetPayload
+} from "./widgets/WalletWidget";
+import {
+  addAccount,
+  getEnvelope,
+  getSelectedAddress,
+  getUnlocked,
+  hasVault,
+  isUnlocked,
+  lockVault,
+  selectAccount,
+  setSignerPref,
+  subscribeVault,
+  updateVaultPrefs,
+  accountPath,
+  WalletError
+} from "../../lib/localWallet";
+import { redactWalletCommand } from "../../lib/localWallet/redact";
+import { resolveChipState, getSigner } from "../../lib/getSigner";
+import { buildProfileExport } from "../../lib/localWallet/exportOmit";
 import {
   formatProbeReport,
   probeCoreFunctions,
@@ -825,6 +846,31 @@ export default function TerminalShell({
   } | null>(null);
 
   const { address, isConnected, chainId: walletChainId } = useAccount();
+  const [vaultTick, setVaultTick] = useState(0);
+  const [vaultExists, setVaultExists] = useState(false);
+  useEffect(() => {
+    const unsub = subscribeVault(() => setVaultTick((n) => n + 1));
+    void hasVault().then(setVaultExists);
+    return unsub;
+  }, []);
+  useEffect(() => {
+    void hasVault().then(setVaultExists);
+  }, [vaultTick]);
+  const walletChip = resolveChipState({
+    vaultExists,
+    injectedConnected: !!isConnected,
+    injectedAddress: address as `0x${string}` | undefined
+  });
+  // Prefer local unlocked address for prefs / export when active.
+  const effectiveAddress =
+    walletChip.kind === "local"
+      ? walletChip.address
+      : walletChip.kind === "injected"
+        ? walletChip.address
+        : address;
+  const effectiveConnected =
+    walletChip.kind === "local" || walletChip.kind === "injected" || (!!isConnected && !!address);
+
   // Latest wallet chain for async write paths (avoid stale render closures).
   const walletChainIdRef = useRef<number | undefined>(walletChainId);
   walletChainIdRef.current = walletChainId;
@@ -1395,13 +1441,10 @@ export default function TerminalShell({
   };
 
   const savePreference = (key: string, value: any) => {
-    // Wallet blob when connected; safe keys → anon blob when disconnected (#181).
-    writeUserPref(
-      localStorage,
-      isConnected && address ? address : null,
-      key,
-      value
-    );
+    // Wallet blob when connected (injected or local #29); safe keys → anon when disconnected (#181).
+    const addr =
+      effectiveAddress || (isConnected && address ? address : null);
+    writeUserPref(localStorage, addr ? String(addr) : null, key, value);
   };
 
   // Persist pin manifests whenever they change (so they survive reload + export)
@@ -1638,6 +1681,10 @@ export default function TerminalShell({
   // The messaging key pair derives from a wallet signature on KEY_MESSAGE. We
   // cache the derived pair in a ref so repeated chat/inbox calls don't re-sign.
   const chatKeyCache = useRef<import("../../lib/chatCrypto").ChatKeyPair | null>(null);
+  // #29 — clear messaging key cache on local lock / account switch
+  useEffect(() => {
+    if (!isUnlocked()) chatKeyCache.current = null;
+  }, [vaultTick]);
 
   // Per-peer registered-key continuity (finding C-1). We cache the last key we
   // saw for each peer address this session; if a peer's registered key changes
@@ -1658,10 +1705,19 @@ export default function TerminalShell({
   };
 
   const getChatKeyPair = async (): Promise<import("../../lib/chatCrypto").ChatKeyPair> => {
-    if (!isConnected || !address) throw new Error("Connect a wallet to use chat.");
     // cache first — signing "0xterm.chat.v1" is only needed once per session;
     // without this, every chat/inbox would re-prompt the user to sign
     if (chatKeyCache.current) return chatKeyCache.current;
+    // #29 — local unlocked accounts sign via viem LocalAccount
+    if (isUnlocked()) {
+      const account = getUnlocked()?.accounts[getUnlocked()!.selectedIndex];
+      if (!account) throw new Error("Connect a wallet to use chat.");
+      const sig = await account.signMessage({ message: KEY_MESSAGE });
+      const pair = await deriveKeysFromSignature(sig);
+      chatKeyCache.current = pair;
+      return pair;
+    }
+    if (!isConnected || !address) throw new Error("Connect a wallet to use chat.");
     const sig = await signMessageAsync({ message: KEY_MESSAGE });
     const pair = await deriveKeysFromSignature(sig);
     chatKeyCache.current = pair;
@@ -4220,15 +4276,17 @@ export default function TerminalShell({
 
       return { id: generateId(), type: "text", text: lines.join("\n") };
     },
-    export: () => {
-      if (!isConnected || !address)
+    export: async (args) => {
+      const addr = effectiveAddress;
+      if (!addr)
         return {
           id: generateId(),
           type: "text",
           text: "Wallet not connected. Connect a wallet to export its profile and custom tokens."
         };
-      const userKey = `0xterm_user_${address.toLowerCase()}`;
-      const tokensKey = `0xterm_custom_tokens_${address.toLowerCase()}`;
+      const includeWallet = args.includes("--include-wallet");
+      const userKey = `0xterm_user_${addr.toLowerCase()}`;
+      const tokensKey = `0xterm_custom_tokens_${addr.toLowerCase()}`;
       const prefs = localStorage.getItem(userKey)
         ? JSON.parse(localStorage.getItem(userKey)!)
         : {};
@@ -4238,17 +4296,28 @@ export default function TerminalShell({
         ? JSON.parse(localStorage.getItem(tokensKey)!)
         : {};
 
-      const exportData = {
+      const base = {
         version: "1.0",
-        wallet: address,
+        wallet: addr,
         preferences: prefs,
         customTokens: tokens,
         pinned: pinned.map(({ payload, component, ...rest }) => rest),
         chatChannels: exportChannelsPayload(channelStore)
       };
+      let exportData;
+      try {
+        exportData = await buildProfileExport(base, { includeWallet });
+      } catch (e: any) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: e?.message || String(e)
+        };
+      }
 
       const exportWidget = (
-        <ExportWidget exportData={exportData} theme={theme} address={address} />
+        <ExportWidget exportData={exportData} theme={theme} address={addr} />
       );
       return { id: generateId(), type: "component", component: exportWidget, title: "EXPORT" };
     },
@@ -7253,7 +7322,19 @@ export default function TerminalShell({
     },
     disconnect: () => {
       disconnect();
-      return { id: generateId(), type: "text", text: "Disconnected." };
+      const localState = isUnlocked()
+        ? "unlocked"
+        : vaultExists
+          ? "locked"
+          : "none";
+      return {
+        id: generateId(),
+        type: "text",
+        text:
+          localState === "none"
+            ? "Disconnected."
+            : `injected disconnected. local wallet still ${localState}.`
+      };
     },
     rain: () => {
       return {
@@ -7978,6 +8059,241 @@ export default function TerminalShell({
   commands.solc = async (args, raw) =>
     commands.dig(["dig", "ver", ...args.slice(1)], raw);
 
+
+  const openWalletWidget = (
+    payload: WalletWidgetPayload,
+    title: string
+  ): LogEntry => {
+    const id = generateId();
+    const bump = () => {
+      setVaultTick((n) => n + 1);
+      void hasVault().then(setVaultExists);
+    };
+    const dismiss = () =>
+      setLogs((prev) => prev.filter((l) => l.id !== id));
+    return {
+      id,
+      type: "component",
+      title,
+      component: (
+        <WalletWidget
+          theme={theme}
+          payload={payload}
+          onVaultChange={bump}
+          onCancel={dismiss}
+          onDone={(msg) => {
+            dismiss();
+            bump();
+            if (msg && msg !== "sign" && msg !== "cancel") {
+              setLogs((prev) =>
+                [
+                  ...prev,
+                  { id: generateId(), type: "text", text: msg } as LogEntry
+                ].slice(-MAX_LOGS)
+              );
+            }
+          }}
+          onLog={(text, warn) => {
+            setLogs((prev) =>
+              [
+                ...prev,
+                { id: generateId(), type: "text", text, warn } as LogEntry
+              ].slice(-MAX_LOGS)
+            );
+          }}
+          onPin={
+            payload.mode === "status"
+              ? () =>
+                  onPin({
+                    id,
+                    type: "wallet",
+                    title: "LOCAL WALLET",
+                    payload: { mode: "status" }
+                  } as LogEntry)
+              : undefined
+          }
+        />
+      )
+    };
+  };
+
+  commands.wallet = async (args) => {
+    const sub = (args[1] || "").toLowerCase();
+    const usage =
+      "Usage: wallet [create|import|unlock|lock|timeout|accounts|use|export|nuke]";
+
+    if (!sub) {
+      return openWalletWidget({ mode: "status" }, "LOCAL WALLET");
+    }
+    if (sub === "create") {
+      let words: 12 | 24 = 12;
+      const wi = args.indexOf("--words");
+      if (wi >= 0 && args[wi + 1]) {
+        const n = Number(args[wi + 1]);
+        if (n === 24) words = 24;
+      }
+      return openWalletWidget({ mode: "create", words }, "WALLET CREATE");
+    }
+    if (sub === "import") {
+      return openWalletWidget({ mode: "import" }, "WALLET IMPORT");
+    }
+    if (sub === "unlock") {
+      return openWalletWidget({ mode: "unlock" }, "WALLET UNLOCK");
+    }
+    if (sub === "lock") {
+      if (!(await hasVault())) {
+        return {
+          id: generateId(),
+          type: "text",
+          text: "no local wallet. type wallet create."
+        };
+      }
+      if (!isUnlocked()) {
+        return {
+          id: generateId(),
+          type: "text",
+          text: "wallet is locked. type wallet unlock."
+        };
+      }
+      lockVault();
+      setVaultTick((n) => n + 1);
+      return { id: generateId(), type: "text", text: "[✓] local wallet locked." };
+    }
+    if (sub === "timeout") {
+      const u = getUnlocked();
+      if (!u) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: "wallet is locked. type wallet unlock."
+        };
+      }
+      if (!args[2]) {
+        return {
+          id: generateId(),
+          type: "text",
+          text: `idle timeout: ${u.plaintext.timeoutMinutes}m`
+        };
+      }
+      try {
+        await updateVaultPrefs({ timeoutMinutes: Number(args[2]) });
+        setVaultTick((n) => n + 1);
+        return {
+          id: generateId(),
+          type: "text",
+          text: `[✓] idle timeout set to ${getUnlocked()?.plaintext.timeoutMinutes}m`
+        };
+      } catch (e: any) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: e?.message || String(e)
+        };
+      }
+    }
+    if (sub === "accounts") {
+      const u = getUnlocked();
+      if (!u) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: "wallet is locked. type wallet unlock."
+        };
+      }
+      if ((args[2] || "").toLowerCase() === "add") {
+        try {
+          const addr = await addAccount();
+          setVaultTick((n) => n + 1);
+          return {
+            id: generateId(),
+            type: "text",
+            text: `[✓] account ${u.plaintext.accountCount} ${addr.slice(0, 6)}…${addr.slice(-4)} (${accountPath(u.plaintext.accountCount - 1)})`
+          };
+        } catch (e: any) {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: e?.message || String(e)
+          };
+        }
+      }
+      const lines = u.accounts.map(
+        (a, i) =>
+          `  ${i === u.selectedIndex ? "*" : " "} ${i}  ${a.address}  ${accountPath(i)}`
+      );
+      return {
+        id: generateId(),
+        type: "text",
+        text: `HD accounts:\n${lines.join("\n")}`
+      };
+    }
+    if (sub === "use") {
+      const target = (args[2] || "").toLowerCase();
+      if (target === "local") {
+        if (!isUnlocked()) {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: "wallet is locked. type wallet unlock."
+          };
+        }
+        setSignerPref("local");
+        setVaultTick((n) => n + 1);
+        return { id: generateId(), type: "text", text: "[✓] signer = local" };
+      }
+      if (target === "injected") {
+        if (!isConnected || !address) {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: "no injected wallet. type connect."
+          };
+        }
+        setSignerPref("injected");
+        setVaultTick((n) => n + 1);
+        return { id: generateId(), type: "text", text: "[✓] signer = injected" };
+      }
+      if (/^\d+$/.test(target)) {
+        try {
+          const addr = selectAccount(Number(target));
+          setVaultTick((n) => n + 1);
+          return {
+            id: generateId(),
+            type: "text",
+            text: `[✓] using account ${target} ${addr.slice(0, 6)}…${addr.slice(-4)}`
+          };
+        } catch (e: any) {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: e?.message || String(e)
+          };
+        }
+      }
+      return {
+        id: generateId(),
+        type: "text",
+        text: "Usage: wallet use <n|local|injected>"
+      };
+    }
+    if (sub === "export") {
+      return openWalletWidget({ mode: "export" }, "WALLET EXPORT");
+    }
+    if (sub === "nuke") {
+      return openWalletWidget({ mode: "nuke" }, "WALLET NUKE");
+    }
+    return { id: generateId(), type: "text", text: usage };
+  };
+  commands.w = commands.wallet;
+
+
   const availableCommands = Object.keys(commands);
 
   const handleCommand = async (cmd: string) => {
@@ -7988,10 +8304,13 @@ export default function TerminalShell({
     const cmd0 = args0[0]?.toLowerCase();
     // #19 — a seed/key typed after `feedback ` must never persist in the input
     // log or history. Echo and store the redacted line instead of the raw one.
+    const walletRedact = redactWalletCommand(trimmed);
     const echoLine =
       cmd0 === "feedback" || cmd0 === "fb"
         ? redactSecrets(trimmed).text
-        : trimmed;
+        : walletRedact.redacted
+          ? walletRedact.logLine
+          : trimmed;
 
     const userLog: LogEntry = {
       id: generateId(),
@@ -8000,7 +8319,10 @@ export default function TerminalShell({
     };
 
     setLogs((prev) => [...prev, userLog].slice(-MAX_LOGS));
-    setHistory((prev) => [...prev, echoLine]);
+    setHistory((prev) => [
+      ...prev,
+      walletRedact.redacted ? walletRedact.historyLine : echoLine
+    ]);
     setHistoryIdx(-1);
 
     const args = trimmed.split(/\s+/).filter(Boolean);
@@ -8265,6 +8587,36 @@ export default function TerminalShell({
           candidates = ["erc20", "erc721", "nft"];
 
           // 4b. ENS subcommands
+        } else if ((command === "wallet" || command === "w") && currentArgIdx === 1) {
+          candidates = [
+            "create",
+            "import",
+            "unlock",
+            "lock",
+            "timeout",
+            "accounts",
+            "use",
+            "export",
+            "nuke"
+          ];
+        } else if (
+          (command === "wallet" || command === "w") &&
+          currentArgIdx === 2 &&
+          rawArgs[1]?.toLowerCase() === "use"
+        ) {
+          candidates = ["local", "injected", "0", "1"];
+        } else if (
+          (command === "wallet" || command === "w") &&
+          currentArgIdx === 2 &&
+          rawArgs[1]?.toLowerCase() === "accounts"
+        ) {
+          candidates = ["add"];
+        } else if (
+          (command === "wallet" || command === "w") &&
+          currentArgIdx === 2 &&
+          rawArgs[1]?.toLowerCase() === "create"
+        ) {
+          candidates = ["--words"];
         } else if (command === "ens" && currentArgIdx === 1) {
           candidates = ["set", "clear"];
 
@@ -8797,6 +9149,33 @@ export default function TerminalShell({
                 );
                 setHlAgentAddress(null);
               }}
+              localVault={
+                isUnlocked()
+                  ? {
+                      unlocked: true,
+                      timeoutMinutes:
+                        getUnlocked()?.plaintext.timeoutMinutes ?? 15,
+                      requirePasswordPerTx:
+                        getUnlocked()?.plaintext.requirePasswordPerTx ?? false
+                    }
+                  : vaultExists
+                    ? {
+                        unlocked: false,
+                        timeoutMinutes: 15,
+                        requirePasswordPerTx: false
+                      }
+                    : null
+              }
+              onLocalVaultTimeout={(minutes) => {
+                void updateVaultPrefs({ timeoutMinutes: minutes })
+                  .then(() => setVaultTick((n) => n + 1))
+                  .catch(() => undefined);
+              }}
+              onLocalVaultRequirePasswordPerTx={(value) => {
+                void updateVaultPrefs({ requirePasswordPerTx: value })
+                  .then(() => setVaultTick((n) => n + 1))
+                  .catch(() => undefined);
+              }}
               onHlRevokeBuilder={async () => {
                 if (!address) return;
                 const network =
@@ -8947,6 +9326,7 @@ export default function TerminalShell({
             activeDexId={activeDexId}
             isConnected={isConnected}
             address={address}
+            walletChip={walletChip}
             mounted={mounted}
             isNarrow={narrow}
             chatChannelLabel={chatChipLabel}

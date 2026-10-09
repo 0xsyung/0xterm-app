@@ -48,8 +48,11 @@ export default function HelpManual({
           />
         ))}
       </div>
+      <div className={`border-t ${theme.border} pt-2 mt-1 text-[10px] ${theme.muted}`}>
+        local wallet is a hot wallet in this browser. hardware via connect is safer.
+      </div>
       <div
-        className={`border-t ${theme.border} pt-2 mt-1 text-[10px] opacity-60`}
+        className={`pt-1 text-[10px] opacity-60`}
       >
         © 2026 0xTERM. All rights reserved. Proprietary and confidential.
         Unauthorized copying or distribution is strictly prohibited.

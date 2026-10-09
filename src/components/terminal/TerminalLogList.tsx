@@ -14,6 +14,7 @@ import BalanceWidget from "./widgets/BalanceWidget";
 import PortfolioWidget from "./widgets/PortfolioWidget";
 import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
+import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import TickerWidget from "./widgets/TickerWidget";
 import NewsReader from "./widgets/NewsReader";
@@ -190,6 +191,15 @@ function renderLog(
       <AllowancesWidget
         audit={log.payload?.audit}
         theme={theme}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  if (log.type === "wallet")
+    return (
+      <WalletWidget
+        theme={theme}
+        payload={{ mode: log.payload?.mode || "status", words: log.payload?.words }}
         onPin={() => onPin(log)}
         pinned={isPinned}
       />

@@ -43,7 +43,29 @@ describe("TerminalPrompt", () => {
         {...makeProps({ isConnected: true, address: "0xAbC1234567890Def4567890AbC1234567890DeF" })}
       />
     );
-    expect(screen.getByText(/WALLET: 0xAbC1\.\.\.0DeF/)).toBeTruthy();
+    expect(screen.getByText(/WALLET: 0xAbC1…0DeF/)).toBeTruthy();
+  });
+
+  it("shows [LOCAL] chip when walletChip is local (#29)", () => {
+    render(
+      <TerminalPrompt
+        {...makeProps({
+          walletChip: {
+            kind: "local",
+            address: "0xAbC1234567890Def4567890AbC1234567890DeF"
+          }
+        })}
+      />
+    );
+    expect(screen.getByText(/WALLET: 0xAbC1…0DeF/)).toBeTruthy();
+    expect(screen.getByText("[LOCAL]")).toBeTruthy();
+  });
+
+  it("shows LOCKED chip when vault locked (#29)", () => {
+    render(
+      <TerminalPrompt {...makeProps({ walletChip: { kind: "locked" } })} />
+    );
+    expect(screen.getByText(/WALLET: LOCKED/)).toBeTruthy();
   });
 
   it("forwards typed input through setInput", () => {
