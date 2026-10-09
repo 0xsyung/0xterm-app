@@ -212,3 +212,110 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
     expect((swapSelect as HTMLSelectElement).value).toBe("1");
   });
 });
+
+describe("SettingsPanel channels (#182)", () => {
+  const EXISTING: {
+    chainId: number;
+    address: `0x${string}`;
+    name: string;
+    source: "saved";
+  } = {
+    chainId: 1,
+    address: "0x1111111111111111111111111111111111111111",
+    name: "alpha",
+    source: "saved"
+  };
+
+  it("shows inline Channel already exists on duplicate chain+address", () => {
+    const onChannelStoreChange = vi.fn();
+    render(
+      <SettingsPanel
+        {...baseProps}
+        channelStore={{
+          channels: [EXISTING],
+          activeId: "1:0x1111111111111111111111111111111111111111"
+        }}
+        onChannelStoreChange={onChannelStoreChange}
+      />
+    );
+    const addr = screen.getByPlaceholderText("0x…");
+    fireEvent.change(addr, {
+      target: { value: "0x1111111111111111111111111111111111111111" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    const err = screen.getByTestId("settings-channel-error");
+    expect(err.textContent).toBe("Channel already exists");
+    expect(onChannelStoreChange).not.toHaveBeenCalled();
+    // Draft fields stay so the user can edit (not silently cleared).
+    expect((addr as HTMLInputElement).value).toBe(
+      "0x1111111111111111111111111111111111111111"
+    );
+  });
+
+  it("duplicate of a preset (visible list) also shows inline error", () => {
+    const onChannelStoreChange = vi.fn();
+    render(
+      <SettingsPanel
+        {...baseProps}
+        channelStore={{ channels: [], activeId: null }}
+        onChannelStoreChange={onChannelStoreChange}
+      />
+    );
+    fireEvent.change(screen.getByTestId("settings-channel-chain"), {
+      target: { value: "11155111" }
+    });
+    fireEvent.change(screen.getByPlaceholderText("0x…"), {
+      target: { value: "0x6248F070A2f849ee1410BC35aa86A0e0F08e96a5" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(screen.getByTestId("settings-channel-error").textContent).toBe(
+      "Channel already exists"
+    );
+    expect(onChannelStoreChange).not.toHaveBeenCalled();
+  });
+
+  it("adds a channel without changing activeId", () => {
+    const onChannelStoreChange = vi.fn();
+    render(
+      <SettingsPanel
+        {...baseProps}
+        channelStore={{
+          channels: [EXISTING],
+          activeId: "1:0x1111111111111111111111111111111111111111"
+        }}
+        onChannelStoreChange={onChannelStoreChange}
+      />
+    );
+    fireEvent.change(screen.getByPlaceholderText("name"), {
+      target: { value: "beta" }
+    });
+    fireEvent.change(screen.getByPlaceholderText("0x…"), {
+      target: { value: "0x2222222222222222222222222222222222222222" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(onChannelStoreChange).toHaveBeenCalledTimes(1);
+    const next = onChannelStoreChange.mock.calls[0][0];
+    expect(next.activeId).toBe(
+      "1:0x1111111111111111111111111111111111111111"
+    );
+    expect(next.channels).toHaveLength(2);
+    expect(next.channels[1]).toMatchObject({
+      chainId: 1,
+      address: "0x2222222222222222222222222222222222222222",
+      name: "beta",
+      source: "saved"
+    });
+    expect(screen.queryByTestId("settings-channel-error")).toBeNull();
+  });
+
+  it("invalid address shows inline error near the add row", () => {
+    render(<SettingsPanel {...baseProps} />);
+    fireEvent.change(screen.getByPlaceholderText("0x…"), {
+      target: { value: "not-an-address" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(screen.getByTestId("settings-channel-error").textContent).toBe(
+      "Channel needs a valid address."
+    );
+  });
+});

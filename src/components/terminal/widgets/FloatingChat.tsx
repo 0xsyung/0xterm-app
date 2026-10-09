@@ -188,10 +188,16 @@ export default function FloatingChat({
   );
 
   // A3: leaving SOCIAL → collapse expanded CHAT to bubble.
+  // #182: entering SETTINGS → collapse so channel REMOVE isn't covered by the panel.
   useEffect(() => {
     const prev = prevTabRef.current;
     prevTabRef.current = primaryTab;
-    if (prev === "social" && primaryTab !== "social" && open) {
+    if (!open) return;
+    if (prev === "social" && primaryTab !== "social") {
+      setExpanded(false);
+      return;
+    }
+    if (primaryTab === "settings" && prev !== "settings") {
       setExpanded(false);
     }
   }, [primaryTab, open, setExpanded]);
