@@ -111,6 +111,11 @@ import {
   type TickerRow
 } from "./ticker";
 import {
+  migrateAnonPrefsOnConnect,
+  readUserPrefsBlob,
+  writeUserPref
+} from "./userPrefs";
+import {
   PNL_BALANCE_REFRESH_MS,
   PNL_REFRESH_SEC,
   PNL_WIDGET_ID,
@@ -541,12 +546,41 @@ export default function TerminalShell({
   onThemeChange: (theme: ThemeMode) => void;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [activeChainId, setActiveChainId] = useState<number | null>(null);
+  // Boot from anon prefs when disconnected so NETWORK survives reload (#181).
+  const [activeChainId, setActiveChainId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const anon = readUserPrefsBlob(window.localStorage, null);
+    const id = anon.chainId;
+    if (typeof id === "number" && SUPPORTED_CHAINS.some((c) => c.id === id)) {
+      return id;
+    }
+    return null;
+  });
   /** Per-action network overrides (#156) — persisted in prefs as actionNetworks. */
-  const [actionNetworks, setActionNetworks] = useState<ActionNetworkOverrides>({});
+  const [actionNetworks, setActionNetworks] = useState<ActionNetworkOverrides>(
+    () => {
+      if (typeof window === "undefined") return {};
+      const anon = readUserPrefsBlob(window.localStorage, null);
+      return parseActionNetworkOverrides(anon[ACTION_NETWORKS_PREF_KEY]);
+    }
+  );
   /** Bump when header NETWORK opens Settings → default selector (#156). */
   const [networkFocusNonce, setNetworkFocusNonce] = useState(0);
-  const [activeDexId, setActiveDexId] = useState<string | null>(null);
+  const [activeDexId, setActiveDexId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const anon = readUserPrefsBlob(window.localStorage, null);
+    const id = anon.chainId;
+    const chainId =
+      typeof id === "number" && SUPPORTED_CHAINS.some((c) => c.id === id)
+        ? id
+        : null;
+    if (chainId == null) return null;
+    const dexes = DEX_REGISTRY[chainId] || [];
+    if (typeof anon.dexId === "string" && dexes.some((d) => d.id === anon.dexId)) {
+      return anon.dexId;
+    }
+    return dexes[0]?.id ?? null;
+  });
 
   // Multi-provider RPC maps: ChainId -> { providerName: url } & ChainId -> activeProviderName
   const [rpcProviders, setRpcProviders] = useState<
@@ -1323,16 +1357,13 @@ export default function TerminalShell({
   };
 
   const savePreference = (key: string, value: any) => {
-    if (!isConnected || !address) return;
-    const storageKey = `0xterm_user_${address.toLowerCase()}`;
-    try {
-      const existing = localStorage.getItem(storageKey);
-      const prefs = existing ? JSON.parse(existing) : {};
-      prefs[key] = value;
-      localStorage.setItem(storageKey, JSON.stringify(prefs));
-    } catch (e) {
-      console.error("Failed to save preference", e);
-    }
+    // Wallet blob when connected; safe keys → anon blob when disconnected (#181).
+    writeUserPref(
+      localStorage,
+      isConnected && address ? address : null,
+      key,
+      value
+    );
   };
 
   // Persist pin manifests whenever they change (so they survive reload + export)
@@ -1421,6 +1452,22 @@ export default function TerminalShell({
   };
 
   const prevConnected = useRef(isConnected);
+  const anonThemeApplied = useRef(false);
+
+  // Restore anon theme on boot when no wallet (chain/dex already lazy-inited) (#181).
+  useEffect(() => {
+    if (anonThemeApplied.current) return;
+    if (isConnected && address) {
+      anonThemeApplied.current = true;
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const anon = readUserPrefsBlob(window.localStorage, null);
+    if (typeof anon.theme === "string") {
+      onThemeChange(resolveThemeKey(anon.theme));
+    }
+    anonThemeApplied.current = true;
+  }, [isConnected, address, onThemeChange]);
 
   useEffect(() => {
     if (isConnected && !prevConnected.current) {
@@ -1441,6 +1488,8 @@ export default function TerminalShell({
 
         // ticker (#15): copy anon → wallet once if wallet has no ticker yet
         migrateAnonTickerOnConnect(localStorage, address);
+        // prefs (#181): copy safe anon keys the wallet does not already own
+        migrateAnonPrefsOnConnect(localStorage, address);
 
         const saved = localStorage.getItem(storageKey);
         if (saved) {
@@ -2529,12 +2578,11 @@ export default function TerminalShell({
   };
 
   const readExistingPreferences = (): Record<string, unknown> => {
-    if (!isConnected || !address) return {};
     try {
-      const raw = localStorage.getItem(`0xterm_user_${address.toLowerCase()}`);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? parsed : {};
+      return readUserPrefsBlob(
+        localStorage,
+        isConnected && address ? address : null
+      );
     } catch {
       return {};
     }
