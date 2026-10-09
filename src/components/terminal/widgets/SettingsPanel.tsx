@@ -42,6 +42,12 @@ import {
   parseImportJson,
   truncateMid
 } from "../settingsPrefs";
+import {
+  HL_BUILDER_FEE_BP_OPTIONS,
+  HL_DEFAULT_BUILDER_FEE_BP,
+  PERPS_COPY,
+  truncateAddr
+} from "../hyperliquid";
 
 const FILL_FG = "#000000";
 
@@ -207,6 +213,13 @@ export type SettingsPanelProps = {
   onActionNetworksChange?: (next: ActionNetworkOverrides) => void;
   /** Bump to scroll/focus Default network selector when opened from header (#156). */
   networkFocusNonce?: number;
+  /** Hyperliquid builder fee in bp (#190). */
+  hlBuilderFeeBp?: number;
+  onHlBuilderFeeBpChange?: (bp: number) => void;
+  hlAgentAddress?: string | null;
+  hlBuilderMaxFeeLabel?: string | null;
+  onHlRevokeAgent?: () => void;
+  onHlRevokeBuilder?: () => void | Promise<void>;
 };
 
 export default function SettingsPanel(props: SettingsPanelProps) {
@@ -235,7 +248,13 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     onDefaultChainChange,
     actionNetworks = {},
     onActionNetworksChange,
-    networkFocusNonce = 0
+    networkFocusNonce = 0,
+    hlBuilderFeeBp = HL_DEFAULT_BUILDER_FEE_BP,
+    onHlBuilderFeeBpChange,
+    hlAgentAddress = null,
+    hlBuilderMaxFeeLabel = null,
+    onHlRevokeAgent,
+    onHlRevokeBuilder
   } = props;
 
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
@@ -1317,6 +1336,118 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           </div>
         )}
       </section>
+      </div>
+
+      <div className="space-y-3">
+        <SettingsGroupHeading
+          theme={theme}
+          title="HYPERLIQUID"
+          hint={PERPS_COPY.settingsHint}
+        />
+        <section className="space-y-1.5">
+          <SectionLabel theme={theme}>Builder fee rate (bp)</SectionLabel>
+          <div className="flex flex-wrap gap-1" data-testid="settings-hl-fee-chips">
+            {HL_BUILDER_FEE_BP_OPTIONS.map((bp) => {
+              const active = hlBuilderFeeBp === bp;
+              return (
+                <button
+                  key={bp}
+                  type="button"
+                  data-testid={`settings-hl-fee-${bp}`}
+                  onClick={() => onHlBuilderFeeBpChange?.(bp)}
+                  className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] rounded-none border ${
+                    active
+                      ? "border-transparent font-bold"
+                      : `${theme.border} ${theme.muted} bg-transparent`
+                  }`}
+                  style={
+                    active
+                      ? { background: theme.phosphor, color: FILL_FG }
+                      : undefined
+                  }
+                >
+                  {bp}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <section className="space-y-1.5">
+          <SectionLabel theme={theme}>Agent</SectionLabel>
+          {hlAgentAddress ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[11px]" data-testid="settings-hl-agent">
+                {truncateAddr(hlAgentAddress)}
+              </span>
+              {pendingRemove === "hl-agent" ? (
+                <div className="flex gap-1">
+                  <PhosphorChip
+                    theme={theme}
+                    label="Confirm"
+                    warn
+                    onClick={() => {
+                      onHlRevokeAgent?.();
+                      setPendingRemove(null);
+                    }}
+                  />
+                  <GhostChip
+                    theme={theme}
+                    label="Cancel"
+                    onClick={() => setPendingRemove(null)}
+                  />
+                </div>
+              ) : (
+                <GhostChip
+                  theme={theme}
+                  label="REVOKE"
+                  onClick={() => setPendingRemove("hl-agent")}
+                />
+              )}
+            </div>
+          ) : (
+            <div className={theme.muted} data-testid="settings-hl-agent-empty">
+              {PERPS_COPY.noAgent}
+            </div>
+          )}
+        </section>
+        <section className="space-y-1.5">
+          <SectionLabel theme={theme}>Builder approval</SectionLabel>
+          {hlBuilderMaxFeeLabel ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[11px]" data-testid="settings-hl-builder">
+                max {hlBuilderMaxFeeLabel}
+              </span>
+              {pendingRemove === "hl-builder" ? (
+                <div className="flex gap-1">
+                  <PhosphorChip
+                    theme={theme}
+                    label="Confirm"
+                    warn
+                    onClick={() => {
+                      void onHlRevokeBuilder?.();
+                      setPendingRemove(null);
+                    }}
+                  />
+                  <GhostChip
+                    theme={theme}
+                    label="Cancel"
+                    onClick={() => setPendingRemove(null)}
+                  />
+                </div>
+              ) : (
+                <GhostChip
+                  theme={theme}
+                  label="REVOKE"
+                  onClick={() => setPendingRemove("hl-builder")}
+                />
+              )}
+            </div>
+          ) : (
+            <div className={theme.muted} data-testid="settings-hl-builder-empty">
+              {PERPS_COPY.noBuilder}
+            </div>
+          )}
+        </section>
       </div>
 
       <div className="space-y-3">

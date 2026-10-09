@@ -31,6 +31,8 @@ export default defineConfig({
         "src/components/terminal/widgets/DigDebugWidget.tsx",
         // Settings panel (#81): presentational chrome; pure helpers in settingsPrefs.ts
         "src/components/terminal/widgets/SettingsPanel.tsx",
+        // PERPS chrome (#190) — logic in hyperliquid/* unit tests
+        "src/components/terminal/widgets/PerpsPanel.tsx",
         // localhost-only marketing page — pure presentational; prod landing is 0xterm-dot-xyz
         "src/app/page.tsx",
         // app entry — thin host gate; TerminalApp holds shell wiring (#78)

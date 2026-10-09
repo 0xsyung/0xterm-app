@@ -63,5 +63,13 @@ forge test
 
 ---
 
+## **Environment**
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_HL_BUILDER_ADDRESS` | 0xterm Hyperliquid **builder** address that receives fee share on routed PERPS fills (#190). Must be a funded (≥100 USDC) standard-AA perps account. Until set, the app uses the zero-address placeholder and builder approval / order routing will fail on-chain. Testnet-first (API `api.hyperliquid-testnet.xyz`, HyperEVM 998). |
+
+---
+
 ## **License**
 This project is licensed under the MIT License.

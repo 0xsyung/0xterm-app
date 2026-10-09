@@ -6,7 +6,7 @@
  */
 import { createAppKit } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { mainnet, arbitrum, base, polygon, optimism, sepolia, arbitrumSepolia, baseSepolia, polygonAmoy, optimismSepolia } from '@reown/appkit/networks'
+import { mainnet, arbitrum, base, polygon, optimism, sepolia, arbitrumSepolia, baseSepolia, polygonAmoy, optimismSepolia, hyperliquid, hyperliquidEvmTestnet } from '@reown/appkit/networks'
 import type { AppKitNetwork } from '@reown/appkit/networks'
 
 const projectId = '5b2bbdbe0deaa155601b8aaa96f96aaf'
@@ -21,7 +21,9 @@ const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   polygon as AppKitNetwork,
   polygonAmoy as AppKitNetwork,
   optimism as AppKitNetwork,
-  optimismSepolia as AppKitNetwork
+  optimismSepolia as AppKitNetwork,
+  hyperliquid as AppKitNetwork,
+  hyperliquidEvmTestnet as AppKitNetwork
 ]
 
 const wagmiAdapter = new WagmiAdapter({

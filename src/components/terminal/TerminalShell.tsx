@@ -14,6 +14,7 @@ import {
   useDisconnect,
   useSwitchChain,
   useSignMessage,
+  useSignTypedData,
   useWriteContract,
   useWalletClient,
   useSendTransaction
@@ -415,6 +416,17 @@ import SwapPanel, {
   type SwapRunResult
 } from "./widgets/SwapPanel";
 import NewsPanel from "./widgets/NewsPanel";
+import PerpsPanel, { revokeLocalAgent } from "./widgets/PerpsPanel";
+import {
+  HL_DEFAULT_BUILDER_FEE_BP,
+  HL_DEFAULT_NETWORK,
+  getStoredAgentKey,
+  hlSignatureChainId,
+  networkFromEvmChainId,
+  parseBuilderFeeBp,
+  postRevokeBuilderFee,
+  type HlNetwork
+} from "./hyperliquid";
 import {
   applyPostCountPoll,
   applyThreadPoll,
@@ -767,6 +779,9 @@ export default function TerminalShell({
   );
   // Re-clicking the active NEWS tab force-refreshes the panel.
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
+  const [hlBuilderFeeBp, setHlBuilderFeeBp] = useState<number>(HL_DEFAULT_BUILDER_FEE_BP);
+  const [hlAgentAddress, setHlAgentAddress] = useState<string | null>(null);
+  const [hlBuilderMaxFeeLabel, setHlBuilderMaxFeeLabel] = useState<string | null>(null);
 
   // Pending interactive confirmation (e.g. register an unverified contract).
   // When set, the next Enter routes the typed input through this resolver.
@@ -819,6 +834,7 @@ export default function TerminalShell({
   const { disconnect } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const { signMessageAsync } = useSignMessage();
+  const { signTypedDataAsync } = useSignTypedData();
   const { writeContractAsync } = useWriteContract();
 
   const { open } = useAppKit();
@@ -834,6 +850,23 @@ export default function TerminalShell({
   }, [logs]);
 
   const generateId = () => Math.random().toString(36).substring(2, 9);
+
+  // Hyperliquid agent address for Settings (#190)
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setHlAgentAddress(null);
+      setHlBuilderMaxFeeLabel(null);
+      return;
+    }
+    const network = networkFromEvmChainId(activeChainId) || HL_DEFAULT_NETWORK;
+    const stored = getStoredAgentKey(
+      typeof window !== "undefined" ? window.localStorage : null,
+      address,
+      network
+    );
+    setHlAgentAddress(stored?.address ?? null);
+  }, [isConnected, address, activeChainId]);
+
 
   /** PR #157 must-fix: put the wallet on the resolved action chain before a
    *  write (switchChainAsync). Writes also pass `chainId` so wagmi hard-stops
@@ -1471,6 +1504,9 @@ export default function TerminalShell({
     if (typeof anon.theme === "string") {
       onThemeChange(resolveThemeKey(anon.theme));
     }
+    if (anon.hlBuilderFeeBp != null) {
+      setHlBuilderFeeBp(parseBuilderFeeBp(anon.hlBuilderFeeBp));
+    }
     anonThemeApplied.current = true;
   }, [isConnected, address, onThemeChange]);
 
@@ -1505,6 +1541,10 @@ export default function TerminalShell({
             const themeKey = resolveThemeKey(prefs.theme);
             onThemeChange(themeKey);
             loadedDetails.push(`Theme: ${THEMES[themeKey].name}`);
+          }
+
+          if (prefs.hlBuilderFeeBp != null) {
+            setHlBuilderFeeBp(parseBuilderFeeBp(prefs.hlBuilderFeeBp));
           }
 
           if (prefs.mode && isTerminalMode(prefs.mode)) {
@@ -6420,7 +6460,18 @@ export default function TerminalShell({
         };
       }
     },
-    news: async (args) => {
+    perps: async () => {
+      if (terminalMode !== "invest") {
+        applyTerminalMode("invest");
+      }
+      setOpenPanel("perps");
+      return {
+        id: generateId(),
+        type: "text",
+        text: "[✓] PERPS — Hyperliquid order ticket"
+      };
+    },
+        news: async (args) => {
       const parsed = parseNewsCommand(args);
 
       if (parsed.op === "pin") {
@@ -8504,6 +8555,32 @@ export default function TerminalShell({
             frameless
           />
         );
+      case "perps":
+        return (
+          <PerpsPanel
+            theme={theme}
+            onClose={close}
+            frameless
+            isConnected={!!isConnected && !!address}
+            walletAddress={address ?? null}
+            activeChainId={activeChainId}
+            builderFeeBp={hlBuilderFeeBp}
+            signTypedDataAsync={async (args) =>
+              signTypedDataAsync({
+                domain: args.domain as any,
+                types: args.types as any,
+                primaryType: args.primaryType as any,
+                message: args.message as any
+              })
+            }
+            ensureSignatureChain={async (network: HlNetwork) => {
+              const target = hlSignatureChainId(network);
+              const ensured = await ensureWalletChain(target);
+              if (!ensured.ok) return { ok: false as const, error: ensured.error };
+              return { ok: true as const };
+            }}
+          />
+        );
       case "sim":
         return (
           <SimPanel
@@ -8702,6 +8779,43 @@ export default function TerminalShell({
               actionNetworks={actionNetworks}
               onActionNetworksChange={handleActionNetworksChange}
               networkFocusNonce={networkFocusNonce}
+              hlBuilderFeeBp={hlBuilderFeeBp}
+              onHlBuilderFeeBpChange={(bp) => {
+                setHlBuilderFeeBp(bp);
+                savePreference("hlBuilderFeeBp", bp);
+              }}
+              hlAgentAddress={hlAgentAddress}
+              hlBuilderMaxFeeLabel={hlBuilderMaxFeeLabel}
+              onHlRevokeAgent={() => {
+                if (!address) return;
+                const network =
+                  networkFromEvmChainId(activeChainId) || HL_DEFAULT_NETWORK;
+                revokeLocalAgent(
+                  typeof window !== "undefined" ? window.localStorage : null,
+                  address,
+                  network
+                );
+                setHlAgentAddress(null);
+              }}
+              onHlRevokeBuilder={async () => {
+                if (!address) return;
+                const network =
+                  networkFromEvmChainId(activeChainId) || HL_DEFAULT_NETWORK;
+                const target = hlSignatureChainId(network);
+                const ensured = await ensureWalletChain(target);
+                if (!ensured.ok) return;
+                const result = await postRevokeBuilderFee({
+                  network,
+                  signTypedDataAsync: async (args) =>
+                    signTypedDataAsync({
+                      domain: args.domain as any,
+                      types: args.types as any,
+                      primaryType: args.primaryType as any,
+                      message: args.message as any
+                    })
+                });
+                if (result.ok) setHlBuilderMaxFeeLabel(null);
+              }}
             />
           </div>
         ) : (

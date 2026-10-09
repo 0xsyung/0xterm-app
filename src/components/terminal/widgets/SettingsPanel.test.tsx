@@ -39,11 +39,12 @@ const baseProps = {
 };
 
 describe("SettingsPanel groups (#140 B4 / #156)", () => {
-  it("wraps sections in NETWORK, WALLET, and TERMINAL with updated NETWORK hint", () => {
+  it("wraps sections in NETWORK, WALLET, HYPERLIQUID, and TERMINAL with updated NETWORK hint", () => {
     render(<SettingsPanel {...baseProps} />);
 
     const network = screen.getByTestId("settings-group-network");
     const wallet = screen.getByTestId("settings-group-wallet");
+    const hyperliquid = screen.getByTestId("settings-group-hyperliquid");
     const terminal = screen.getByTestId("settings-group-terminal");
 
     expect(network.textContent).toMatch(/NETWORK/);
@@ -55,6 +56,9 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
     expect(hint.className).toContain(theme.muted);
     expect(wallet.textContent).toContain(
       "Tokens and chat channels saved on this wallet."
+    );
+    expect(hyperliquid.textContent).toContain(
+      "Builder fee, agent, and approvals. Keys stay in-browser — no export."
     );
     expect(terminal.textContent).toContain("Look, start mode, and backup.");
 
@@ -68,6 +72,7 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
       "WALLET",
       "Custom tokens",
       "Channels",
+      "HYPERLIQUID",
       "TERMINAL",
       "Theme",
       "Default mode",

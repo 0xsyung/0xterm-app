@@ -165,6 +165,8 @@ describe("chainShortName + HEADER metrics (#121)", () => {
     expect(chainShortName({ id: 1, name: "Ethereum" })).toBe("ETH");
     expect(chainShortName({ id: 8453, name: "Base" })).toBe("BASE");
     expect(chainShortName({ id: 11155111, name: "Sepolia" })).toBe("SEPOLIA");
+    expect(chainShortName({ id: 999, name: "HyperEVM" })).toBe("HYPE");
+    expect(chainShortName({ id: 998, name: "Hyperliquid EVM Testnet" })).toBe("HYPE TEST");
   });
 
   it("HEADER_H/PAD use 48px desktop soft target", () => {

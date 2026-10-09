@@ -14,7 +14,9 @@ import {
   arbitrumSepolia,
   baseSepolia,
   polygonAmoy,
-  optimismSepolia
+  optimismSepolia,
+  hyperEvm,
+  hyperliquidEvmTestnet
 } from 'viem/chains'
 import { namehash, parseAbi, type Address, type Chain } from 'viem'
 import type { DexProtocol, ThemeConfig, ThemeMode, VaultEntry } from './types'
@@ -222,7 +224,9 @@ export function chainShortName(chain: { id: number; name: string }): string {
     137: 'POLYGON',
     80002: 'AMOY',
     10: 'OP',
-    11155420: 'OP SEP'
+    11155420: 'OP SEP',
+    999: 'HYPE',
+    998: 'HYPE TEST'
   }
   return SHORT[chain.id] || chain.name.toUpperCase().slice(0, 10)
 }
@@ -231,7 +235,9 @@ export function chainShortName(chain: { id: number; name: string }): string {
 export function chainFullName(chain: { id: number; name: string }): string {
   const FULL: Record<number, string> = {
     10: 'Optimism',
-    11155420: 'Optimism Sepolia'
+    11155420: 'Optimism Sepolia',
+    999: 'HyperEVM',
+    998: 'Hyperliquid EVM Testnet'
   }
   return FULL[chain.id] || chain.name
 }
@@ -269,7 +275,9 @@ export const SUPPORTED_CHAINS: Chain[] = [
   polygon,
   polygonAmoy,
   optimism,
-  optimismSepolia
+  optimismSepolia,
+  hyperEvm,
+  hyperliquidEvmTestnet
 ]
 
 export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -303,7 +311,10 @@ export const DEXSCREENER_CHAIN: Record<number, string> = {
   137: "polygon-pos",
   80002: "polygon-pos",
   10: "optimism",
-  11155420: "optimism"
+  11155420: "optimism",
+  // HyperEVM — DexScreener slug when/if listed; safe no-op for PRICE until then
+  999: "hyperevm",
+  998: "hyperevm"
 }
 
 // V3 `routerVersion` (#154): the original SwapRouter
@@ -674,6 +685,12 @@ export const resolveChain = (query?: string): Chain | undefined => {
   }
   if (['sepolia', 'eth sep', 'ethereum sepolia'].includes(q)) {
     return SUPPORTED_CHAINS.find(c => c.id === 11155111)
+  }
+  if (['hype', 'hyperevm', 'hyperliquid', '999'].includes(q)) {
+    return SUPPORTED_CHAINS.find(c => c.id === 999)
+  }
+  if (['hype test', 'hyperliquid-testnet', 'hyperliquid testnet', 'hype testnet', '998'].includes(q)) {
+    return SUPPORTED_CHAINS.find(c => c.id === 998)
   }
 
   return SUPPORTED_CHAINS.find(c => c.id.toString() === q || c.name.toLowerCase().includes(q))
