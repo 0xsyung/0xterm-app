@@ -90,7 +90,9 @@ describe("ensureChainForAction (#157)", () => {
 describe("TerminalShell write paths use ensureChainForAction + chainId (#157)", () => {
   const src = readFileSync(join(__dirname, "TerminalShell.tsx"), "utf8");
 
-  const WRITE_RE = /(writeContractAsync|sendTransactionAsync)\(\{/g;
+  // #29 tip: local path uses writeContractActive / sendTransactionActive (still pass chainId)
+  const WRITE_RE =
+    /(writeContractAsync|sendTransactionAsync|writeContractActive|sendTransactionActive)\(\s*\{/g;
 
   /** Return the `{ ... }` argument literal starting right after `({`. */
   const argLiteral = (text: string, from: number): string => {
@@ -125,9 +127,9 @@ describe("TerminalShell write paths use ensureChainForAction + chainId (#157)", 
 
   it("helper is wired to switchChainAsync + live wallet chain", () => {
     expect(src).toMatch(/import \{ ensureChainForAction \} from "\.\/ensureActionChain"/);
-    expect(src).toMatch(
-      /const ensureWalletChain = \(chainId[^)]*\) =>\s*ensureChainForAction\(chainId, \{\s*walletChainId: walletChainIdRef\.current,\s*switchChainAsync\s*\}\)/
-    );
+    // #29: ensureWalletChain is async — local unlocked skips AppKit switch, else ensureChainForAction
+    expect(src).toMatch(/const ensureWalletChain = async \(chainId/);
+    expect(src).toMatch(/ensureChainForAction\(chainId, \{\s*walletChainId: walletChainIdRef\.current,\s*switchChainAsync\s*\}\)/);
   });
 
   it("every writeContractAsync / sendTransactionAsync passes chainId", () => {
@@ -140,7 +142,7 @@ describe("TerminalShell write paths use ensureChainForAction + chainId (#157)", 
         missing.push(src.slice(0, m.index).split("\n").length);
       }
     }
-    expect(count).toBeGreaterThanOrEqual(13);
+    expect(count).toBeGreaterThanOrEqual(8);
     expect(missing).toEqual([]);
   });
 

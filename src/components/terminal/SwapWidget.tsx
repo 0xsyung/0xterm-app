@@ -41,6 +41,20 @@ type SwapWidgetProps = {
   approvalAddress?: Address;
   estimatedGasUsd?: string;
   theme: ThemeConfig;
+  /** #29 — when set, use these instead of wagmi (local wallet path). */
+  writeContract?: (args: {
+    chainId: number;
+    address: Address;
+    abi: readonly unknown[];
+    functionName: string;
+    args?: readonly unknown[];
+  }) => Promise<`0x${string}`>;
+  sendTransaction?: (args: {
+    chainId: number;
+    to: Address;
+    data?: `0x${string}`;
+    value?: bigint;
+  }) => Promise<`0x${string}`>;
 };
 
 export default function SwapWidget({
@@ -56,7 +70,9 @@ export default function SwapWidget({
   transactionRequest,
   approvalAddress,
   estimatedGasUsd,
-  theme
+  theme,
+  writeContract: writeContractOverride,
+  sendTransaction: sendTransactionOverride
 }: SwapWidgetProps) {
   const [status, setStatus] = useState<
     | "idle"
@@ -113,13 +129,22 @@ export default function SwapWidget({
     setErrorMsg(null);
 
     try {
-      const hash = await writeContractAsync({
+      const approveArgs = {
         chainId: targetChain.id,
         address: fromToken.address,
-        abi: erc20Abi,
+        abi: erc20Abi as readonly unknown[],
         functionName: "approve",
-        args: [approvalAddress, amountInWei]
-      });
+        args: [approvalAddress, amountInWei] as const
+      };
+      const hash = writeContractOverride
+        ? await writeContractOverride(approveArgs)
+        : await writeContractAsync({
+            chainId: approveArgs.chainId,
+            address: approveArgs.address,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [approvalAddress, amountInWei]
+          });
 
       setStatus("waiting_approval_confirmation");
       if (publicClient) {
@@ -142,12 +167,15 @@ export default function SwapWidget({
     setErrorMsg(null);
 
     try {
-      const hash = await sendTransactionAsync({
+      const sendArgs = {
         chainId: targetChain.id,
         to: transactionRequest.to,
         data: transactionRequest.data,
         value: BigInt(transactionRequest.value || "0x0")
-      });
+      };
+      const hash = sendTransactionOverride
+        ? await sendTransactionOverride(sendArgs)
+        : await sendTransactionAsync(sendArgs);
 
       setTxHash(hash);
       setStatus("waiting_swap_confirmation");

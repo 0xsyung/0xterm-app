@@ -270,6 +270,7 @@ import WalletWidget, {
 import {
   addAccount,
   getEnvelope,
+  getSignerPref,
   getSelectedAddress,
   getUnlocked,
   hasVault,
@@ -285,6 +286,13 @@ import {
 import { redactWalletCommand } from "../../lib/localWallet/redact";
 import { resolveChipState, getSigner } from "../../lib/getSigner";
 import { buildProfileExport } from "../../lib/localWallet/exportOmit";
+import {
+  buildWriteConfirm,
+  hasActiveWallet,
+  localSendTransaction,
+  localWriteContract
+} from "../../lib/localWallet/activeWrite";
+import type { WalletTxConfirmPayload } from "./widgets/WalletWidget";
 import {
   formatProbeReport,
   probeCoreFunctions,
@@ -917,11 +925,26 @@ export default function TerminalShell({
   /** PR #157 must-fix: put the wallet on the resolved action chain before a
    *  write (switchChainAsync). Writes also pass `chainId` so wagmi hard-stops
    *  on mismatch. See ensureActionChain.ts. */
-  const ensureWalletChain = (chainId: number | null | undefined) =>
-    ensureChainForAction(chainId, {
+  const ensureWalletChain = async (chainId: number | null | undefined) => {
+    // #29 — local signer does not need AppKit switchChain; terminal chain is source of truth.
+    if (isUnlocked() && getSignerPref() !== "injected") {
+      if (chainId == null)
+        return { ok: false as const, error: "[!] Set a network first." };
+      if (activeChainId != null && activeChainId !== chainId) {
+        const name =
+          SUPPORTED_CHAINS.find((c) => c.id === chainId)?.name || String(chainId);
+        return {
+          ok: false as const,
+          error: `[!] Switch terminal network to ${name} (${chainId}) before signing with the local wallet.`
+        };
+      }
+      return { ok: true as const, chainId, switched: false };
+    }
+    return ensureChainForAction(chainId, {
       walletChainId: walletChainIdRef.current,
       switchChainAsync
     });
+  };
 
   // --- Pin / unpin (floating right column) --------------------------------
   // Toggle a log entry between the main feed and the pinned column. `refresh`
@@ -1807,15 +1830,18 @@ export default function TerminalShell({
             [BigInt(chain.id), getAddress(address) as Address, bytesToHex(myPair.publicKey)]
           )
         );
-        const popSig = await signMessageAsync({ message: { raw: popDigest } });
+        const popSig = await signMessageActive({ raw: popDigest });
         const { v, r, s } = splitSignature(popSig);
-        await writeContractAsync({
-          chainId: chain.id,
-          address: contract as Address,
-          abi: chatAbi,
-          functionName: "setPublicKey",
-          args: [bytesToHex(myPair.publicKey), v, r, s]
-        });
+        await writeContractActive(
+          {
+            chainId: chain.id,
+            address: contract as Address,
+            abi: chatAbi,
+            functionName: "setPublicKey",
+            args: [bytesToHex(myPair.publicKey), v, r, s]
+          },
+          "chat setPublicKey"
+        );
       }
 
       const peerKey = (await client.readContract({
@@ -1844,19 +1870,22 @@ export default function TerminalShell({
         functionName: "fee"
       });
 
-      const hash = await writeContractAsync({
-        chainId: chain.id,
-        address: contract as Address,
-        abi: chatAbi,
-        functionName: "sendMessage",
-        args: [
-          recipient,
-          bytesToHex(iv),
-          bytesToHex(myPair.publicKey),
-          bytesToHex(ciphertext)
-        ],
-        value: fee as bigint
-      });
+      const hash = await writeContractActive(
+        {
+          chainId: chain.id,
+          address: contract as Address,
+          abi: chatAbi,
+          functionName: "sendMessage",
+          args: [
+            recipient,
+            bytesToHex(iv),
+            bytesToHex(myPair.publicKey),
+            bytesToHex(ciphertext)
+          ],
+          value: fee as bigint
+        },
+        "feedback sendMessage"
+      );
 
       const replies: LogEntry[] = [
         {
@@ -4788,11 +4817,11 @@ export default function TerminalShell({
               (DEX_REGISTRY[runChainId] || []).some((d) => d.id === activeDexId)
             ? activeDexId
             : (DEX_REGISTRY[runChainId]?.[0]?.id ?? null);
-      if (!isConnected || !address)
+      if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
         return {
           id: generateId(),
           type: "text",
-          text: "Wallet not connected."
+          text: "Wallet not connected. Type connect or wallet create."
         };
       if (!runChainId || !runDexId)
         return {
@@ -4837,11 +4866,11 @@ export default function TerminalShell({
       };
     },
     initialize: async (args) => {
-      if (!isConnected || !address)
+      if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
         return {
           id: generateId(),
           type: "text",
-          text: "Wallet not connected."
+          text: "Wallet not connected. Type connect or wallet create."
         };
       if (!activeChainId || !activeDexId)
         return {
@@ -4960,11 +4989,11 @@ export default function TerminalShell({
               (DEX_REGISTRY[runChainId] || []).some((d) => d.id === activeDexId)
             ? activeDexId
             : (DEX_REGISTRY[runChainId]?.[0]?.id ?? null);
-      if (!isConnected || !address)
+      if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
         return {
           id: generateId(),
           type: "text",
-          text: "Wallet not connected."
+          text: "Wallet not connected. Type connect or wallet create."
         };
       if (!runChainId || !runDexId)
         return {
@@ -5002,7 +5031,7 @@ export default function TerminalShell({
         id: generateId(),
         type: "addliq",
         payload: {
-          userAddress: address,
+          userAddress: (effectiveAddress || address) as Address,
           targetChain,
           activeDex,
           tokenA,
@@ -5024,11 +5053,11 @@ export default function TerminalShell({
               (DEX_REGISTRY[runChainId] || []).some((d) => d.id === activeDexId)
             ? activeDexId
             : (DEX_REGISTRY[runChainId]?.[0]?.id ?? null);
-      if (!isConnected || !address)
+      if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
         return {
           id: generateId(),
           type: "text",
-          text: "Wallet not connected."
+          text: "Wallet not connected. Type connect or wallet create."
         };
       if (!runChainId || !runDexId)
         return {
@@ -5209,7 +5238,7 @@ export default function TerminalShell({
               "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable"
             ]),
             functionName: "swapExactETHForTokens",
-            args: [amountOutMin, [addrIn, addrOut], address, deadline]
+            args: [amountOutMin, [addrIn, addrOut], (effectiveAddress || address) as Address, deadline]
           });
           txValue = toHex(amountInWei);
         } else if (toToken.isNative) {
@@ -5220,7 +5249,7 @@ export default function TerminalShell({
               "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)"
             ]),
             functionName: "swapExactTokensForETH",
-            args: [amountInWei, amountOutMin, [addrIn, addrOut], address, deadline]
+            args: [amountInWei, amountOutMin, [addrIn, addrOut], (effectiveAddress || address) as Address, deadline]
           });
           approvalAddress = activeDex.router;
         } else {
@@ -5229,7 +5258,7 @@ export default function TerminalShell({
               "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)"
             ]),
             functionName: "swapExactTokensForTokens",
-            args: [amountInWei, amountOutMin, [addrIn, addrOut], address, deadline]
+            args: [amountInWei, amountOutMin, [addrIn, addrOut], (effectiveAddress || address) as Address, deadline]
           });
           approvalAddress = activeDex.router;
         }
@@ -5239,7 +5268,7 @@ export default function TerminalShell({
           tokenIn: addrIn,
           tokenOut: addrOut,
           fee: feeTier,
-          recipient: address,
+          recipient: (effectiveAddress || address) as Address,
           deadline,
           amountIn: amountInWei,
           amountOutMinimum: amountOutMin,
@@ -5249,9 +5278,10 @@ export default function TerminalShell({
         else approvalAddress = activeDex.router;
       }
 
+      const swapAddr = (effectiveAddress || address) as Address;
       const swapWidget = (
         <SwapWidget
-          userAddress={address}
+          userAddress={swapAddr}
           targetChain={targetChain}
           fromToken={fromToken}
           toToken={toToken}
@@ -5267,6 +5297,29 @@ export default function TerminalShell({
           }}
           approvalAddress={approvalAddress}
           theme={theme}
+          writeContract={(wArgs) =>
+            writeContractActive(
+              {
+                chainId: wArgs.chainId,
+                address: wArgs.address,
+                abi: wArgs.abi,
+                functionName: wArgs.functionName,
+                args: wArgs.args
+              },
+              `approve ${fromToken.symbol}`
+            )
+          }
+          sendTransaction={(sArgs) =>
+            sendTransactionActive(
+              {
+                chainId: sArgs.chainId,
+                to: sArgs.to,
+                data: sArgs.data,
+                value: sArgs.value
+              },
+              `swap ${args[1]} ${fromToken.symbol}→${toToken.symbol}`
+            )
+          }
         />
       );
 
@@ -6739,8 +6792,8 @@ export default function TerminalShell({
       const sub = args[1]?.toLowerCase();
 
       if (sub === "set" || sub === "clear") {
-        if (!isConnected || !address)
-          return { id: generateId(), type: "text", text: "[!] Connect a wallet to manage ENS records." };
+        if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
+          return { id: generateId(), type: "text", text: "[!] Connect a wallet or unlock local wallet to manage ENS records." };
 
         const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
         if (!chain)
@@ -6759,7 +6812,7 @@ export default function TerminalShell({
             text: "[!] The 0xterm ENS registry is testnet-only; mainnet uses the canonical ENS."
           };
 
-        const who = getAddress(address);
+        const who = getAddress((effectiveAddress || address)!);
         const doWrite = async (
           fn: "setRecord" | "clearRecord",
           writeArgs:
@@ -6771,13 +6824,16 @@ export default function TerminalShell({
           if (!onChain.ok)
             return { id: generateId(), type: "text", warn: true, text: onChain.error };
           try {
-            const hash = await writeContractAsync({
-              chainId: chain.id,
-              address: contract as Address,
-              abi: ensRegistryAbi,
-              functionName: fn,
-              args: writeArgs
-            });
+            const hash = await writeContractActive(
+              {
+                chainId: chain.id,
+                address: contract as Address,
+                abi: ensRegistryAbi,
+                functionName: fn,
+                args: writeArgs
+              },
+              `ens ${fn}`
+            );
             return [
               { id: generateId(), type: "text", text: `[✓] ${label}` },
               { id: generateId(), type: "text", text: `   tx: ${hash}` }
@@ -6866,8 +6922,9 @@ export default function TerminalShell({
     },
     chat: async (args) => {
       const { chainId: activeChainId } = beginActionNetwork("chat");
-      if (!isConnected || !address)
-        return { id: generateId(), type: "text", text: "[!] Connect a wallet to send chat messages." };
+      if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
+        return { id: generateId(), type: "text", text: "[!] Connect a wallet or unlock local wallet to send chat messages." };
+      const meAddr = (effectiveAddress || address) as Address;
       if (args.length < 3)
         return {
           id: generateId(),
@@ -6913,26 +6970,29 @@ export default function TerminalShell({
           address: contract as Address,
           abi: chatAbi,
           functionName: "getPublicKey",
-          args: [address as Address]
+          args: [meAddr]
         })) as `0x${string}`;
         if (!myRegistered || myRegistered === "0x" || myRegistered === "0x0") {
           const popDigest = keccak256(
             encodePacked(
               ["uint256", "address", "bytes"],
-              [BigInt(chain.id), getAddress(address) as Address, bytesToHex(myPair.publicKey)]
+              [BigInt(chain.id), getAddress(meAddr) as Address, bytesToHex(myPair.publicKey)]
             )
           );
           // sign the raw digest (raw: Hex → no personal-sign prefix, so the
           // contract's ecrecover over the raw keccak matches).
-          const popSig = await signMessageAsync({ message: { raw: popDigest } });
+          const popSig = await signMessageActive({ raw: popDigest });
           const { v, r, s } = splitSignature(popSig);
-          await writeContractAsync({
+          await writeContractActive(
+          {
             chainId: chain.id,
             address: contract as Address,
             abi: chatAbi,
             functionName: "setPublicKey",
             args: [bytesToHex(myPair.publicKey), v, r, s]
-          });
+          },
+          "chat setPublicKey"
+        );
         }
 
         // the recipient's key comes from the on-chain registry — no out-of-band
@@ -6963,19 +7023,22 @@ export default function TerminalShell({
           functionName: "fee"
         });
 
-        const hash = await writeContractAsync({
-          chainId: chain.id,
-          address: contract as Address,
-          abi: chatAbi,
-          functionName: "sendMessage",
-          args: [
-            recipient as Address,
-            bytesToHex(iv),
-            bytesToHex(myPair.publicKey),
-            bytesToHex(ciphertext)
-          ],
-          value: fee
-        });
+        const hash = await writeContractActive(
+          {
+            chainId: chain.id,
+            address: contract as Address,
+            abi: chatAbi,
+            functionName: "sendMessage",
+            args: [
+              recipient as Address,
+              bytesToHex(iv),
+              bytesToHex(myPair.publicKey),
+              bytesToHex(ciphertext)
+            ],
+            value: fee as bigint
+          },
+          "chat sendMessage"
+        );
 
         const replies: LogEntry[] = [
           {
@@ -7179,8 +7242,8 @@ export default function TerminalShell({
       const sub = args[1]?.toLowerCase();
 
       if (sub === "post") {
-        if (!isConnected || !address)
-          return { id: generateId(), type: "text", text: "[!] Connect a wallet to post to the board." };
+        if (!hasActiveWallet({ localUnlocked: isUnlocked(), injectedConnected: !!isConnected && !!address }))
+          return { id: generateId(), type: "text", text: "[!] Connect a wallet or unlock local wallet to post to the board." };
         const content = args.slice(2).join(" ").trim();
         if (!content)
           return {
@@ -7198,14 +7261,17 @@ export default function TerminalShell({
             abi: billboardAbi,
             functionName: "fee"
           });
-          const hash = await writeContractAsync({
-            chainId: chain.id,
-            address: contract as Address,
-            abi: billboardAbi,
-            functionName: "post",
-            args: [content],
-            value: fee
-          });
+          const hash = await writeContractActive(
+            {
+              chainId: chain.id,
+              address: contract as Address,
+              abi: billboardAbi,
+              functionName: "post",
+              args: [content],
+              value: fee as bigint
+            },
+            `board post`
+          );
           return [
             {
               id: generateId(),
@@ -8115,6 +8181,167 @@ export default function TerminalShell({
         />
       )
     };
+  };
+
+
+  const resolveRpcUrl = (chain: Chain): string | null => {
+    const chainProviders = rpcProviders[chain.id] || {};
+    const activeName = activeRpcProviders[chain.id] || "default";
+    const url = chainProviders[activeName];
+    if (!url || activeName === "default") return null;
+    return url;
+  };
+
+  const requestTxConfirm = (
+    tx: WalletTxConfirmPayload
+  ): Promise<"sign" | "cancel"> =>
+    new Promise((resolve) => {
+      const id = generateId();
+      const dismiss = () =>
+        setLogs((prev) => prev.filter((l) => l.id !== id));
+      setLogs((prev) =>
+        [
+          ...prev,
+          {
+            id,
+            type: "component",
+            title: "CONFIRM TX",
+            component: (
+              <WalletWidget
+                theme={theme}
+                payload={{ mode: "txconfirm", tx }}
+                onDone={(msg) => {
+                  dismiss();
+                  resolve(msg === "sign" ? "sign" : "cancel");
+                }}
+                onCancel={() => {
+                  dismiss();
+                  resolve("cancel");
+                }}
+              />
+            )
+          } as LogEntry
+        ].slice(-MAX_LOGS)
+      );
+    });
+
+  const writeContractActive = async (
+    args: {
+      chainId: number;
+      address: Address;
+      abi: any;
+      functionName: string;
+      args?: readonly unknown[];
+      value?: bigint;
+    },
+    summary: string
+  ): Promise<`0x${string}`> => {
+    const chain = SUPPORTED_CHAINS.find((c) => c.id === args.chainId);
+    if (!chain) throw new Error(`[!] Unknown chain ${args.chainId}.`);
+    const signer = await getSigner({
+      injectedAddress: address as Address | undefined,
+      injectedConnected: !!isConnected,
+      chain,
+      rpcUrl: resolveRpcUrl(chain)
+    });
+    if (signer.kind === "injected") {
+      return writeContractAsync({
+        chainId: args.chainId,
+        address: args.address,
+        abi: args.abi,
+        functionName: args.functionName,
+        args: args.args as any,
+        value: args.value
+      });
+    }
+    // simulate first
+    try {
+      const client = getClient(chain);
+      await client.simulateContract({
+        address: args.address,
+        abi: args.abi,
+        functionName: args.functionName,
+        args: args.args as any,
+        value: args.value,
+        account: signer.address
+      });
+    } catch (err: any) {
+      const short =
+        err?.shortMessage || err?.message || String(err);
+      throw new WalletError("WALLET_SIM_FAIL", short.slice(0, 160));
+    }
+    const confirm = await requestTxConfirm({
+      ...buildWriteConfirm({
+        to: args.address,
+        summary,
+        value: args.value,
+        chain
+      }),
+      requirePassword: !!getUnlocked()?.plaintext.requirePasswordPerTx
+    });
+    if (confirm !== "sign") throw new WalletError("WALLET_TX_REJECT");
+    return localWriteContract(signer.walletClient, chain, args);
+  };
+
+  const sendTransactionActive = async (
+    args: {
+      chainId: number;
+      to: Address;
+      data?: `0x${string}`;
+      value?: bigint;
+    },
+    summary: string
+  ): Promise<`0x${string}`> => {
+    const chain = SUPPORTED_CHAINS.find((c) => c.id === args.chainId);
+    if (!chain) throw new Error(`[!] Unknown chain ${args.chainId}.`);
+    const signer = await getSigner({
+      injectedAddress: address as Address | undefined,
+      injectedConnected: !!isConnected,
+      chain,
+      rpcUrl: resolveRpcUrl(chain)
+    });
+    if (signer.kind === "injected") {
+      return sendTransactionAsync({
+        chainId: args.chainId,
+        to: args.to,
+        data: args.data,
+        value: args.value
+      });
+    }
+    try {
+      const client = getClient(chain);
+      await client.call({
+        to: args.to,
+        data: args.data,
+        value: args.value,
+        account: signer.address
+      });
+    } catch (err: any) {
+      const short = err?.shortMessage || err?.message || String(err);
+      throw new WalletError("WALLET_SIM_FAIL", short.slice(0, 160));
+    }
+    const confirm = await requestTxConfirm({
+      ...buildWriteConfirm({
+        to: args.to,
+        summary,
+        value: args.value,
+        chain
+      }),
+      requirePassword: !!getUnlocked()?.plaintext.requirePasswordPerTx
+    });
+    if (confirm !== "sign") throw new WalletError("WALLET_TX_REJECT");
+    return localSendTransaction(signer.walletClient, chain, args);
+  };
+
+  const signMessageActive = async (
+    message: string | { raw: `0x${string}` }
+  ): Promise<`0x${string}`> => {
+    if (isUnlocked() && getSignerPref() !== "injected") {
+      const account = getUnlocked()?.accounts[getUnlocked()!.selectedIndex];
+      if (!account) throw new WalletError("WALLET_LOCKED");
+      return account.signMessage({ message: message as any });
+    }
+    return signMessageAsync({ message: message as any });
   };
 
   commands.wallet = async (args) => {

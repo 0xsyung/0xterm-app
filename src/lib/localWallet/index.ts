@@ -10,3 +10,4 @@ export * from "./idb";
 export * from "./vault";
 export * from "./redact";
 export * from "./exportOmit";
+export * from "./activeWrite";

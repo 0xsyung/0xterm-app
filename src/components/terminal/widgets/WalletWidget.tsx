@@ -49,6 +49,8 @@ export type WalletTxConfirmPayload = {
   value: string;
   chainLabel: string;
   gas?: string;
+  /** When vault.requirePasswordPerTx — collect password before sign. */
+  requirePassword?: boolean;
 };
 
 export type WalletWidgetPayload = {
@@ -919,6 +921,27 @@ function TxConfirmBody({
   onDone?: (msg: string) => void;
   onCancel?: () => void;
 }) {
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const sign = async () => {
+    setErr(null);
+    if (tx.requirePassword) {
+      setBusy(true);
+      try {
+        const ok = await verifyPassword(pw);
+        if (!ok) {
+          setErr("wrong password.");
+          return;
+        }
+      } finally {
+        setBusy(false);
+      }
+    }
+    onDone?.("sign");
+  };
+
   return (
     <div className="space-y-2 font-mono">
       <div>to:      {tx.to}</div>
@@ -926,11 +949,23 @@ function TxConfirmBody({
       <div>value:   {tx.value}</div>
       <div>chain:   {tx.chainLabel}</div>
       {tx.gas && <div>gas:     {tx.gas}</div>}
+      {tx.requirePassword && (
+        <input
+          type="password"
+          className={`w-full border ${theme.border} bg-transparent px-2 py-1 ${theme.text}`}
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          placeholder="password (required for this tx)"
+          autoComplete="current-password"
+        />
+      )}
+      {err && <div className={theme.warn}>{err}</div>}
       <div className="flex gap-2 pt-2">
         <button
           type="button"
+          disabled={busy}
           className={`px-3 py-1 border ${theme.border} ${theme.primary} ${touch}`}
-          onClick={() => onDone?.("sign")}
+          onClick={() => void sign()}
         >
           sign
         </button>
