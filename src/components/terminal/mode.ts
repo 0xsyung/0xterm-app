@@ -383,6 +383,41 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["global"]
   },
   {
+    command: "wallet",
+    description: "local hot-wallet status (none / locked / unlocked)",
+    modes: ["global"]
+  },
+  {
+    command: "wallet create [--words 12|24]",
+    description: "generate BIP-39 seed, encrypt to this browser",
+    modes: ["global"]
+  },
+  {
+    command: "wallet import",
+    description: "import mnemonic or private key (never logged)",
+    modes: ["global"]
+  },
+  {
+    command: "wallet unlock | lock",
+    description: "password; idle lock default 15m",
+    modes: ["global"]
+  },
+  {
+    command: "wallet accounts | use <n|local|injected>",
+    description: "HD m/44'/60'/0'/0/n or switch signer",
+    modes: ["global"]
+  },
+  {
+    command: "wallet export | nuke",
+    description: "reveal seed (YES) or wipe vault (DELETE)",
+    modes: ["global"]
+  },
+  {
+    command: "connect",
+    description: "injected wallet (MetaMask / hardware) via AppKit",
+    modes: ["global"]
+  },
+  {
     command: "bind [<F1..F12> <command>|default|clear]",
     description:
       "List or bind F-key shortcuts — commands only, never JS (F1-F5 also shown in the header)",

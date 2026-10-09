@@ -220,6 +220,14 @@ export type SettingsPanelProps = {
   hlBuilderMaxFeeLabel?: string | null;
   onHlRevokeAgent?: () => void;
   onHlRevokeBuilder?: () => void | Promise<void>;
+  /** #29 local vault prefs (timeout + require-password-per-tx only). */
+  localVault?: {
+    unlocked: boolean;
+    timeoutMinutes: number;
+    requirePasswordPerTx: boolean;
+  } | null;
+  onLocalVaultTimeout?: (minutes: number) => void;
+  onLocalVaultRequirePasswordPerTx?: (value: boolean) => void;
 };
 
 export default function SettingsPanel(props: SettingsPanelProps) {
@@ -1050,6 +1058,45 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           title="WALLET"
           hint="Tokens and chat channels saved on this wallet."
         />
+      {/* Local vault prefs only — create/import/unlock/export/nuke stay in widgets (#29). */}
+      <section className="space-y-1.5" data-testid="settings-local-vault">
+        <SectionLabel theme={theme}>Local vault</SectionLabel>
+        {!props.localVault?.unlocked && (
+          <div className={theme.muted}>
+            Unlock with <span className={theme.primary}>wallet unlock</span> to edit idle timeout and per-tx password.
+          </div>
+        )}
+        {props.localVault?.unlocked && (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 flex-wrap">
+              <span className={theme.muted}>Idle timeout (min)</span>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                data-testid="settings-local-vault-timeout"
+                defaultValue={props.localVault.timeoutMinutes}
+                className={`w-16 border ${theme.border} ${theme.bg} ${theme.text} text-[11px] font-mono px-1`}
+                onBlur={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n)) props.onLocalVaultTimeout?.(n);
+                }}
+              />
+            </label>
+            <label className="flex items-center gap-2 pointer-coarse:min-h-[44px]">
+              <input
+                type="checkbox"
+                data-testid="settings-local-vault-require-pw"
+                checked={props.localVault.requirePasswordPerTx}
+                onChange={(e) =>
+                  props.onLocalVaultRequirePasswordPerTx?.(e.target.checked)
+                }
+              />
+              <span>Require password per tx</span>
+            </label>
+          </div>
+        )}
+      </section>
       {/* 2. Tokens */}
       <section className="space-y-1.5">
         <SectionLabel theme={theme}>Custom tokens</SectionLabel>

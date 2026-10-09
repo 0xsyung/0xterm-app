@@ -28,6 +28,7 @@ export default function TerminalPrompt({
   activeDexId,
   isConnected,
   address,
+  walletChip,
   mounted,
   isNarrow,
   chatChannelLabel,
@@ -47,6 +48,12 @@ export default function TerminalPrompt({
   activeDexId: string | null;
   isConnected: boolean;
   address: string | undefined;
+  /** #29 local wallet chip — overrides injected display when set. */
+  walletChip?:
+    | { kind: "local"; address: string }
+    | { kind: "locked" }
+    | { kind: "injected"; address: string }
+    | { kind: "none" };
   mounted: boolean;
   isNarrow?: boolean;
   /** Active chat channel chip label (name or short addr), or null → CHAT: — */
@@ -77,19 +84,45 @@ export default function TerminalPrompt({
       {/* LINE 1: Status Bar Metadata */}
       <div className="flex flex-wrap items-center justify-between text-[11px] gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          {mounted && isConnected && address ? (
-            <span
-              className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.primary}`}
-            >
-              WALLET: {address.slice(0, 6)}...{address.slice(-4)}
-            </span>
-          ) : (
-            <span
-              className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.muted}`}
-            >
-              WALLET: DISCONNECTED
-            </span>
-          )}
+          {mounted && (() => {
+            const chip = walletChip;
+            if (chip?.kind === "local") {
+              return (
+                <span
+                  className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.primary}`}
+                >
+                  WALLET: {chip.address.slice(0, 6)}…{chip.address.slice(-4)}{" "}
+                  <span className={theme.muted}>[LOCAL]</span>
+                </span>
+              );
+            }
+            if (chip?.kind === "locked") {
+              return (
+                <span
+                  className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.warn}`}
+                >
+                  WALLET: LOCKED
+                </span>
+              );
+            }
+            if (chip?.kind === "injected" || (isConnected && address)) {
+              const addr = chip?.kind === "injected" ? chip.address : address!;
+              return (
+                <span
+                  className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.primary}`}
+                >
+                  WALLET: {addr.slice(0, 6)}…{addr.slice(-4)}
+                </span>
+              );
+            }
+            return (
+              <span
+                className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.muted}`}
+              >
+                WALLET: DISCONNECTED
+              </span>
+            );
+          })()}
           {chainObj ? (
             <span
               className={`px-2 py-0.5 rounded border ${theme.border} bg-current/10 ${theme.primary}`}
