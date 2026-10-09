@@ -266,6 +266,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [importError, setImportError] = useState<string | null>(null);
   const [importConfirm, setImportConfirm] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  /** Inline under the Channels add row (#182) — statusMsg sits at panel top and is easy to miss. */
+  const [channelError, setChannelError] = useState<string | null>(null);
   const [resetAllConfirm, setResetAllConfirm] = useState(false);
   const defaultNetworkRef = useRef<HTMLDivElement>(null);
 
@@ -493,17 +495,14 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     const chainId = Number(channelDraft.chainId);
     let addr = channelDraft.address.trim();
     if (!addr || !isAddress(addr)) {
-      setStatusMsg("Channel needs a valid address.");
+      setChannelError("Channel needs a valid address.");
       return;
     }
     addr = getAddress(addr);
     const id = channelId(chainId, addr);
-    if (
-      channelStore.channels.some(
-        (c) => channelId(c.chainId, c.address) === id
-      )
-    ) {
-      setStatusMsg("Channel already saved.");
+    // Check the visible list (presets + saved), not only persisted saved rows (#182).
+    if (channels.some((c) => channelId(c.chainId, c.address) === id)) {
+      setChannelError("Channel already exists");
       return;
     }
     const ch: ChatChannel = {
@@ -512,11 +511,13 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       name: channelDraft.name.trim(),
       source: "saved"
     };
+    // #182: add only — keep current activeId so NETWORK does not silently switch.
     onChannelStoreChange({
       channels: [...channelStore.channels, ch],
-      activeId: id
+      activeId: channelStore.activeId
     });
     setChannelDraft((d) => ({ ...d, name: "", address: "" }));
+    setChannelError(null);
     setStatusMsg(null);
   };
 
@@ -1272,10 +1273,12 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1.5fr)_auto] gap-1 items-center">
           <select
             value={channelDraft.chainId}
-            onChange={(e) =>
-              setChannelDraft((d) => ({ ...d, chainId: e.target.value }))
-            }
+            onChange={(e) => {
+              setChannelError(null);
+              setChannelDraft((d) => ({ ...d, chainId: e.target.value }));
+            }}
             className={`border ${theme.border} ${theme.bg} ${theme.text} text-[11px] font-mono px-1`}
+            data-testid="settings-channel-chain"
           >
             {SUPPORTED_CHAINS.map((c) => (
               <option key={c.id} value={c.id}>
@@ -1286,18 +1289,33 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           <FieldInput
             theme={theme}
             value={channelDraft.name}
-            onChange={(v) => setChannelDraft((d) => ({ ...d, name: v }))}
+            onChange={(v) => {
+              setChannelError(null);
+              setChannelDraft((d) => ({ ...d, name: v }));
+            }}
             placeholder="name"
           />
           <FieldInput
             theme={theme}
             value={channelDraft.address}
-            onChange={(v) => setChannelDraft((d) => ({ ...d, address: v }))}
+            onChange={(v) => {
+              setChannelError(null);
+              setChannelDraft((d) => ({ ...d, address: v }));
+            }}
             placeholder="0x…"
             mono
           />
           <PhosphorChip theme={theme} label="Add" onClick={addChannel} />
         </div>
+        {channelError && (
+          <div
+            className={`${theme.warn} text-[11px] px-1 py-0.5 border`}
+            data-testid="settings-channel-error"
+            role="alert"
+          >
+            {channelError}
+          </div>
+        )}
       </section>
       </div>
 

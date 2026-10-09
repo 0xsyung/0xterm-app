@@ -266,6 +266,37 @@ describe("FloatingChat collapse (#140 A3)", () => {
     expect(container.querySelector("[data-floating-chat-bubble]")).toBeTruthy();
   });
 
+  it("collapses expanded panel when entering SETTINGS (#182)", async () => {
+    const { container, rerender, onOpenChange, onAckInbox, onFocusPrompt, loadSenders, loadThread } =
+      renderFloater({ primaryTab: "terminal" });
+    fireEvent.click(container.querySelector("[data-floating-chat-bubble]")!);
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeTruthy()
+    );
+    rerender(
+      <div style={{ position: "relative", height: 800, width: 1280 }}>
+        <FloatingChat
+          theme={theme}
+          themeKey="matrix"
+          inboxUnread={0}
+          channelLabel="sepolia-chat"
+          isConnected
+          promptClearancePx={100}
+          primaryTab="settings"
+          loadSenders={loadSenders}
+          loadThread={loadThread}
+          onAckInbox={onAckInbox}
+          onOpenChange={onOpenChange}
+          onFocusPrompt={onFocusPrompt}
+        />
+      </div>
+    );
+    await waitFor(() =>
+      expect(container.querySelector("[data-floating-chat-panel]")).toBeNull()
+    );
+    expect(container.querySelector("[data-floating-chat-bubble]")).toBeTruthy();
+  });
+
   it("collapses when a large tool panel opens (news)", async () => {
     const { container, rerender, onOpenChange, onAckInbox, onFocusPrompt, loadSenders, loadThread } =
       renderFloater({ primaryTab: "terminal", openPanel: null });
