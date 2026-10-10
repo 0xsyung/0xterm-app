@@ -150,20 +150,17 @@ describe("WorkspaceStrip", () => {
     expect(onCommand).not.toHaveBeenCalled();
   });
 
-  it("FORENSIC READ PRICE opens price panel (#160)", () => {
-    const onCommand = vi.fn();
-    const onOpenPanel = vi.fn();
+  it("hides unfinished FORENSIC READ PRICE tile (#194)", () => {
     render(
       <WorkspaceStrip
         theme={theme}
         mode="forensic"
-        onCommand={onCommand}
-        onOpenPanel={onOpenPanel}
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /^PRICE/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("price");
-    expect(onCommand).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /TOKEN INFO/i })).toBeNull();
   });
 
   it("hides unfinished DEV dig tiles (#160)", () => {
@@ -220,7 +217,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     ).toBe("true");
   });
 
-  it("FORENSIC keeps SIM/TRACE/READ; hides SCREEN; READ PRICE works", () => {
+  it("FORENSIC keeps SIM/TRACE; hides SCREEN and READ (#194)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -234,18 +231,15 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     expect(screen.queryByRole("button", { name: /^SCREEN$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^READ$/i })).toBeNull();
     // SIM appears as both sub-tab and tool tab
     expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(2);
     expect(screen.getAllByRole("button", { name: /^TRACE$/i }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("button", { name: /^READ$/i })).toBeTruthy();
     // #162 — entering forensic auto-opens the lone SIM tool
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
-    onOpenPanel.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: /^READ$/i }));
-    expect(onSubTabChange).toHaveBeenCalledWith("READ");
-    // Auto-open lone PRICE on READ (tool tab still present)
-    expect(onOpenPanel).toHaveBeenCalledWith("price");
-    expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
+    // READ is empty until #171 — no PRICE mapping, no auto-open of price
+    expect(onOpenPanel).not.toHaveBeenCalledWith("price");
+    expect(onSubTabChange).not.toHaveBeenCalledWith("READ");
   });
 
   it("DEV with zero live sub-tabs shows ModeEmptyState (#160)", () => {
@@ -411,8 +405,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS)).toEqual([]);
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toEqual([
       "SIM",
-      "TRACE",
-      "READ"
+      "TRACE"
     ]);
   });
 
@@ -421,9 +414,17 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(market.map((a) => a.label)).toEqual(["NEWS", "PRICE", "SWAP"]);
   });
 
-  it("ready forensic tools are SIM/TRACE/PRICE only", () => {
+  it("ready forensic tools are SIM/TRACE only (#194)", () => {
     const labels = readyWorkspaceActions(FORENSIC_ACTIONS).map((a) => a.label);
-    expect(labels).toEqual(["SIM", "TRACE", "PRICE"]);
+    expect(labels).toEqual(["SIM", "TRACE"]);
+  });
+
+  it("FORENSIC READ has no wired panel so liveSubTabs omits READ (#194)", () => {
+    const readReady = readyWorkspaceActions(FORENSIC_ACTIONS).filter((a) => a.tab === "READ");
+    expect(readReady).toEqual([]);
+    expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).not.toContain(
+      "READ"
+    );
   });
 });
 
@@ -461,9 +462,7 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.getByRole("button", { name: /TRACE/i }).textContent).toMatch(
       /open trace panel/i
     );
-    expect(screen.getByRole("button", { name: /^PRICE/i }).textContent).toMatch(
-      /open price panel/i
-    );
+    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /TOKEN INFO/i })).toBeNull();
   });
