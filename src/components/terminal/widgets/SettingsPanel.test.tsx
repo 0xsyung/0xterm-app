@@ -324,3 +324,49 @@ describe("SettingsPanel channels (#182)", () => {
     );
   });
 });
+
+describe("SettingsPanel Local vault (#193)", () => {
+  it("shows no-vault empty when localVault is null (after nuke)", () => {
+    render(<SettingsPanel {...baseProps} localVault={null} />);
+    const empty = screen.getByTestId("settings-local-vault-empty");
+    expect(empty.textContent).toMatch(/No local vault/);
+    expect(screen.queryByTestId("settings-local-vault-locked")).toBeNull();
+    expect(screen.queryByTestId("settings-local-vault-timeout")).toBeNull();
+  });
+
+  it("shows unlock hint when vault exists but locked", () => {
+    render(
+      <SettingsPanel
+        {...baseProps}
+        localVault={{
+          unlocked: false,
+          timeoutMinutes: 15,
+          requirePasswordPerTx: false
+        }}
+      />
+    );
+    expect(screen.getByTestId("settings-local-vault-locked").textContent).toMatch(
+      /wallet unlock/
+    );
+    expect(screen.queryByTestId("settings-local-vault-empty")).toBeNull();
+  });
+
+  it("shows timeout prefs when unlocked", () => {
+    render(
+      <SettingsPanel
+        {...baseProps}
+        localVault={{
+          unlocked: true,
+          timeoutMinutes: 20,
+          requirePasswordPerTx: true
+        }}
+      />
+    );
+    expect(screen.getByTestId("settings-local-vault-timeout")).toBeTruthy();
+    expect(
+      (screen.getByTestId("settings-local-vault-require-pw") as HTMLInputElement)
+        .checked
+    ).toBe(true);
+    expect(screen.queryByTestId("settings-local-vault-empty")).toBeNull();
+  });
+});
