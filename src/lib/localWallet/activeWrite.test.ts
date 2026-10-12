@@ -34,11 +34,10 @@ describe("buildWriteConfirm", () => {
       to: "0x1111111111111111111111111111111111111111",
       summary: "board post",
       value: 10n ** 18n,
-      chain: mainnet,
-      gas: "21000"
+      chain: mainnet
     });
     expect(v.value).toMatch(/^1 /);
-    expect(v.gas).toBe("21000");
+    expect(v.gas).toBeUndefined();
     const frac = buildWriteConfirm({
       to: "0x1111111111111111111111111111111111111111",
       summary: "swap",

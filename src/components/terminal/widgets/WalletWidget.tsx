@@ -26,10 +26,12 @@ import {
   lockVault,
   nukeVault,
   passwordStrengthBars,
+  subscribeVault,
   unlockVault,
   updateVaultPrefs,
   verifyPassword,
   WalletError,
+  formatVaultImportAck,
   type VaultSource
 } from "../../../lib/localWallet";
 import { getSignerPref, setSignerPref } from "../../../lib/localWallet/vault";
@@ -234,7 +236,7 @@ function StatusBody({
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const refresh = async () => {
       const env = await getEnvelope();
       if (cancelled) return;
       if (!env) {
@@ -244,10 +246,17 @@ function StatusBody({
         setEnvelopeSource(env.source);
         setAddrs(env.addresses || []);
       }
-    })();
+      bump((n) => n + 1);
+    };
+    void refresh();
+    // Live-update an already-open status card on create/import/lock/nuke (#193).
+    const unsub = subscribeVault(() => {
+      void refresh();
+    });
     const id = setInterval(() => bump((n) => n + 1), 1000);
     return () => {
       cancelled = true;
+      unsub();
       clearInterval(id);
     };
   }, []);
@@ -569,6 +578,7 @@ function ImportBody({
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [passphrase, setPassphrase] = useState("");
+  const [showPassphrase, setShowPassphrase] = useState(false);
   const [replace, setReplace] = useState(false);
   const [needReplace, setNeedReplace] = useState(false);
   const [replaceTyped, setReplaceTyped] = useState("");
@@ -616,9 +626,7 @@ function ImportBody({
       });
       clearSecret();
       onVaultChange?.();
-      onDone?.(
-        `[✓] imported ${source} ${shortAddr(address)}. type wallet lock when you step away.`
-      );
+      onDone?.(formatVaultImportAck(source, shortAddr(address)));
     } catch (e: unknown) {
       if (e instanceof WalletError && e.code === "WALLET_EXISTS") {
         setNeedReplace(true);
@@ -678,13 +686,22 @@ function ImportBody({
         placeholder="confirm password"
         autoComplete="new-password"
       />
-      <input
-        type="password"
-        className={`w-full border ${theme.border} bg-transparent px-2 py-1`}
-        value={passphrase}
-        onChange={(e) => setPassphrase(e.target.value)}
-        placeholder="BIP-39 passphrase (optional)"
-      />
+      <button
+        type="button"
+        className={`text-left ${theme.muted} underline`}
+        onClick={() => setShowPassphrase((v) => !v)}
+      >
+        BIP-39 passphrase (optional, empty = none)
+      </button>
+      {showPassphrase && (
+        <input
+          type="password"
+          className={`w-full border ${theme.border} bg-transparent px-2 py-1`}
+          value={passphrase}
+          onChange={(e) => setPassphrase(e.target.value)}
+          placeholder="passphrase"
+        />
+      )}
       <button
         type="button"
         disabled={busy}

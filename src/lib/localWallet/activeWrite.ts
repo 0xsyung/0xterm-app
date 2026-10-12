@@ -31,16 +31,16 @@ export type TxConfirmFields = {
   summary: string;
   value: string;
   chainLabel: string;
+  /** Optional; write-path confirms omit gas (#193 / Stephy soft). */
   gas?: string;
 };
 
-/** Build confirm fields from a writeContract-style call. */
+/** Build confirm fields from a writeContract-style call. Gas intentionally omitted (#193). */
 export function buildWriteConfirm(opts: {
   to: Address;
   summary: string;
   value?: bigint;
   chain: Chain;
-  gas?: string;
 }): TxConfirmFields {
   const native = opts.chain.nativeCurrency?.symbol || "ETH";
   const valueStr =
@@ -51,8 +51,7 @@ export function buildWriteConfirm(opts: {
     to: opts.to,
     summary: opts.summary,
     value: valueStr,
-    chainLabel: `${opts.chain.name} (${opts.chain.id})`,
-    gas: opts.gas
+    chainLabel: `${opts.chain.name} (${opts.chain.id})`
   };
 }
 

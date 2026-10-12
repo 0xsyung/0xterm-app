@@ -1061,8 +1061,15 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       {/* Local vault prefs only — create/import/unlock/export/nuke stay in widgets (#29). */}
       <section className="space-y-1.5" data-testid="settings-local-vault">
         <SectionLabel theme={theme}>Local vault</SectionLabel>
-        {!props.localVault?.unlocked && (
-          <div className={theme.muted}>
+        {props.localVault == null && (
+          <div className={theme.muted} data-testid="settings-local-vault-empty">
+            No local vault. Type{" "}
+            <span className={theme.primary}>wallet create</span> or{" "}
+            <span className={theme.primary}>wallet import</span>.
+          </div>
+        )}
+        {props.localVault != null && !props.localVault.unlocked && (
+          <div className={theme.muted} data-testid="settings-local-vault-locked">
             Unlock with <span className={theme.primary}>wallet unlock</span> to edit idle timeout and per-tx password.
           </div>
         )}

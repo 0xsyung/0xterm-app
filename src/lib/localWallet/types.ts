@@ -29,6 +29,14 @@ export const KDF_PARAMS = {
 
 export type VaultSource = "created" | "imported-mnemonic" | "imported-pk";
 
+/** Success ack after import — source once (avoid "imported imported-mnemonic") (#193). */
+export function formatVaultImportAck(
+  source: VaultSource,
+  shortAddress: string
+): string {
+  return `[✓] ${source} ${shortAddress}. type wallet lock when you step away.`;
+}
+
 export type VaultEnvelopeV1 = {
   version: 1;
   cipher: "AES-GCM";
