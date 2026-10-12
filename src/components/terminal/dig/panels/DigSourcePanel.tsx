@@ -64,10 +64,11 @@ export default function DigSourcePanel({
       }
 
       if (mode === "open") {
-        const existing = await loadDigSource();
+        // Soft ACK: OPEN always starts on Choose .sol file — do not preload
+        // the live IDB buffer into the editor (avoids skip-picker feel).
         if (cancelled) return;
-        setFilename(existing?.filename || "Contract.sol");
-        setContent(existing?.content || "");
+        setFilename("Contract.sol");
+        setContent("");
         setEditorMode("open");
         setDirty(false);
         setEmpty(false);

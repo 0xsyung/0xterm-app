@@ -163,7 +163,13 @@ export function WorkspaceSurface({
         onCommand={onCommand}
         onOpenPanel={onOpenPanel}
       />
-      {activePanel && renderPanel ? renderPanel(activePanel) : null}
+      {activePanel && renderPanel ? (
+        renderPanel(activePanel)
+      ) : (
+        // Multi-tool tabs (DEV SOURCE/BUILD/SHIP, INVEST MARKET): Soft ACK
+        // ModeEmpty in the panel slot until the user picks a tool (#166 QA).
+        <ModeEmptyState theme={theme} mode={mode} />
+      )}
     </WorkspaceFrame>
   );
 }

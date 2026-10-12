@@ -255,7 +255,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(onSubTabChange).not.toHaveBeenCalledWith("READ");
   });
 
-  it("DEV shows SOURCE/BUILD/SHIP with tool tabs; no ModeEmpty (#166)", () => {
+  it("DEV shows SOURCE/BUILD/SHIP; ModeEmpty when !activePanel (#166 QA)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -266,13 +266,31 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    expect(screen.queryByTestId("mode-empty-dev")).toBeNull();
+    expect(screen.getByTestId("mode-empty-dev")).toBeTruthy();
+    expect(
+      screen.getByText("Pick a tool above — Source, Build, or Ship.")
+    ).toBeTruthy();
     expect(screen.getByRole("button", { name: /^SOURCE$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^BUILD$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^SHIP$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^NEW$/i })).toBeTruthy();
     // multi-tool — MARKET pattern, no auto-open
     expect(onOpenPanel).not.toHaveBeenCalled();
+  });
+
+  it("DEV ModeEmpty clears when a dig panel is open (#166 QA)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="dev"
+        activePanel="dig-new"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
+      />
+    );
+    expect(screen.queryByTestId("mode-empty-dev")).toBeNull();
+    expect(screen.getByTestId("panel-dig-new")).toBeTruthy();
   });
 
   it("DEV panel open per sub-tab tool (#166)", () => {
@@ -615,6 +633,8 @@ describe("lone-tool auto-open (#162)", () => {
       />
     );
     expect(onOpenPanel).not.toHaveBeenCalled();
+    // Same panel-slot ModeEmpty pattern as DEV (#166 QA)
+    expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
   });
 });
 

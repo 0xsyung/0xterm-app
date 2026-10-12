@@ -54,6 +54,11 @@ export default function DigEditorWidget({
     setContent(initialContent);
   }, [filename, initialContent]);
 
+  // OPEN Soft ACK: always land on Choose .sol file (don't keep edit phase if mode flips).
+  useEffect(() => {
+    setPhase(mode === "open" ? "pick" : "edit");
+  }, [mode]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
