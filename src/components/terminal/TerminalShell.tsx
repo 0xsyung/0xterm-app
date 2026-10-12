@@ -337,18 +337,30 @@ import DigArtifactWidget from "./widgets/DigArtifactWidget";
 import DigAbiWidget from "./widgets/DigAbiWidget";
 import DigOpcodesWidget from "./widgets/DigOpcodesWidget";
 import DigConfirmWidget from "./widgets/DigConfirmWidget";
+import DigSourcePanel from "./dig/panels/DigSourcePanel";
+import DigVerPanel from "./dig/panels/DigVerPanel";
+import DigArtifactPanel from "./dig/panels/DigArtifactPanel";
+import DigAbiPanel from "./dig/panels/DigAbiPanel";
+import DigOpcodesPanel from "./dig/panels/DigOpcodesPanel";
+import DigDeployPanel from "./dig/panels/DigDeployPanel";
+import DigAttachPanel from "./dig/panels/DigAttachPanel";
+import DigDebugPanel from "./dig/panels/DigDebugPanel";
+import DigSessionPanel from "./dig/panels/DigSessionPanel";
+import DigCheckPanel from "./dig/panels/DigCheckPanel";
 import { digRunPinTitle } from "./widgets/DigRunWidget";
 import { digDebugPinTitle } from "./widgets/DigDebugWidget";
-import { runDig, type DigResult } from "./dig/runDig";
-import { digArtifactPinTitle } from "./dig/artifact";
+import { runDig, type DigConfirmResult, type DigResult } from "./dig/runDig";
+import { digArtifactPinTitle, type DigContractArtifact } from "./dig/artifact";
 import { DIG_ERROR } from "./dig/constants";
 import { loadDigSource } from "./dig/idb";
 import {
   addDigDeployment,
   listDigDeployments,
   setLastDigPanel,
-  setLastDigReceipt
+  setLastDigReceipt,
+  type DigRunPanelState
 } from "./dig/session";
+import type { DigDebugPanelState } from "./dig/debug";
 import { decodeDigLogs, truncateAddress } from "./dig/encode";
 import { formatGas } from "./dig/gas";
 import SimWidget from "./sim/SimWidget";
@@ -9051,6 +9063,213 @@ export default function TerminalShell({
     }
   };
 
+
+  /** Shared dig ctx for DEV workspace panels + CONSOLE dig (#166 Soft ACK). */
+  const runDigForPanel = async (line: string): Promise<DigResult> => {
+    const chainObj = activeChainId
+      ? SUPPORTED_CHAINS.find((c) => c.id === activeChainId)
+      : undefined;
+    const digCtx = {
+      isConnected: !!isConnected,
+      address: address as Address | undefined,
+      chainId: activeChainId || undefined,
+      chainName: chainObj?.name,
+      chainCall: async ({
+        to,
+        data,
+        value,
+        account
+      }: {
+        to?: Address;
+        data: `0x${string}`;
+        value?: bigint;
+        account?: Address;
+      }) => {
+        if (!chainObj) throw new Error("Select network first.");
+        const client = getClient(chainObj);
+        const res = await client.call({ to, data, value, account });
+        return { returnData: (res.data || "0x") as `0x${string}` };
+      },
+      chainEstimateGas: async ({
+        to,
+        data,
+        value,
+        account
+      }: {
+        to?: Address;
+        data: `0x${string}`;
+        value?: bigint;
+        account?: Address;
+      }) => {
+        if (!chainObj) throw new Error("Select network first.");
+        const client = getClient(chainObj);
+        return await client.estimateGas({ to, data, value, account });
+      },
+      chainSimulate: async ({
+        to,
+        data,
+        value,
+        account
+      }: {
+        to?: Address;
+        data: `0x${string}`;
+        value?: bigint;
+        account?: Address;
+      }) => {
+        try {
+          if (!chainObj) return { ok: false as const, reason: "no network" };
+          const client = getClient(chainObj);
+          await client.call({ to, data, value, account });
+          return { ok: true as const };
+        } catch (e: any) {
+          const reason = formatViemError(e)
+            .replace(/^ERROR:\s*/, "")
+            .slice(0, 120);
+          return { ok: false as const, reason };
+        }
+      },
+      debugTraceTransaction: async (txHash: `0x${string}`) => {
+        try {
+          if (!chainObj) {
+            return { ok: false as const, code: "debug_no_trace" as const };
+          }
+          const client = getClient(chainObj);
+          const result = await client.request({
+            method: "debug_traceTransaction" as never,
+            params: [
+              txHash,
+              { disableMemory: true, disableStorage: true }
+            ] as never
+          });
+          const structLogs =
+            result && typeof result === "object" && Array.isArray((result as any).structLogs)
+              ? (result as any).structLogs
+              : Array.isArray(result)
+                ? result
+                : null;
+          if (!structLogs) {
+            return { ok: false as const, code: "debug_no_trace" as const };
+          }
+          return { ok: true as const, structLogs };
+        } catch {
+          return { ok: false as const, code: "debug_no_trace" as const };
+        }
+      }
+    };
+    const argv = line.trim().split(/\s+/).filter(Boolean);
+    return runDig(argv, digCtx);
+  };
+
+  const confirmDigDeployForPanel = async (
+    confirm: DigConfirmResult
+  ): Promise<DigRunPanelState | { error: string }> => {
+    try {
+      if (!walletClient && !sendTransactionAsync) {
+        return { error: DIG_ERROR.need_wallet };
+      }
+      const onChain = await ensureWalletChain(activeChainId);
+      if (!onChain.ok) return { error: onChain.error };
+      const hash = await sendTransactionAsync({
+        chainId: onChain.chainId,
+        to:
+          confirm.intent === "deploy"
+            ? undefined
+            : (confirm.to as Address),
+        data: confirm.data,
+        value: confirm.value,
+        gas: confirm.gasEstimate
+      });
+      const chainObj = activeChainId
+        ? SUPPORTED_CHAINS.find((c) => c.id === activeChainId)
+        : undefined;
+      const client = chainObj ? getClient(chainObj) : null;
+      const receipt = client
+        ? await client.waitForTransactionReceipt({ hash })
+        : null;
+      const addr =
+        (receipt?.contractAddress as Address | undefined) ||
+        (confirm.intent === "send" ? confirm.to : undefined);
+      const logsDecoded = receipt
+        ? decodeDigLogs(
+            confirm.abi,
+            receipt.logs.map((l) => ({
+              topics: l.topics as `0x${string}`[],
+              data: l.data as `0x${string}`
+            }))
+          )
+        : [];
+      if (confirm.intent === "deploy" && addr) {
+        addDigDeployment({
+          name: confirm.contractName,
+          address: addr,
+          env: "injected",
+          chainId: activeChainId || undefined,
+          chainName: chainObj?.name,
+          abi: confirm.abi,
+          artifact: confirm.artifact
+        });
+      }
+      const gasUsed = receipt?.gasUsed ?? confirm.gasEstimate;
+      const panelState: DigRunPanelState = {
+        name: confirm.contractName,
+        address: (addr || confirm.to) as Address,
+        env: "injected",
+        chainName: chainObj?.name,
+        lastFn: confirm.fn || "constructor",
+        argsSummary: confirm.dataSummary,
+        events: logsDecoded,
+        gasLabel: "GAS USED",
+        gas: formatGas(gasUsed)
+      };
+      setLastDigPanel(panelState);
+      setLastDigReceipt({
+        status: receipt?.status === "reverted" ? "reverted" : "success",
+        gasUsed,
+        contractAddress: addr,
+        logs: logsDecoded,
+        txHash: hash,
+        fn: confirm.fn || "constructor"
+      });
+      return panelState;
+    } catch (e: any) {
+      return {
+        error: `[!] dig.reverted — ${formatViemError(e).replace(/^ERROR:\s*/, "").slice(0, 120)}.`
+      };
+    }
+  };
+
+  const fillDigPrompt = (text: string) => {
+    setInput(text);
+    inputRef.current?.focus();
+  };
+
+  const pinDigArtifact = (artifact: DigContractArtifact) => {
+    onPin({
+      id: generateId(),
+      type: "dig-artifact",
+      title: digArtifactPinTitle(artifact),
+      payload: { artifact }
+    } as LogEntry);
+  };
+
+  const pinDigRun = (panelState: DigRunPanelState) => {
+    onPin({
+      id: generateId(),
+      type: "dig-run",
+      title: digRunPinTitle(panelState),
+      payload: { panel: panelState }
+    } as LogEntry);
+  };
+
+  const pinDigDebug = (panelState: DigDebugPanelState) => {
+    onPin({
+      id: generateId(),
+      type: "dig-debug",
+      title: digDebugPinTitle(panelState),
+      payload: { panel: panelState }
+    } as LogEntry);
+  };
+
   // #145 — panel wiring reused for the inline (frameless) panels inside the
   // workspace frame. Each panel keeps its own Escape-close; onClose returns
   // to the active sub-tab's tile grid.
@@ -9206,6 +9425,93 @@ export default function TerminalShell({
             frameless
           />
         );
+      case "dig-new":
+        return (
+          <DigSourcePanel theme={theme} mode="new" onClose={close} />
+        );
+      case "dig-open":
+        return (
+          <DigSourcePanel theme={theme} mode="open" onClose={close} />
+        );
+      case "dig-edit":
+        return (
+          <DigSourcePanel theme={theme} mode="edit" onClose={close} />
+        );
+      case "dig-artifact":
+        return (
+          <DigArtifactPanel
+            theme={theme}
+            onClose={close}
+            onDig={runDigForPanel}
+            onPinArtifact={pinDigArtifact}
+          />
+        );
+      case "dig-ver":
+        return <DigVerPanel theme={theme} onClose={close} />;
+      case "dig-abi":
+        return <DigAbiPanel theme={theme} onClose={close} />;
+      case "dig-opcodes":
+        return <DigOpcodesPanel theme={theme} onClose={close} />;
+      case "dig-deploy":
+        return (
+          <DigDeployPanel
+            theme={theme}
+            onClose={close}
+            onDig={runDigForPanel}
+            onConfirmDeploy={confirmDigDeployForPanel}
+            isConnected={!!isConnected && !!address}
+            onFillPrompt={fillDigPrompt}
+            onPinRun={pinDigRun}
+          />
+        );
+      case "dig-attach":
+        return (
+          <DigAttachPanel
+            theme={theme}
+            onClose={close}
+            onDig={runDigForPanel}
+            onFillPrompt={fillDigPrompt}
+            onPinRun={pinDigRun}
+          />
+        );
+      case "dig-debug":
+        return (
+          <DigDebugPanel
+            theme={theme}
+            onClose={close}
+            onDig={runDigForPanel}
+            onCommand={(cmd) => void handleCommand(cmd)}
+            onPinDebug={pinDigDebug}
+          />
+        );
+      case "dig-session":
+        return (
+          <DigSessionPanel
+            theme={theme}
+            onClose={close}
+            onFillPrompt={fillDigPrompt}
+          />
+        );
+      case "dig-check":
+        return (
+          <DigCheckPanel
+            theme={theme}
+            onClose={close}
+            onCheck={async (addr) => {
+              const result = await commands.is(["is", addr], `is ${addr}`);
+              if (!result) return { ok: false as const, error: "No result." };
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                if (entry.text.startsWith("Usage:")) {
+                  return { ok: false as const, error: entry.text };
+                }
+                return { ok: true as const, lines: entry.text.split("\n") };
+              }
+              return { ok: false as const, error: "Check failed." };
+            }}
+          />
+        );
+
     }
   };
 

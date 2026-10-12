@@ -16,7 +16,13 @@ export default function DigEditorWidget({
   initialContent,
   mode = "edit",
   onClose,
-  onChange
+  onChange,
+  /** Drop outer card chrome — parent DigSourcePanel owns Soft ACK header (#166). */
+  embedded = false,
+  /** Soft ACK status: `● unsaved` / `saved`. */
+  dirtyLabel,
+  /** Soft ACK status: `compiled {relative}` / `not compiled`. */
+  compiledLabel
 }: {
   theme: ThemeConfig;
   filename: string;
@@ -25,6 +31,9 @@ export default function DigEditorWidget({
   mode?: "edit" | "open";
   onClose?: () => void;
   onChange?: (filename: string, content: string) => void;
+  embedded?: boolean;
+  dirtyLabel?: string;
+  compiledLabel?: string;
 }) {
   const [name, setName] = useState(filename);
   const [content, setContent] = useState(initialContent);
@@ -44,6 +53,11 @@ export default function DigEditorWidget({
     setName(filename);
     setContent(initialContent);
   }, [filename, initialContent]);
+
+  // OPEN Soft ACK: always land on Choose .sol file (don't keep edit phase if mode flips).
+  useEffect(() => {
+    setPhase(mode === "open" ? "pick" : "edit");
+  }, [mode]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -90,19 +104,30 @@ export default function DigEditorWidget({
     return (
       <div
         data-retain-focus=""
-        className={`relative my-3 mb-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded} max-w-2xl ${theme.text}`}
+        className={
+          embedded
+            ? `relative w-full ${theme.text}`
+            : `relative my-3 mb-3 p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded} max-w-2xl ${theme.text}`
+        }
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className={`border-b ${theme.border} pb-1 mb-2 text-[10px] tracking-wider flex gap-2`}
-        >
-          <span className={theme.muted}>SOURCE</span>
-          <span className={theme.text}>open .sol</span>
-        </div>
+        {!embedded && (
+          <div
+            className={`border-b ${theme.border} pb-1 mb-2 text-[10px] tracking-wider flex gap-2`}
+          >
+            <span className={theme.muted}>SOURCE</span>
+            <span className={theme.text}>open .sol</span>
+          </div>
+        )}
         <button
           type="button"
-          className={`uppercase text-[10px] px-3 border ${theme.border} ${theme.primary} cursor-pointer min-h-[44px] min-w-[44px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px]`}
+          className={`uppercase text-[10px] px-3 border ${theme.border} ${theme.primary} cursor-pointer min-h-[44px] min-w-[44px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] w-full max-md:min-h-[44px]`}
+          style={
+            embedded
+              ? { background: theme.phosphor, color: "#000000", borderColor: "transparent" }
+              : undefined
+          }
           onClick={() => fileRef.current?.click()}
         >
           Choose .sol file
@@ -123,19 +148,31 @@ export default function DigEditorWidget({
 
   // #92: flex column with min-h-0 + internal scroll; mb-3 (≥12px) clears
   // status/prompt chrome so the bottom gutter/source lines are not clipped.
+  const statusBits = [dirtyLabel, compiledLabel].filter(Boolean);
+
   return (
     <div
       data-dig-editor
       data-retain-focus=""
-      className={`relative my-3 mb-3 border ${theme.border} ${theme.cardBg} ${theme.rounded} max-w-2xl w-full min-h-0 flex flex-col overflow-hidden max-h-[min(50vh,calc(100dvh-14rem))]`}
+      className={
+        embedded
+          ? `relative w-full min-h-0 flex flex-col overflow-hidden max-h-[min(50vh,calc(100dvh-14rem))] border ${theme.border}`
+          : `relative my-3 mb-3 border ${theme.border} ${theme.cardBg} ${theme.rounded} max-w-2xl w-full min-h-0 flex flex-col overflow-hidden max-h-[min(50vh,calc(100dvh-14rem))]`
+      }
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
+      {!embedded && (
       <div
-        className={`shrink-0 border-b ${theme.border} px-2 py-1 text-[10px] tracking-wider flex gap-2 items-center`}
+        className={`shrink-0 border-b ${theme.border} px-2 py-1 text-[10px] tracking-wider flex gap-2 items-center flex-wrap`}
       >
         <span className={theme.muted}>SOURCE</span>
         <span className={theme.text}>{name}</span>
+        {statusBits.map((s) => (
+          <span key={s} className={theme.muted}>
+            · {s}
+          </span>
+        ))}
         <button
           type="button"
           title="Close"
@@ -145,6 +182,7 @@ export default function DigEditorWidget({
           Esc
         </button>
       </div>
+      )}
       <div
         className="flex flex-1 min-h-0 overflow-hidden"
         style={{ minHeight: "12rem" }}

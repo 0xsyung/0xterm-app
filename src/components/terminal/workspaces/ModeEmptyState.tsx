@@ -20,7 +20,7 @@ export const MODE_EMPTY_COPY: Record<
   },
   dev: {
     title: "DEV",
-    body: "No tools in this mode yet.",
+    body: "Pick a tool above — Source, Build, or Ship.",
     testId: "mode-empty-dev"
   },
   forensic: {

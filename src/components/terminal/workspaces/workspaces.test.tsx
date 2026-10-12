@@ -163,10 +163,23 @@ describe("WorkspaceStrip", () => {
     expect(screen.queryByRole("button", { name: /TOKEN INFO/i })).toBeNull();
   });
 
-  it("hides unfinished DEV dig tiles (#160)", () => {
-    render(<WorkspaceStrip theme={theme} mode="dev" onCommand={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: /NEW/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /COMPILE/i })).toBeNull();
+  it("DEV dig tiles open panel path (#166)", () => {
+    const onCommand = vi.fn();
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceStrip
+        theme={theme}
+        mode="dev"
+        onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^NEW/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-new");
+    expect(onCommand).not.toHaveBeenCalled();
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /COMPILE/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-artifact");
   });
 
   it("renders nothing in console (raw terminal)", () => {
@@ -242,20 +255,84 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(onSubTabChange).not.toHaveBeenCalledWith("READ");
   });
 
-  it("DEV with zero live sub-tabs shows ModeEmptyState (#160)", () => {
+  it("DEV shows SOURCE/BUILD/SHIP; ModeEmpty when !activePanel (#166 QA)", () => {
+    const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
         theme={theme}
         mode="dev"
         activePanel={null}
         onCommand={vi.fn()}
-        onOpenPanel={vi.fn()}
+        onOpenPanel={onOpenPanel}
       />
     );
     expect(screen.getByTestId("mode-empty-dev")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /SOURCE/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /BUILD/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /SHIP/i })).toBeNull();
+    expect(
+      screen.getByText("Pick a tool above — Source, Build, or Ship.")
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^SOURCE$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^BUILD$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^SHIP$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^NEW$/i })).toBeTruthy();
+    // multi-tool — MARKET pattern, no auto-open
+    expect(onOpenPanel).not.toHaveBeenCalled();
+  });
+
+  it("DEV ModeEmpty clears when a dig panel is open (#166 QA)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="dev"
+        activePanel="dig-new"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
+      />
+    );
+    expect(screen.queryByTestId("mode-empty-dev")).toBeNull();
+    expect(screen.getByTestId("panel-dig-new")).toBeTruthy();
+  });
+
+  it("DEV panel open per sub-tab tool (#166)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="dev"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^NEW$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-new");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^BUILD$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^COMPILE$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-artifact");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^SHIP$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^DEPLOY$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-deploy");
+  });
+
+  it("DEV does not auto-open multi-tool SOURCE/BUILD/SHIP (#166)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="dev"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^BUILD$/i }));
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^SHIP$/i }));
+    expect(onOpenPanel).not.toHaveBeenCalled();
   });
 
   it("keeps tool tabs visible and renders the panel below when one is open", () => {
@@ -359,7 +436,26 @@ describe("WorkspaceTile", () => {
 describe("rendered tool buttons map to wired panels (#160)", () => {
   it("WIRED_WORKSPACE_PANELS lists the TerminalShell inline panels", () => {
     expect([...WIRED_WORKSPACE_PANELS].sort()).toEqual(
-      ["news", "perps", "price", "sim", "swap", "trace"].sort()
+      [
+        "dig-abi",
+        "dig-artifact",
+        "dig-attach",
+        "dig-check",
+        "dig-debug",
+        "dig-deploy",
+        "dig-edit",
+        "dig-new",
+        "dig-open",
+        "dig-opcodes",
+        "dig-session",
+        "dig-ver",
+        "news",
+        "perps",
+        "price",
+        "sim",
+        "swap",
+        "trace"
+      ].sort()
     );
   });
 
@@ -402,7 +498,11 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
       "MARKET",
       "PERPS"
     ]);
-    expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS)).toEqual([]);
+    expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS).map((t) => t.id)).toEqual([
+      "SOURCE",
+      "BUILD",
+      "SHIP"
+    ]);
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toEqual([
       "SIM",
       "TRACE"
@@ -426,6 +526,20 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
       "READ"
     );
   });
+
+  it("DEV SOURCE uses distinct dig-new/open/edit panel ids (#166)", () => {
+    const source = readyWorkspaceActions(DEV_ACTIONS).filter((a) => a.tab === "SOURCE");
+    expect(source.map((a) => a.panel)).toEqual(["dig-new", "dig-open", "dig-edit"]);
+  });
+
+  it("every DEV_ACTIONS row is ready with a dig-* panel (#166)", () => {
+    expect(readyWorkspaceActions(DEV_ACTIONS)).toHaveLength(DEV_ACTIONS.length);
+    for (const a of DEV_ACTIONS) {
+      expect(a.panel).toBeDefined();
+      expect(String(a.panel).startsWith("dig-")).toBe(true);
+      expect(WIRED_WORKSPACE_PANELS).toContain(a.panel);
+    }
+  });
 });
 
 describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
@@ -446,10 +560,12 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.queryByRole("button", { name: /CREATE POOL/i })).toBeNull();
   });
 
-  it("DEV strip renders no unfinished dig tiles", () => {
-    render(<WorkspaceStrip theme={theme} mode="dev" onCommand={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: /SOLC VER/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /ATTACH/i })).toBeNull();
+  it("DEV strip shows wired dig tiles (#166)", () => {
+    render(
+      <WorkspaceStrip theme={theme} mode="dev" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
+    );
+    expect(screen.getByRole("button", { name: /SOLC VER/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /ATTACH/i })).toBeTruthy();
   });
 
   it("FORENSIC ready tiles use plain panel-oriented copy", () => {
@@ -517,6 +633,8 @@ describe("lone-tool auto-open (#162)", () => {
       />
     );
     expect(onOpenPanel).not.toHaveBeenCalled();
+    // Same panel-slot ModeEmpty pattern as DEV (#166 QA)
+    expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
   });
 });
 
