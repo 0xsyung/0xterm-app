@@ -31,13 +31,17 @@ const saveDigSource = vi.fn();
 const loadDigSolcVersion = vi.fn();
 const saveDigSolcVersion = vi.fn();
 const loadDigArtifacts = vi.fn();
+const loadDigSourceRecents = vi.fn();
+const pushDigSourceRecent = vi.fn();
 
 vi.mock("../idb", () => ({
   loadDigSource: (...a: unknown[]) => loadDigSource(...a),
   saveDigSource: (...a: unknown[]) => saveDigSource(...a),
   loadDigSolcVersion: (...a: unknown[]) => loadDigSolcVersion(...a),
   saveDigSolcVersion: (...a: unknown[]) => saveDigSolcVersion(...a),
-  loadDigArtifacts: (...a: unknown[]) => loadDigArtifacts(...a)
+  loadDigArtifacts: (...a: unknown[]) => loadDigArtifacts(...a),
+  loadDigSourceRecents: (...a: unknown[]) => loadDigSourceRecents(...a),
+  pushDigSourceRecent: (...a: unknown[]) => pushDigSourceRecent(...a)
 }));
 
 vi.mock("../../widgets/DigEditorWidget", () => ({
@@ -155,6 +159,11 @@ beforeEach(() => {
   loadDigSolcVersion.mockResolvedValue("0.8.37");
   saveDigSolcVersion.mockResolvedValue(undefined);
   loadDigArtifacts.mockResolvedValue([]);
+  loadDigSourceRecents.mockResolvedValue([]);
+  pushDigSourceRecent.mockResolvedValue([]);
+  saveDigSource.mockImplementation(async (fn: string, body: string) => {
+    await pushDigSourceRecent(fn, body);
+  });
 });
 
 describe("flattenDig", () => {
@@ -202,9 +211,25 @@ describe("DigVerPanel (#166)", () => {
   });
 });
 
-describe("DigSourcePanel (#166)", () => {
-  it("EDIT empty Soft ACK", async () => {
-    render(<DigSourcePanel theme={theme} mode="edit" onClose={vi.fn()} />);
+describe("DigSourcePanel unified EDITOR (#198)", () => {
+  it("restores IDB on mount — never Counter overwrite", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Vault.sol",
+      content: "contract Vault {}",
+      updatedAt: Date.now()
+    });
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("dig-source-panel")).toBeTruthy();
+      expect(screen.getByTestId("dig-editor-mock").textContent).toMatch(/Vault\.sol/);
+    });
+    expect(saveDigSource).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Replace buffer/)).toBeNull();
+  });
+
+  it("empty Soft ACK when no IDB source", async () => {
+    loadDigSource.mockResolvedValue(null);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
     await waitFor(() => {
       expect(
         screen.getByText("No saved source. NEW or OPEN a .sol file.")
@@ -212,39 +237,78 @@ describe("DigSourcePanel (#166)", () => {
     });
   });
 
-  it("NEW seeds Counter template", async () => {
-    render(<DigSourcePanel theme={theme} mode="new" onClose={vi.fn()} />);
+  it("NEW confirms when IDB non-empty", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Vault.sol",
+      content: "contract Vault {}",
+      updatedAt: Date.now()
+    });
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-new"));
+    fireEvent.click(screen.getByTestId("dig-source-action-new"));
+    await waitFor(() => {
+      expect(
+        screen.getByText("Replace buffer with Counter template?")
+      ).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-confirm-ok"));
+    });
     await waitFor(() => {
       expect(saveDigSource).toHaveBeenCalled();
-      expect(screen.getByTestId("dig-editor-mock").textContent).toMatch(
-        /Counter\.sol:edit:emb/
-      );
     });
   });
 
-  it("OPEN starts in open mode", async () => {
-    render(<DigSourcePanel theme={theme} mode="open" onClose={vi.fn()} />);
+  it("OPEN enters Choose .sol file phase", async () => {
+    loadDigSource.mockResolvedValue(null);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-open"));
+    fireEvent.click(screen.getByTestId("dig-source-action-open"));
     await waitFor(() => {
-      expect(screen.getByTestId("dig-editor-mock").textContent).toMatch(
-        /:open:emb/
-      );
+      expect(screen.getByTestId("dig-source-choose")).toBeTruthy();
+      expect(screen.getByText(/Esc closes · no silent disk read/)).toBeTruthy();
     });
   });
 
-  it("EDIT with saved source mounts editor; dirty toggle", async () => {
+  it("SAVE AS triggers download ack", async () => {
     loadDigSource.mockResolvedValue({
       filename: "Foo.sol",
       content: "pragma solidity ^0.8.37;",
       updatedAt: Date.now()
     });
-    loadDigArtifacts.mockResolvedValue([sampleArtifact]);
-    render(<DigSourcePanel theme={theme} mode="edit" onClose={vi.fn()} />);
-    await waitFor(() => {
-      expect(screen.getByTestId("dig-editor-mock").textContent).toMatch(/Foo\.sol/);
+    const createObjectURL = vi.fn(() => "blob:mock");
+    const revoke = vi.fn();
+    global.URL.createObjectURL = createObjectURL;
+    global.URL.revokeObjectURL = revoke;
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-save-as"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-action-save-as"));
     });
-    fireEvent.click(screen.getByText("dirty"));
     await waitFor(() => {
-      expect(screen.getByText(/● unsaved/)).toBeTruthy();
+      expect(screen.getByTestId("dig-source-download-ack").textContent).toMatch(
+        /Downloaded Foo\.sol/
+      );
+    });
+  });
+
+  it("RECENT strip shows and loads", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "A.sol",
+      content: "contract A {}",
+      updatedAt: 1
+    });
+    loadDigSourceRecents.mockResolvedValue([
+      { filename: "B.sol", content: "contract B {}", updatedAt: 2 }
+    ]);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-recents"));
+    expect(screen.getByText("B.sol")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByText("B.sol"));
+    });
+    await waitFor(() => {
+      expect(saveDigSource).toHaveBeenCalledWith("B.sol", "contract B {}");
     });
   });
 });
@@ -768,6 +832,139 @@ describe("DigAttachPanel error (#166)", () => {
     });
     await waitFor(() => {
       expect(screen.getByText("[!] dig.no_artifact")).toBeTruthy();
+    });
+  });
+});
+
+
+describe("DigSourcePanel confirms (#198)", () => {
+  it("OPEN when dirty asks Discard", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "A.sol",
+      content: "hello",
+      updatedAt: 1
+    });
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-editor-mock"));
+    fireEvent.click(screen.getByText("dirty"));
+    await waitFor(() => {
+      expect(screen.getByText(/● unsaved/)).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("dig-source-action-open"));
+    await waitFor(() => {
+      expect(screen.getByText("Discard unsaved changes?")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-confirm-ok"));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dig-source-choose")).toBeTruthy();
+    });
+  });
+
+  it("NEW CANCEL leaves buffer", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Keep.sol",
+      content: "keep",
+      updatedAt: 1
+    });
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-new"));
+    fireEvent.click(screen.getByTestId("dig-source-action-new"));
+    await waitFor(() => screen.getByTestId("dig-source-confirm-cancel"));
+    fireEvent.click(screen.getByTestId("dig-source-confirm-cancel"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("dig-source-confirm")).toBeNull();
+      expect(screen.getByTestId("dig-editor-mock").textContent).toMatch(/Keep\.sol/);
+    });
+  });
+
+  it("empty NEW without confirm seeds Counter", async () => {
+    loadDigSource.mockResolvedValue(null);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-new"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-action-new"));
+    });
+    await waitFor(() => {
+      expect(saveDigSource).toHaveBeenCalled();
+      expect(screen.queryByText(/Replace buffer/)).toBeNull();
+    });
+  });
+});
+
+describe("DigSourcePanel OPEN pick + SAVE AS picker (#198)", () => {
+  it("file input loads .sol into buffer", async () => {
+    loadDigSource.mockResolvedValue(null);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-open"));
+    fireEvent.click(screen.getByTestId("dig-source-action-open"));
+    await waitFor(() => screen.getByTestId("dig-source-choose"));
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const file = new File(["pragma solidity ^0.8.37;"], "Picked.sol", {
+      type: "text/plain"
+    });
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+    await waitFor(() => {
+      expect(saveDigSource).toHaveBeenCalledWith(
+        "Picked.sol",
+        "pragma solidity ^0.8.37;"
+      );
+    });
+  });
+
+  it("SAVE AS uses showSaveFilePicker when available", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Pick.sol",
+      content: "hi",
+      updatedAt: 1
+    });
+    const write = vi.fn();
+    const close = vi.fn();
+    const createWritable = vi.fn(async () => ({ write, close }));
+    const showSaveFilePicker = vi.fn(async () => ({ createWritable }));
+    (window as any).showSaveFilePicker = showSaveFilePicker;
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-save-as"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-action-save-as"));
+    });
+    await waitFor(() => {
+      expect(showSaveFilePicker).toHaveBeenCalled();
+      expect(write).toHaveBeenCalledWith("hi");
+      expect(screen.getByTestId("dig-source-download-ack").textContent).toMatch(
+        /Downloaded Pick\.sol/
+      );
+    });
+    delete (window as any).showSaveFilePicker;
+  });
+
+  it("RECENT when dirty asks Discard then loads", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "A.sol",
+      content: "a",
+      updatedAt: 1
+    });
+    loadDigSourceRecents.mockResolvedValue([
+      { filename: "B.sol", content: "b", updatedAt: 2 }
+    ]);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-editor-mock"));
+    fireEvent.click(screen.getByText("dirty"));
+    await waitFor(() => screen.getByText(/● unsaved/));
+    fireEvent.click(screen.getByText("B.sol"));
+    await waitFor(() => {
+      expect(screen.getByText("Discard unsaved changes?")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-confirm-ok"));
+    });
+    await waitFor(() => {
+      expect(saveDigSource).toHaveBeenCalledWith("B.sol", "b");
     });
   });
 });

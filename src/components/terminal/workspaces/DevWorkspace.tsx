@@ -1,6 +1,6 @@
 /**
  * @file DevWorkspace.tsx
- * @description Dev (dig) mode action-tile launcher (#80/#140/#145/#160/#166)
+ * @description Dev (dig) mode action-tile launcher (#80/#140/#145/#160/#166/#198)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -18,29 +18,15 @@ export const DEV_SUB_TABS: { id: DevSubTab; label: string }[] = [
 ];
 
 /**
- * Full dig catalog. Each row opens a wired DEV panel (#166 Soft ACK).
- * Distinct dig-new / dig-open / dig-edit ids so tool-tab active highlight works.
+ * Full dig catalog. SOURCE is one EDITOR → dig-source (#198 Soft ACK).
+ * BUILD/SHIP unchanged from #166.
  */
 export const DEV_ACTIONS: WorkspaceAction[] = [
   {
-    cmd: "dig new",
-    label: "NEW",
-    hint: "empty Solidity editor",
-    panel: "dig-new",
-    tab: "SOURCE"
-  },
-  {
-    cmd: "dig open",
-    label: "OPEN",
-    hint: "pick a .sol file",
-    panel: "dig-open",
-    tab: "SOURCE"
-  },
-  {
     cmd: "dig edit",
-    label: "EDIT",
-    hint: "reopen last source",
-    panel: "dig-edit",
+    label: "EDITOR",
+    hint: "Solidity source editor",
+    panel: "dig-source",
     tab: "SOURCE"
   },
   {

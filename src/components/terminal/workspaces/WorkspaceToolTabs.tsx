@@ -1,6 +1,6 @@
 /**
  * @file WorkspaceToolTabs.tsx
- * @description Persistent third-layer tool tabs inside the workspace frame (#148)
+ * @description Persistent third-layer tool tabs inside the workspace frame (#148/#198)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -13,6 +13,9 @@ import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
  * Always-visible tool button row for the active sub-tab. Clicking a panel
  * action opens its panel below (via onOpenPanel); clicking a bare action
  * fires the command. The open panel's tab is highlighted as active.
+ *
+ * #198: sticky tabs keep solid theme.bg + border-b; no -mt-3 overlap onto
+ * panel header — ≥8px gap under the row so title never sits under z-index.
  */
 export function WorkspaceToolTabs({
   theme,
@@ -32,7 +35,8 @@ export function WorkspaceToolTabs({
 
   return (
     <div
-      className={`sticky top-0 z-10 -mx-3 px-3 -mt-3 pt-2 pb-2 flex flex-wrap gap-1.5 ${theme.bg}`}
+      className={`sticky top-0 z-10 -mx-3 px-3 pt-2 pb-2 mb-2 flex flex-wrap gap-1.5 border-b ${theme.border} ${theme.bg}`}
+      data-testid="workspace-tool-tabs"
     >
       {actions.map((a) => {
         const active = a.panel !== undefined && activeTool === a.panel;

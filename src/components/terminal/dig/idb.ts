@@ -1,6 +1,6 @@
 /**
  * @file idb.ts
- * @description IndexedDB wrappers for dig workspace (#39)
+ * @description IndexedDB wrappers for dig workspace (#39/#198)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -13,6 +13,9 @@ export type DigSourceRecord = {
   updatedAt: number;
 };
 
+/** Soft ACK #198 — ≤8 distinct recent buffers (filename + content snapshot). */
+export type DigSourceRecent = DigSourceRecord;
+
 export type DigWorkspace = {
   source: DigSourceRecord | null;
   solcVersion: string;
@@ -20,11 +23,14 @@ export type DigWorkspace = {
   lastSummary: string | null;
 };
 
+export const DIG_SOURCE_RECENTS_MAX = 8;
+
 const KEYS = {
   source: "source",
   solcVersion: "solcVersion",
   artifacts: "artifacts",
   lastSummary: "lastSummary",
+  sourceRecents: "sourceRecents",
   wasmPrefix: "wasm:"
 } as const;
 
@@ -80,6 +86,40 @@ export async function loadDigSource(): Promise<DigSourceRecord | null> {
   }
 }
 
+export async function loadDigSourceRecents(): Promise<DigSourceRecent[]> {
+  try {
+    const list = (await idbGet<DigSourceRecent[]>(KEYS.sourceRecents)) ?? [];
+    return Array.isArray(list) ? list.slice(0, DIG_SOURCE_RECENTS_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Push/update a recent by filename (most-recent first, distinct, ≤8). */
+export async function pushDigSourceRecent(
+  filename: string,
+  content: string
+): Promise<DigSourceRecent[]> {
+  const rec: DigSourceRecent = {
+    filename,
+    content,
+    updatedAt: Date.now()
+  };
+  try {
+    const prev = await loadDigSourceRecents();
+    const next = [
+      rec,
+      ...prev.filter(
+        (r) => r.filename.toLowerCase() !== filename.toLowerCase()
+      )
+    ].slice(0, DIG_SOURCE_RECENTS_MAX);
+    await idbSet(KEYS.sourceRecents, next);
+    return next;
+  } catch {
+    return [];
+  }
+}
+
 export async function saveDigSource(
   filename: string,
   content: string
@@ -91,6 +131,7 @@ export async function saveDigSource(
   };
   try {
     await idbSet(KEYS.source, rec);
+    await pushDigSourceRecent(filename, content);
   } catch {
     // privacy / quota — non-fatal
   }

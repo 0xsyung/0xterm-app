@@ -22,7 +22,16 @@ export default function DigEditorWidget({
   /** Soft ACK status: `● unsaved` / `saved`. */
   dirtyLabel,
   /** Soft ACK status: `compiled {relative}` / `not compiled`. */
-  compiledLabel
+  compiledLabel,
+  /** When false, parent DigPanelShell owns Esc (#198). Default true. */
+  ownEscape = true,
+  /** When false, parent owns IDB autosave; onChange only (#198). Default true. */
+  autosave = true,
+  /**
+   * When set, reseed name/content only when this key changes (unified EDITOR
+   * parent must not push every keystroke via initialContent — #198).
+   */
+  bufferKey
 }: {
   theme: ThemeConfig;
   filename: string;
@@ -34,6 +43,9 @@ export default function DigEditorWidget({
   embedded?: boolean;
   dirtyLabel?: string;
   compiledLabel?: string;
+  ownEscape?: boolean;
+  autosave?: boolean;
+  bufferKey?: string | number;
 }) {
   const [name, setName] = useState(filename);
   const [content, setContent] = useState(initialContent);
@@ -49,10 +61,20 @@ export default function DigEditorWidget({
     return Array.from({ length: Math.max(n, 1) }, (_, i) => i + 1);
   }, [content]);
 
+  // Console / legacy: follow filename+initialContent.
   useEffect(() => {
+    if (bufferKey !== undefined) return;
     setName(filename);
     setContent(initialContent);
-  }, [filename, initialContent]);
+  }, [filename, initialContent, bufferKey]);
+
+  // Unified EDITOR (#198): reseed only when parent bumps bufferKey (NEW/OPEN/RECENT).
+  useEffect(() => {
+    if (bufferKey === undefined) return;
+    setName(filename);
+    setContent(initialContent);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bufferKey is the reseed signal
+  }, [bufferKey]);
 
   // OPEN Soft ACK: always land on Choose .sol file (don't keep edit phase if mode flips).
   useEffect(() => {
@@ -60,6 +82,7 @@ export default function DigEditorWidget({
   }, [mode]);
 
   useEffect(() => {
+    if (!ownEscape) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -68,14 +91,14 @@ export default function DigEditorWidget({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, ownEscape]);
 
   const persist = useCallback(
     (fn: string, body: string) => {
-      void saveDigSource(fn, body);
+      if (autosave) void saveDigSource(fn, body);
       onChange?.(fn, body);
     },
-    [onChange]
+    [onChange, autosave]
   );
 
   const onInput = (v: string) => {
