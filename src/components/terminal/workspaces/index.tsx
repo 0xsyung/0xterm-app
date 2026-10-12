@@ -63,6 +63,7 @@ function WorkspaceBody({
         theme={theme}
         activeSubTab={activeSubTab as DevSubTab | undefined}
         onCommand={onCommand}
+        onOpenPanel={onOpenPanel}
       />
     );
   }

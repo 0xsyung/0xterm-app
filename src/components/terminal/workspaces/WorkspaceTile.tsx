@@ -8,7 +8,26 @@
 
 import type { ThemeConfig } from "../types";
 
-export type WorkspacePanelId = "price" | "swap" | "news" | "sim" | "trace" | "perps";
+export type WorkspacePanelId =
+  | "price"
+  | "swap"
+  | "news"
+  | "sim"
+  | "trace"
+  | "perps"
+  // DEV dig panels (#166)
+  | "dig-new"
+  | "dig-open"
+  | "dig-edit"
+  | "dig-artifact"
+  | "dig-ver"
+  | "dig-abi"
+  | "dig-opcodes"
+  | "dig-deploy"
+  | "dig-attach"
+  | "dig-debug"
+  | "dig-session"
+  | "dig-check";
 
 /** Sub-tab ids per workspace mode (#145). */
 export type InvestSubTab = "MARKET" | "PORTFOLIO" | "DEX" | "PERPS";

@@ -17,7 +17,20 @@ export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
   "news",
   "sim",
   "trace",
-  "perps"
+  "perps",
+  // DEV dig (#166) — keep in sync with TerminalShell.renderInlinePanel
+  "dig-new",
+  "dig-open",
+  "dig-edit",
+  "dig-artifact",
+  "dig-ver",
+  "dig-abi",
+  "dig-opcodes",
+  "dig-deploy",
+  "dig-attach",
+  "dig-debug",
+  "dig-session",
+  "dig-check"
 ] as const;
 
 const WIRED_SET: ReadonlySet<WorkspacePanelId> = new Set(WIRED_WORKSPACE_PANELS);
