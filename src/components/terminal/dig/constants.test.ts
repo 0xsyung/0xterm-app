@@ -3,7 +3,8 @@
  * @description Dig usage line wrap contract (#88)
  */
 import { describe, expect, it } from "vitest";
-import { DIG_SUBCOMMANDS, digUsageText } from "./constants";
+import { DIG_IDB_NAME, DIG_SUBCOMMANDS, digUsageText } from "./constants";
+import { VAULT_DB } from "../../../lib/localWallet/types";
 
 describe("digUsageText (#88)", () => {
   it("lists every subcommand with spaces so the log can wrap", () => {
@@ -22,5 +23,12 @@ describe("digUsageText (#88)", () => {
     const line = digUsageText();
     expect(line).not.toContain("…");
     expect(line).not.toContain("...");
+  });
+});
+
+describe("DIG_IDB_NAME (#199)", () => {
+  it("does not share vault DB name", () => {
+    expect(DIG_IDB_NAME).toBe("0xterm-dig");
+    expect(DIG_IDB_NAME).not.toBe(VAULT_DB);
   });
 });

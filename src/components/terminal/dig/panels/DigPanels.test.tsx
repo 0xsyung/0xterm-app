@@ -155,14 +155,18 @@ beforeEach(() => {
   resetDigSession();
   vi.clearAllMocks();
   loadDigSource.mockResolvedValue(null);
-  saveDigSource.mockResolvedValue(undefined);
+  saveDigSource.mockResolvedValue(true);
   loadDigSolcVersion.mockResolvedValue("0.8.37");
   saveDigSolcVersion.mockResolvedValue(undefined);
   loadDigArtifacts.mockResolvedValue([]);
   loadDigSourceRecents.mockResolvedValue([]);
   pushDigSourceRecent.mockResolvedValue([]);
   saveDigSource.mockImplementation(async (fn: string, body: string) => {
+    const next = [{ filename: fn, content: body, updatedAt: Date.now() }];
+    pushDigSourceRecent.mockResolvedValue(next);
+    loadDigSourceRecents.mockResolvedValue(next);
     await pushDigSourceRecent(fn, body);
+    return true;
   });
 });
 
@@ -309,6 +313,53 @@ describe("DigSourcePanel unified EDITOR (#198)", () => {
     });
     await waitFor(() => {
       expect(saveDigSource).toHaveBeenCalledWith("B.sol", "contract B {}");
+    });
+  });
+
+  it("save success shows saved · idb (#199)", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Ok.sol",
+      content: "ok",
+      updatedAt: 1
+    });
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-editor-mock"));
+    await waitFor(() => {
+      expect(screen.getByText(/saved · idb/)).toBeTruthy();
+    });
+  });
+
+  it("save fail does not claim saved · idb (#199)", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Fail.sol",
+      content: "x",
+      updatedAt: 1
+    });
+    saveDigSource.mockImplementation(async () => false);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-editor-mock"));
+    fireEvent.click(screen.getByText("dirty"));
+    await waitFor(() => {
+      expect(screen.getByText(/save failed/)).toBeTruthy();
+      expect(screen.queryByText(/saved · idb/)).toBeNull();
+    });
+  });
+
+  it("RECENT updates after successful save (#199)", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "A.sol",
+      content: "a",
+      updatedAt: 1
+    });
+    loadDigSourceRecents.mockResolvedValue([]);
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-editor-mock"));
+    expect(screen.queryByTestId("dig-source-recents")).toBeNull();
+    fireEvent.click(screen.getByText("dirty"));
+    await waitFor(() => {
+      expect(saveDigSource).toHaveBeenCalledWith("A.sol", "edited");
+      const strip = screen.getByTestId("dig-source-recents");
+      expect(strip.textContent).toMatch(/A\.sol/);
     });
   });
 });
@@ -938,6 +989,33 @@ describe("DigSourcePanel OPEN pick + SAVE AS picker (#198)", () => {
       expect(write).toHaveBeenCalledWith("hi");
       expect(screen.getByTestId("dig-source-download-ack").textContent).toMatch(
         /Downloaded Pick\.sol/
+      );
+    });
+    delete (window as any).showSaveFilePicker;
+  });
+
+  it("SAVE AS AbortError falls back to download + Soft ACK (#199)", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Abort.sol",
+      content: "body",
+      updatedAt: 1
+    });
+    const err = new DOMException("The user aborted a request.", "AbortError");
+    (window as any).showSaveFilePicker = vi.fn(async () => {
+      throw err;
+    });
+    const createObjectURL = vi.fn(() => "blob:abort-fallback");
+    global.URL.createObjectURL = createObjectURL;
+    global.URL.revokeObjectURL = vi.fn();
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-save-as"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-action-save-as"));
+    });
+    await waitFor(() => {
+      expect(createObjectURL).toHaveBeenCalled();
+      expect(screen.getByTestId("dig-source-download-ack").textContent).toMatch(
+        /\[✓\] Downloaded Abort\.sol\./
       );
     });
     delete (window as any).showSaveFilePicker;

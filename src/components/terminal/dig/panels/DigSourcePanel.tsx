@@ -52,6 +52,7 @@ export default function DigSourcePanel({
   );
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("edit");
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
   const [pendingLoad, setPendingLoad] = useState<{
@@ -76,12 +77,20 @@ export default function DigSourcePanel({
 
   const flushIdb = useCallback(async (fn: string, body: string) => {
     setSaving(true);
+    setSaveError(null);
     try {
-      await saveDigSource(fn, body);
-      setLastIdb({ filename: fn, content: body });
-      setDirty(false);
-      const next = await loadDigSourceRecents();
-      setRecents(next);
+      const ok = await saveDigSource(fn, body);
+      if (ok) {
+        setLastIdb({ filename: fn, content: body });
+        setDirty(false);
+        const next = await loadDigSourceRecents();
+        setRecents(next);
+      } else {
+        // Soft ACK honesty — never claim saved · idb on failed write
+        setSaveError("IDB save failed");
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "IDB save failed");
     } finally {
       setSaving(false);
     }
@@ -105,6 +114,7 @@ export default function DigSourcePanel({
         setContent(existing.content);
         setLastIdb({ filename: existing.filename, content: existing.content });
         setDirty(false);
+        setSaveError(null);
         setPhase("edit");
         setBufferKey((k) => k + 1);
       } else {
@@ -257,12 +267,8 @@ export default function DigSourcePanel({
           setTimeout(() => setDownloadAck(null), 2000);
           setActiveAction(null);
           return;
-        } catch (e) {
-          // user cancel — fall through only if AbortError; otherwise try download
-          if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AbortError") {
-            setActiveAction(null);
-            return;
-          }
+        } catch {
+          // Abort / deny — always fall through to <a download> (Soft ACK honesty)
         }
       }
       const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
@@ -296,9 +302,15 @@ export default function DigSourcePanel({
   );
 
   const statusDirty =
-    dirty || saving
-      ? "● unsaved"
-      : "saved · idb";
+    saving
+      ? "saving…"
+      : saveError
+        ? `save failed · ${saveError}`
+        : dirty
+          ? "● unsaved"
+          : lastIdb
+            ? "saved · idb"
+            : "idle";
   const statusCompiled =
     hasArtifact || compiledAtSec != null
       ? compiledAtSec != null
