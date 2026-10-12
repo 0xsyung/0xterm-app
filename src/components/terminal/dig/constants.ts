@@ -24,7 +24,8 @@ export const DIG_SOLC_CDN_BASES = [
   "https://cdn.jsdelivr.net/gh/ethereum/solc-bin@gh-pages/wasm/"
 ] as const;
 
-export const DIG_IDB_NAME = "0xterm";
+/** Dig workspace IDB — must NOT share the vault DB name (`0xterm` / #29). */
+export const DIG_IDB_NAME = "0xterm-dig";
 /** Store name for dig workspace (source, version, wasm cache, artifact). */
 export const DIG_IDB_STORE = "dig";
 

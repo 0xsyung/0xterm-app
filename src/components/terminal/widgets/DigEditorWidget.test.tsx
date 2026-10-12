@@ -9,7 +9,7 @@ import { THEMES } from "../constants";
 import DigEditorWidget from "./DigEditorWidget";
 
 vi.mock("../dig/idb", () => ({
-  saveDigSource: vi.fn().mockResolvedValue(undefined)
+  saveDigSource: vi.fn().mockResolvedValue(true)
 }));
 
 const theme = THEMES.matrix;

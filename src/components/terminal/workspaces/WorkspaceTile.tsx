@@ -15,10 +15,8 @@ export type WorkspacePanelId =
   | "sim"
   | "trace"
   | "perps"
-  // DEV dig panels (#166)
-  | "dig-new"
-  | "dig-open"
-  | "dig-edit"
+  // DEV dig panels (#166/#198)
+  | "dig-source"
   | "dig-artifact"
   | "dig-ver"
   | "dig-abi"

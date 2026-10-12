@@ -9425,18 +9425,8 @@ export default function TerminalShell({
             frameless
           />
         );
-      case "dig-new":
-        return (
-          <DigSourcePanel theme={theme} mode="new" onClose={close} />
-        );
-      case "dig-open":
-        return (
-          <DigSourcePanel theme={theme} mode="open" onClose={close} />
-        );
-      case "dig-edit":
-        return (
-          <DigSourcePanel theme={theme} mode="edit" onClose={close} />
-        );
+      case "dig-source":
+        return <DigSourcePanel theme={theme} onClose={close} />;
       case "dig-artifact":
         return (
           <DigArtifactPanel
