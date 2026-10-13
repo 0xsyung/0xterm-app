@@ -2,7 +2,7 @@
  * @file config.test.ts
  * @description HL network + builder address config (#190)
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   HL_BUILDER_ADDRESS_PLACEHOLDER,
   HL_DEFAULT_NETWORK,
@@ -15,6 +15,16 @@ import {
 } from "./config";
 
 describe("hl config (#190)", () => {
+  const prevBuilder = process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS;
+
+  afterEach(() => {
+    if (prevBuilder === undefined) {
+      delete process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS;
+    } else {
+      process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS = prevBuilder;
+    }
+  });
+
   it("defaults to testnet", () => {
     expect(HL_DEFAULT_NETWORK).toBe("testnet");
     expect(hlApiBase("testnet")).toContain("testnet");
@@ -27,7 +37,7 @@ describe("hl config (#190)", () => {
     expect(networkFromEvmChainId(1)).toBe("testnet");
   });
 
-  it("resolves builder from env or placeholder", () => {
+  it("resolves builder from env override or placeholder", () => {
     expect(resolveBuilderAddress({})).toBe(HL_BUILDER_ADDRESS_PLACEHOLDER);
     expect(
       resolveBuilderAddress({
@@ -38,5 +48,18 @@ describe("hl config (#190)", () => {
     expect(isBuilderAddressConfigured(HL_BUILDER_ADDRESS_PLACEHOLDER)).toBe(
       false
     );
+  });
+
+  it("reads static process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS when no override", () => {
+    process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS =
+      "0x2222222222222222222222222222222222222222";
+    expect(resolveBuilderAddress()).toBe(
+      "0x2222222222222222222222222222222222222222"
+    );
+    expect(isBuilderAddressConfigured()).toBe(true);
+
+    delete process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS;
+    expect(resolveBuilderAddress()).toBe(HL_BUILDER_ADDRESS_PLACEHOLDER);
+    expect(isBuilderAddressConfigured()).toBe(false);
   });
 });
