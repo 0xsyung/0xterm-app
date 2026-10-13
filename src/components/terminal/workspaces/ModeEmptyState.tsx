@@ -25,7 +25,7 @@ export const MODE_EMPTY_COPY: Record<
   },
   forensic: {
     title: "FORENSIC",
-    body: "Pick a tool above — Sim, Trace, or screen an address.",
+    body: "Pick a tool above — Sim, Trace, or Read.",
     testId: "mode-empty-forensic"
   }
 };

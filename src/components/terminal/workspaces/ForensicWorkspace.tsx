@@ -20,8 +20,8 @@ export const FORENSIC_SUB_TABS: { id: ForensicSubTab; label: string }[] = [
 
 /**
  * Full action catalog. Unfinished (no `panel`) are hidden until wired (#160).
- * READ is intentionally unfinished until #171 (token-info / portfolio / balance).
- * Do not map READ → `price` — that auto-opened the INVEST PricePanel (#194).
+ * READ ships TOKEN INFO + PRICE (#171 Slice A). BALANCE/PORTFOLIO wait on #167.
+ * Never wire READ with only `price` — lone-tool auto-open of INVEST PricePanel (#194).
  */
 export const FORENSIC_ACTIONS: WorkspaceAction[] = [
   // unfinished = hidden until panel wired (#160)
@@ -42,9 +42,22 @@ export const FORENSIC_ACTIONS: WorkspaceAction[] = [
     panel: "trace",
     tab: "TRACE"
   },
-  // unfinished = hidden until #171 wires forensic read panels (#160/#194)
-  { cmd: "info", label: "TOKEN INFO", hint: "token details", tab: "READ" },
-  { cmd: "price", label: "PRICE", hint: "open price panel", tab: "READ" },
+  // #171 Slice A — TOKEN INFO + PRICE wired; BALANCE/PORTFOLIO wait on #167 (#160/#194)
+  {
+    cmd: "info",
+    label: "TOKEN INFO",
+    hint: "open token info panel",
+    panel: "info",
+    tab: "READ"
+  },
+  {
+    cmd: "price",
+    label: "PRICE",
+    hint: "open price panel",
+    panel: "price",
+    tab: "READ"
+  },
+  // unfinished until #167 shared balance/portfolio panels
   { cmd: "portfolio", label: "PORTFOLIO", hint: "read-only helper", tab: "READ" },
   { cmd: "balance", label: "BALANCE", hint: "read-only helper", tab: "READ" }
 ];

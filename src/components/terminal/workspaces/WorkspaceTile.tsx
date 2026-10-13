@@ -14,6 +14,7 @@ export type WorkspacePanelId =
   | "news"
   | "sim"
   | "trace"
+  | "info"
   | "perps"
   // DEV dig panels (#166/#198)
   | "dig-source"

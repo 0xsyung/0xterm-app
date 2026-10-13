@@ -375,6 +375,12 @@ import TracePanel, {
   type TraceRunArgs,
   type TraceRunResult
 } from "./sim/TracePanel";
+import InfoPanel, {
+  explorerViewLabel,
+  type InfoLookupArgs,
+  type InfoLookupResult,
+  type InfoTokenTag
+} from "./info/InfoPanel";
 import { simulateTx } from "./sim/simulate";
 import { traceTx, isTxHash } from "./sim/trace";
 import { simErrorText } from "./sim/errors";
@@ -9423,6 +9429,109 @@ export default function TerminalShell({
                 return { ok: false, error: entry.text };
               }
               return { ok: false, error: "Trace failed." };
+            }}
+            frameless
+          />
+        );
+      case "info":
+        return (
+          <InfoPanel
+            theme={theme}
+            onClose={close}
+            onLookup={async (args: InfoLookupArgs): Promise<InfoLookupResult> => {
+              if (!activeChainId) {
+                return { ok: false, error: "Select network first." };
+              }
+              const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+              if (!targetChain) {
+                return { ok: false, error: "Select network first." };
+              }
+              let tokenAddress: Address;
+              try {
+                tokenAddress = getAddress(args.address.trim()) as Address;
+              } catch {
+                return { ok: false, error: "Enter a contract address." };
+              }
+              const client = getClient(targetChain);
+              const detected = await detectTokenType(client, tokenAddress, targetChain);
+              if (detected?.type === "error") {
+                return {
+                  ok: false,
+                  error: "[!] On-chain read failed — try again or check RPC."
+                };
+              }
+              if (!detected) {
+                return {
+                  ok: false,
+                  error: `[✗] Does not look like a valid ERC-20 or ERC-721 on ${targetChain.name}.`
+                };
+              }
+              const tags: InfoTokenTag[] = [];
+              if (detected.type === "erc20") tags.push("ERC-20");
+              if (detected.type === "erc721") tags.push("ERC-721");
+              if (detected.erc165) tags.push("ERC-165");
+
+              let supply = "n/a";
+              if (detected.type === "erc20") {
+                try {
+                  const total = (await client.readContract({
+                    address: tokenAddress,
+                    abi: erc20FullAbi,
+                    functionName: "totalSupply"
+                  })) as bigint;
+                  const formatted = formatUnits(total, detected.decimals);
+                  supply = `${formatted} ${detected.symbol || ""}`.trim();
+                } catch {
+                  supply = "n/a";
+                }
+              } else {
+                try {
+                  const total = (await client.readContract({
+                    address: tokenAddress,
+                    abi: erc20FullAbi,
+                    functionName: "totalSupply"
+                  })) as bigint;
+                  supply = `${String(total)} items`;
+                } catch {
+                  supply = "n/a";
+                }
+              }
+
+              let connectedBalance: string | null = null;
+              if (detected.type === "erc20" && isConnected && address) {
+                try {
+                  const bal = (await client.readContract({
+                    address: tokenAddress,
+                    abi: erc20Abi,
+                    functionName: "balanceOf",
+                    args: [address]
+                  })) as bigint;
+                  connectedBalance = `${formatUnits(bal, detected.decimals)} ${detected.symbol || ""} (connected)`.trim();
+                } catch {
+                  connectedBalance = null;
+                }
+              }
+
+              const explorer = targetChain.blockExplorers?.default;
+              const explorerHref = explorer?.url
+                ? `${explorer.url.replace(/\/$/, "")}/address/${tokenAddress}`
+                : null;
+
+              return {
+                ok: true,
+                data: {
+                  address: tokenAddress,
+                  chainName: targetChain.name,
+                  name: detected.name || "—",
+                  symbol: detected.symbol || "—",
+                  decimals: detected.type === "erc20" ? detected.decimals : undefined,
+                  supply,
+                  tags,
+                  explorerHref,
+                  explorerLabel: explorerViewLabel(explorer?.name),
+                  connectedBalance
+                }
+              };
             }}
             frameless
           />

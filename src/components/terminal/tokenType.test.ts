@@ -110,7 +110,7 @@ describe("detectTokenType", () => {
       }
     });
     const res = await detectTokenType(client, MOCK_NFT, base);
-    expect(res).toEqual({ type: "erc721", name: "My NFT", symbol: "NFT" });
+    expect(res).toEqual({ type: "erc721", name: "My NFT", symbol: "NFT", erc165: true });
   });
 
   it("erc20 hint skips the ERC-721 probe and reports error when all ERC-20 reads fail", async () => {
