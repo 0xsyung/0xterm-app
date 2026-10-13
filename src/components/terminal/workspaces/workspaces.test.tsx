@@ -150,17 +150,24 @@ describe("WorkspaceStrip", () => {
     expect(onCommand).not.toHaveBeenCalled();
   });
 
-  it("hides unfinished FORENSIC READ PRICE tile (#194)", () => {
+  it("shows FORENSIC READ TOKEN INFO + PRICE tiles (#171)", () => {
+    const onOpenPanel = vi.fn();
     render(
       <WorkspaceStrip
         theme={theme}
         mode="forensic"
         onCommand={vi.fn()}
-        onOpenPanel={vi.fn()}
+        onOpenPanel={onOpenPanel}
       />
     );
-    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /TOKEN INFO/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /TOKEN INFO/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("info");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^PRICE/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("price");
+    // BALANCE/PORTFOLIO still unfinished (#167)
+    expect(screen.queryByRole("button", { name: /^BALANCE/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^PORTFOLIO/i })).toBeNull();
   });
 
   it("DEV EDITOR tile opens dig-source (#198)", () => {
@@ -230,7 +237,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     ).toBe("true");
   });
 
-  it("FORENSIC keeps SIM/TRACE; hides SCREEN and READ (#194)", () => {
+  it("FORENSIC keeps SIM/TRACE/READ; hides SCREEN (#171)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -244,14 +251,15 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     expect(screen.queryByRole("button", { name: /^SCREEN$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^READ$/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /^READ$/i })).toBeTruthy();
     // SIM appears as both sub-tab and tool tab
     expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(2);
     expect(screen.getAllByRole("button", { name: /^TRACE$/i }).length).toBeGreaterThanOrEqual(1);
     // #162 — entering forensic auto-opens the lone SIM tool
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
-    // READ is empty until #171 — no PRICE mapping, no auto-open of price
+    // READ has two wired tools — no lone auto-open of price (#194)
     expect(onOpenPanel).not.toHaveBeenCalledWith("price");
+    expect(onOpenPanel).not.toHaveBeenCalledWith("info");
     expect(onSubTabChange).not.toHaveBeenCalledWith("READ");
   });
 
@@ -484,6 +492,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "dig-session",
         "dig-source",
         "dig-ver",
+        "info",
         "news",
         "perps",
         "price",
@@ -540,7 +549,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     ]);
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toEqual([
       "SIM",
-      "TRACE"
+      "TRACE",
+      "READ"
     ]);
   });
 
@@ -549,15 +559,16 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(market.map((a) => a.label)).toEqual(["NEWS", "PRICE", "SWAP"]);
   });
 
-  it("ready forensic tools are SIM/TRACE only (#194)", () => {
+  it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE (#171)", () => {
     const labels = readyWorkspaceActions(FORENSIC_ACTIONS).map((a) => a.label);
-    expect(labels).toEqual(["SIM", "TRACE"]);
+    expect(labels).toEqual(["SIM", "TRACE", "TOKEN INFO", "PRICE"]);
   });
 
-  it("FORENSIC READ has no wired panel so liveSubTabs omits READ (#194)", () => {
+  it("FORENSIC READ wires TOKEN INFO + PRICE — never price-only (#171/#194)", () => {
     const readReady = readyWorkspaceActions(FORENSIC_ACTIONS).filter((a) => a.tab === "READ");
-    expect(readReady).toEqual([]);
-    expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).not.toContain(
+    expect(readReady.map((a) => a.panel)).toEqual(["info", "price"]);
+    expect(readReady.length).toBeGreaterThanOrEqual(2);
+    expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toContain(
       "READ"
     );
   });
@@ -616,9 +627,13 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.getByRole("button", { name: /TRACE/i }).textContent).toMatch(
       /open trace panel/i
     );
-    expect(screen.queryByRole("button", { name: /^PRICE/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /TOKEN INFO/i }).textContent).toMatch(
+      /open token info panel/i
+    );
+    expect(screen.getByRole("button", { name: /^PRICE/i }).textContent).toMatch(
+      /open price panel/i
+    );
     expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /TOKEN INFO/i })).toBeNull();
   });
 });
 
@@ -657,6 +672,29 @@ describe("lone-tool auto-open (#162)", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /^TRACE$/i })[0]);
     expect(onSubTabChange).toHaveBeenCalledWith("TRACE");
     expect(onOpenPanel).toHaveBeenCalledWith("trace");
+  });
+
+
+  it("does not auto-open READ (TOKEN INFO + PRICE — #171/#194)", () => {
+    const onOpenPanel = vi.fn();
+    const onSubTabChange = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        onSubTabChange={onSubTabChange}
+      />
+    );
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^READ$/i }));
+    expect(onSubTabChange).toHaveBeenCalledWith("READ");
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /TOKEN INFO/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PRICE$/i })).toBeTruthy();
+    expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
   });
 
   it("does not auto-open MARKET (multiple ready tools)", () => {

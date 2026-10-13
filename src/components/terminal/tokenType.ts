@@ -16,8 +16,21 @@ import {
 } from "./constants";
 
 export type TokenTypeResult =
-  | { type: "erc20"; name: string; symbol: string; decimals: number }
-  | { type: "erc721"; name: string; symbol: string }
+  | {
+      type: "erc20";
+      name: string;
+      symbol: string;
+      decimals: number;
+      /** True when supportsInterface(ERC-165) probe succeeded (#171). */
+      erc165?: boolean;
+    }
+  | {
+      type: "erc721";
+      name: string;
+      symbol: string;
+      /** True when supportsInterface(ERC-165) probe succeeded (#171). */
+      erc165?: boolean;
+    }
   | { type: "error" }
   | null;
 
@@ -97,7 +110,7 @@ export const detectTokenType = async (
             name = String(n);
             symbol = String(s);
           } catch {}
-          return { type: "erc721", name, symbol };
+          return { type: "erc721", name, symbol, erc165: true };
         }
       } catch {}
     }
@@ -132,7 +145,8 @@ export const detectTokenType = async (
           type: "erc20",
           name: String(name),
           symbol: String(sym),
-          decimals: Number(decimals)
+          decimals: Number(decimals),
+          erc165: true
         };
       }
     } catch {}
