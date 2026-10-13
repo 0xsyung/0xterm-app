@@ -42,18 +42,35 @@ export const HL_MAX_BUILDER_FEE_BP = 10;
  * 0xterm builder address that receives fee share on routed fills.
  * Ops must set `NEXT_PUBLIC_HL_BUILDER_ADDRESS` to the funded (≥100 USDC) builder.
  * Placeholder is a zero address — orders will fail until configured.
+ *
+ * Next.js only inlines `NEXT_PUBLIC_*` for **static** `process.env.NEXT_PUBLIC_*`
+ * access. Dynamic keys (e.g. `env[HL_BUILDER_ADDRESS_ENV]`) stay empty in the
+ * client bundle — see resolveBuilderAddress.
  */
 export const HL_BUILDER_ADDRESS_ENV = "NEXT_PUBLIC_HL_BUILDER_ADDRESS";
 
 export const HL_BUILDER_ADDRESS_PLACEHOLDER =
   "0x0000000000000000000000000000000000000000" as const;
 
+/**
+ * Resolve the builder fee recipient address.
+ *
+ * Production path uses a **static** `process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS`
+ * reference so Next embeds the deploy-time secret into the client chunk.
+ * Optional `env` override is for unit tests only (dynamic keys are fine there).
+ */
 export function resolveBuilderAddress(
-  env: Record<string, string | undefined> = typeof process !== "undefined"
-    ? (process.env as Record<string, string | undefined>)
-    : {}
+  env?: Record<string, string | undefined>
 ): `0x${string}` {
-  const raw = (env[HL_BUILDER_ADDRESS_ENV] || "").trim();
+  // Static property access — required for Next.js NEXT_PUBLIC_* inlining.
+  const fromProcess = (process.env.NEXT_PUBLIC_HL_BUILDER_ADDRESS || "").trim();
+  const raw = (
+    env !== undefined
+      ? (env.NEXT_PUBLIC_HL_BUILDER_ADDRESS ??
+          env[HL_BUILDER_ADDRESS_ENV] ??
+          "")
+      : fromProcess
+  ).trim();
   if (/^0x[a-fA-F0-9]{40}$/.test(raw)) {
     return raw.toLowerCase() as `0x${string}`;
   }
