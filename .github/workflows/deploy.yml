@@ -34,6 +34,9 @@ jobs:
         run: npm ci
 
       - name: Build static files
+        # Bake HL builder fee address from repo secret (no hardcode).
+        env:
+          NEXT_PUBLIC_HL_BUILDER_ADDRESS: ${{ secrets.NEXT_PUBLIC_HL_BUILDER_ADDRESS }}
         run: npm run build
 
       - name: Upload artifact
