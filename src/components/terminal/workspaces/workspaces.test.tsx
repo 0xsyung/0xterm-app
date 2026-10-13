@@ -339,6 +339,39 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(tabs.className).not.toMatch(/-mt-3/);
   });
 
+  it("INVEST sub-tab row is nowrap + max-md overflow-x-auto (#202)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+      />
+    );
+    const row = screen.getByTestId("workspace-sub-tabs");
+    expect(row.className).toMatch(/flex-nowrap/);
+    expect(row.className).toMatch(/max-md:overflow-x-auto/);
+    expect(row.className).toMatch(/mb-2/);
+    expect(row.className).toMatch(/bg-black/); // theme.bg solid under row
+  });
+
+  it("tool tabs are static on max-md (no dual sticky pin) (#202)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel="price"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={() => <div data-testid="panel-price">price</div>}
+      />
+    );
+    const tabs = screen.getByTestId("workspace-tool-tabs");
+    expect(tabs.className).toMatch(/\bsticky\b/);
+    expect(tabs.className).toMatch(/max-md:static/);
+  });
+
   it("keeps tool tabs visible and renders the panel below when one is open", () => {
     render(
       <WorkspaceSurface

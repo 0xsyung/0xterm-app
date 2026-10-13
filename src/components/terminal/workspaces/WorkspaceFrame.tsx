@@ -26,7 +26,11 @@ export function WorkspaceFrame({
 
   return (
     <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden pt-2">
-      <div className="flex items-center gap-1.5 shrink-0 mb-2">
+      {/* #202: NavStrip-style nowrap + overflow-x-auto on max-md; solid bg; mb-2 before card */}
+      <div
+        className={`flex flex-nowrap items-center gap-1.5 shrink-0 mb-2 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden ${theme.bg}`}
+        data-testid="workspace-sub-tabs"
+      >
         {subTabs.map((t) => (
           <SegmentButton
             key={t.id}

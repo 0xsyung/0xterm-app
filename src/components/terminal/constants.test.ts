@@ -173,6 +173,14 @@ describe("chainShortName + HEADER metrics (#121)", () => {
     expect(HEADER_H).toContain("48px");
     expect(HEADER_PAD).toContain("48px");
   });
+
+  it("HEADER_PAD narrow soft floor is 144 with live CSS var (#202)", () => {
+    expect(HEADER_PAD).toMatch(/--terminal-header-pad/);
+    expect(HEADER_PAD).toMatch(/144px/);
+    expect(HEADER_PAD).not.toMatch(/120px/);
+    // HEADER_H min stays 120 — pad clears live height
+    expect(HEADER_H).toMatch(/120px/);
+  });
 });
 
 describe("chainFullName", () => {

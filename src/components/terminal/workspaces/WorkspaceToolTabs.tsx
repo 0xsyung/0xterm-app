@@ -16,6 +16,7 @@ import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
  *
  * #198: sticky tabs keep solid theme.bg + border-b; no -mt-3 overlap onto
  * panel header — ≥8px gap under the row so title never sits under z-index.
+ * #202: on max-md drop sticky (static) so tool tabs + Perps tabs do not dual-pin.
  */
 export function WorkspaceToolTabs({
   theme,
@@ -35,7 +36,7 @@ export function WorkspaceToolTabs({
 
   return (
     <div
-      className={`sticky top-0 z-10 -mx-3 px-3 pt-2 pb-2 mb-2 flex flex-wrap gap-1.5 border-b ${theme.border} ${theme.bg}`}
+      className={`sticky top-0 z-10 max-md:static max-md:z-auto -mx-3 px-3 pt-2 pb-2 mb-2 flex flex-wrap gap-1.5 border-b ${theme.border} ${theme.bg}`}
       data-testid="workspace-tool-tabs"
     >
       {actions.map((a) => {

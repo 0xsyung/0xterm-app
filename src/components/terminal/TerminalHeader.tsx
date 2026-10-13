@@ -404,7 +404,7 @@ export default function TerminalHeader({
 
       {/* Far-right wallet cluster: CONSOLE · SETTINGS · NETWORK · CONNECT (#134/#140). */}
       <div
-        className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end"
+        className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end max-md:min-w-0 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden"
         data-testid="wallet-cluster"
       >
         <ConsoleTab

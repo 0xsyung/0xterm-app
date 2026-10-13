@@ -327,6 +327,14 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(strip.className).toMatch(/max-md:basis-full/);
   });
 
+  it("wallet cluster scrolls on max-md so SEPOLIA/CONNECT can clear (#202 soft)", () => {
+    render(
+      <TerminalHeader {...baseProps} activeChainId={11155111} onOpenNetworkSettings={vi.fn()} />
+    );
+    const cluster = screen.getByTestId("wallet-cluster");
+    expect(cluster.className).toMatch(/max-md:overflow-x-auto/);
+  });
+
   it("shows F1–F5 only on CONSOLE surface", () => {
     const { rerender } = render(
       <TerminalHeader
