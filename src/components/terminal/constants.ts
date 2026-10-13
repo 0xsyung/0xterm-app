@@ -207,8 +207,11 @@ export const THEME_ALIASES: Record<string, ThemeMode> = {
 // Single canonical header metrics — the Bloomberg terminal bar. Themes never
 // change layout, so there is exactly one header height/pad for every skin.
 // #121: desktop bar ~48px so 32px logo + 2px phosphor border clear with pad;
-// narrow soft floor ~120px for brand+clock+NETWORK row1 + scroll modes row2.
-export const HEADER_PAD = 'max-md:pt-[calc(120px_+_env(safe-area-inset-top))] md:pt-[calc(48px_+_env(safe-area-inset-top))]'
+// #202: narrow soft floor 144px (was 120) — touch chips grow header ~134px and
+// sliced MARKET|PERPS; CSS var `--terminal-header-pad` (useTerminalHeaderContentPad)
+// overrides when live `[data-terminal-header]` is taller than floor − gap.
+// HEADER_H min stays 120 — pad clears live height; header itself must not force empty.
+export const HEADER_PAD = 'max-md:pt-[calc(var(--terminal-header-pad,144px)_+_env(safe-area-inset-top))] md:pt-[calc(48px_+_env(safe-area-inset-top))]'
 
 export const HEADER_H = 'max-md:h-auto max-md:min-h-[calc(120px_+_env(safe-area-inset-top))] md:h-[calc(48px_+_env(safe-area-inset-top))]'
 

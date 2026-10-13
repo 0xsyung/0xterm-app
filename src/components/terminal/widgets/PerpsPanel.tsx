@@ -507,7 +507,7 @@ export default function PerpsPanel({
       {isConnected && unlocked && (
         <>
           <div
-            className="sticky top-0 z-[1] flex flex-wrap gap-1.5 py-1"
+            className="sticky top-0 z-[1] max-md:static max-md:z-auto flex flex-wrap gap-1.5 py-1"
             style={{ scrollMarginTop: FLOATING_CHAT_TOP_GAP_PX }}
             data-testid="perps-tabs"
           >

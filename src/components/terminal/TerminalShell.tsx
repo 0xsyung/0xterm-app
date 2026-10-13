@@ -300,6 +300,7 @@ import {
   probeTokenMeta
 } from "./probeToken";
 import { pinGridClass, useLayoutBand } from "./viewport";
+import { useTerminalHeaderContentPad } from "./headerContentPad";
 import {
   deriveKeysFromSignature,
   deriveAesKey,
@@ -711,6 +712,7 @@ export default function TerminalShell({
   // re-run every 60s; manifests are what get persisted / exported / imported.
   const REFRESH_INTERVAL = 60; // seconds
   const { band, narrow } = useLayoutBand();
+  const headerContentPadPx = useTerminalHeaderContentPad();
   const [pinned, setPinned] = useState<PinnedManifest[]>([]);
   const [pinnedRefresh, setPinnedRefresh] = useState<
     Record<string, () => Promise<any>>
@@ -9568,6 +9570,9 @@ export default function TerminalShell({
       {/* TERMINAL CONTENT CONTAINER */}
       <div
         className={`flex-1 flex flex-col pl-[calc(0.75rem_+_env(safe-area-inset-left))] pr-[calc(0.75rem_+_env(safe-area-inset-right))] md:pl-[calc(1.5rem_+_env(safe-area-inset-left))] md:pr-[calc(1.5rem_+_env(safe-area-inset-right))] pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] ${HEADER_PAD} overflow-hidden relative z-10`}
+        style={{
+          ["--terminal-header-pad" as string]: `${headerContentPadPx}px`
+        }}
         onClick={(e) => {
           // News/debug/dig-editor retain focus (#14/#97 Alex QA).
           if (
