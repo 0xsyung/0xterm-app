@@ -16,6 +16,10 @@ export type WorkspacePanelId =
   | "trace"
   | "info"
   | "perps"
+  | "balance"
+  | "portfolio"
+  | "snapshot"
+  | "pnl"
   // DEV dig panels (#166/#198)
   | "dig-source"
   | "dig-artifact"

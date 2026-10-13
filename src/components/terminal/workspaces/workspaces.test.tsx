@@ -150,7 +150,7 @@ describe("WorkspaceStrip", () => {
     expect(onCommand).not.toHaveBeenCalled();
   });
 
-  it("shows FORENSIC READ TOKEN INFO + PRICE tiles (#171)", () => {
+  it("shows FORENSIC READ TOKEN INFO + PRICE + BALANCE + PORTFOLIO (#171/#167)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceStrip
@@ -165,9 +165,12 @@ describe("WorkspaceStrip", () => {
     onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^PRICE/i }));
     expect(onOpenPanel).toHaveBeenCalledWith("price");
-    // BALANCE/PORTFOLIO still unfinished (#167)
-    expect(screen.queryByRole("button", { name: /^BALANCE/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^PORTFOLIO/i })).toBeNull();
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^BALANCE/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("balance");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^PORTFOLIO/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("portfolio");
   });
 
   it("DEV EDITOR tile opens dig-source (#198)", () => {
@@ -198,7 +201,7 @@ describe("WorkspaceStrip", () => {
 });
 
 describe("WorkspaceSurface (#148/#160)", () => {
-  it("shows live INVEST sub-tabs (MARKET + PERPS; PORTFOLIO+DEX hidden)", () => {
+  it("shows live INVEST sub-tabs (MARKET + PORTFOLIO + PERPS; DEX hidden) (#167)", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -209,13 +212,12 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PORTFOLIO$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PERPS$/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /PORTFOLIO/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /DEX/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
     expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^TICKER/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^SNAPSHOT/i })).toBeNull();
   });
 
   it("NEWS is the leftmost MARKET tool tab (#152)", () => {
@@ -482,6 +484,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
   it("WIRED_WORKSPACE_PANELS lists the TerminalShell inline panels", () => {
     expect([...WIRED_WORKSPACE_PANELS].sort()).toEqual(
       [
+        "balance",
         "dig-abi",
         "dig-artifact",
         "dig-attach",
@@ -495,8 +498,11 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "info",
         "news",
         "perps",
+        "pnl",
+        "portfolio",
         "price",
         "sim",
+        "snapshot",
         "swap",
         "trace"
       ].sort()
@@ -540,6 +546,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
   it("empty sub-tabs are omitted from live SUB_TABS filtering", () => {
     expect(liveSubTabs(INVEST_SUB_TABS, INVEST_ACTIONS).map((t) => t.id)).toEqual([
       "MARKET",
+      "PORTFOLIO",
       "PERPS"
     ]);
     expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS).map((t) => t.id)).toEqual([
@@ -559,18 +566,52 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(market.map((a) => a.label)).toEqual(["NEWS", "PRICE", "SWAP"]);
   });
 
-  it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE (#171)", () => {
+  it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE/BALANCE/PORTFOLIO (#167)", () => {
     const labels = readyWorkspaceActions(FORENSIC_ACTIONS).map((a) => a.label);
-    expect(labels).toEqual(["SIM", "TRACE", "TOKEN INFO", "PRICE"]);
+    expect(labels).toEqual([
+      "SIM",
+      "TRACE",
+      "TOKEN INFO",
+      "PRICE",
+      "BALANCE",
+      "PORTFOLIO"
+    ]);
   });
 
-  it("FORENSIC READ wires TOKEN INFO + PRICE — never price-only (#171/#194)", () => {
+  it("FORENSIC READ wires four tools — never price-only (#171/#194/#167)", () => {
     const readReady = readyWorkspaceActions(FORENSIC_ACTIONS).filter((a) => a.tab === "READ");
-    expect(readReady.map((a) => a.panel)).toEqual(["info", "price"]);
-    expect(readReady.length).toBeGreaterThanOrEqual(2);
+    expect(readReady.map((a) => a.panel)).toEqual([
+      "info",
+      "price",
+      "balance",
+      "portfolio"
+    ]);
+    expect(readReady.length).toBe(4);
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toContain(
       "READ"
     );
+  });
+
+  it("INVEST PORTFOLIO wires BALANCE·PORTFOLIO·SNAPSHOT·PNL (#167)", () => {
+    const pf = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "PORTFOLIO");
+    expect(pf.map((a) => a.label)).toEqual([
+      "BALANCE",
+      "PORTFOLIO",
+      "SNAPSHOT",
+      "PNL"
+    ]);
+    expect(pf.map((a) => a.panel)).toEqual([
+      "balance",
+      "portfolio",
+      "snapshot",
+      "pnl"
+    ]);
+  });
+
+  it("FORENSIC catalog has no SNAPSHOT/PNL (#167)", () => {
+    const labels = FORENSIC_ACTIONS.map((a) => a.label);
+    expect(labels).not.toContain("SNAPSHOT");
+    expect(labels).not.toContain("PNL");
   });
 
   it("DEV SOURCE is single EDITOR → dig-source (#198)", () => {
@@ -603,7 +644,7 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.getByRole("button", { name: /SWAP/i }).textContent).toMatch(
       /open swap panel/i
     );
-    expect(screen.queryByRole("button", { name: /BALANCE/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /BALANCE/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /CREATE POOL/i })).toBeNull();
   });
 
@@ -632,6 +673,12 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     );
     expect(screen.getByRole("button", { name: /^PRICE/i }).textContent).toMatch(
       /open price panel/i
+    );
+    expect(screen.getByRole("button", { name: /^BALANCE/i }).textContent).toMatch(
+      /open balance panel/i
+    );
+    expect(screen.getByRole("button", { name: /^PORTFOLIO/i }).textContent).toMatch(
+      /open portfolio panel/i
     );
     expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
   });
@@ -675,7 +722,7 @@ describe("lone-tool auto-open (#162)", () => {
   });
 
 
-  it("does not auto-open READ (TOKEN INFO + PRICE — #171/#194)", () => {
+  it("does not auto-open READ (four tools — #171/#194/#167)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -694,7 +741,32 @@ describe("lone-tool auto-open (#162)", () => {
     expect(onOpenPanel).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /TOKEN INFO/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PRICE$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^BALANCE$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PORTFOLIO$/i })).toBeTruthy();
     expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
+  });
+
+  it("does not auto-open INVEST PORTFOLIO (four tools — #167)", () => {
+    const onOpenPanel = vi.fn();
+    const onSubTabChange = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        onSubTabChange={onSubTabChange}
+      />
+    );
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^PORTFOLIO$/i }));
+    expect(onSubTabChange).toHaveBeenCalledWith("PORTFOLIO");
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /^BALANCE$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^SNAPSHOT$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PNL$/i })).toBeTruthy();
+    expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
   });
 
   it("does not auto-open MARKET (multiple ready tools)", () => {

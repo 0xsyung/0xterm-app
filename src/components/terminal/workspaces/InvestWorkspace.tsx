@@ -46,10 +46,34 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
   },
   // unfinished = hidden until panel wired (#160)
   { cmd: "ticker", label: "TICKER", hint: "watchlist board", tab: "MARKET" },
-  { cmd: "balance", label: "BALANCE", hint: "check token balance", tab: "PORTFOLIO" },
-  { cmd: "portfolio", label: "PORTFOLIO", hint: "all chains + P/L", tab: "PORTFOLIO" },
-  { cmd: "snapshot", label: "SNAPSHOT", hint: "record baseline", tab: "PORTFOLIO" },
-  { cmd: "pnl", label: "PNL", hint: "vs last snapshot", tab: "PORTFOLIO" },
+  {
+    cmd: "balance",
+    label: "BALANCE",
+    hint: "open balance panel",
+    panel: "balance",
+    tab: "PORTFOLIO"
+  },
+  {
+    cmd: "portfolio",
+    label: "PORTFOLIO",
+    hint: "open portfolio panel",
+    panel: "portfolio",
+    tab: "PORTFOLIO"
+  },
+  {
+    cmd: "snapshot",
+    label: "SNAPSHOT",
+    hint: "record snapshot baseline",
+    panel: "snapshot",
+    tab: "PORTFOLIO"
+  },
+  {
+    cmd: "pnl",
+    label: "PNL",
+    hint: "open pnl panel",
+    panel: "pnl",
+    tab: "PORTFOLIO"
+  },
   { cmd: "createpool", label: "CREATE POOL", hint: "create a pool", tab: "DEX" },
   { cmd: "getpool", label: "GET POOL", hint: "look up a pool", tab: "DEX" },
   { cmd: "addliq", label: "ADD LIQUIDITY", hint: "add liquidity", tab: "DEX" },

@@ -20,7 +20,7 @@ export const FORENSIC_SUB_TABS: { id: ForensicSubTab; label: string }[] = [
 
 /**
  * Full action catalog. Unfinished (no `panel`) are hidden until wired (#160).
- * READ ships TOKEN INFO + PRICE (#171 Slice A). BALANCE/PORTFOLIO wait on #167.
+ * READ: TOKEN INFO · PRICE · BALANCE · PORTFOLIO (#171 + #167 shared shells).
  * Never wire READ with only `price` — lone-tool auto-open of INVEST PricePanel (#194).
  */
 export const FORENSIC_ACTIONS: WorkspaceAction[] = [
@@ -42,7 +42,7 @@ export const FORENSIC_ACTIONS: WorkspaceAction[] = [
     panel: "trace",
     tab: "TRACE"
   },
-  // #171 Slice A — TOKEN INFO + PRICE wired; BALANCE/PORTFOLIO wait on #167 (#160/#194)
+  // #171 + #167 — TOKEN INFO · PRICE · BALANCE · PORTFOLIO (shared shells; no SNAPSHOT/PNL)
   {
     cmd: "info",
     label: "TOKEN INFO",
@@ -57,9 +57,20 @@ export const FORENSIC_ACTIONS: WorkspaceAction[] = [
     panel: "price",
     tab: "READ"
   },
-  // unfinished until #167 shared balance/portfolio panels
-  { cmd: "portfolio", label: "PORTFOLIO", hint: "read-only helper", tab: "READ" },
-  { cmd: "balance", label: "BALANCE", hint: "read-only helper", tab: "READ" }
+  {
+    cmd: "balance",
+    label: "BALANCE",
+    hint: "open balance panel",
+    panel: "balance",
+    tab: "READ"
+  },
+  {
+    cmd: "portfolio",
+    label: "PORTFOLIO",
+    hint: "open portfolio panel",
+    panel: "portfolio",
+    tab: "READ"
+  }
 ];
 
 export function ForensicWorkspace({

@@ -381,6 +381,18 @@ import InfoPanel, {
   type InfoLookupResult,
   type InfoTokenTag
 } from "./info/InfoPanel";
+import BalancePanel, {
+  type BalanceLookupArgs,
+  type BalanceLookupResult
+} from "./portfolio/BalancePanel";
+import PortfolioPanel, {
+  type PortfolioFetchResult
+} from "./portfolio/PortfolioPanel";
+import SnapshotPanel, {
+  type SnapshotRecordArgs,
+  type SnapshotRecordResult
+} from "./portfolio/SnapshotPanel";
+import PnlPanel, { type PnlFetchResult } from "./portfolio/PnlPanel";
 import { simulateTx } from "./sim/simulate";
 import { traceTx, isTxHash } from "./sim/trace";
 import { simErrorText } from "./sim/errors";
@@ -828,6 +840,8 @@ export default function TerminalShell({
   );
   // Re-clicking the active NEWS tab force-refreshes the panel.
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
+  // BALANCE + PORTFOLIO re-fetch when PORTFOLIO / READ panels remount (#167).
+  const [portfolioRefreshKey, setPortfolioRefreshKey] = useState(0);
   const [hlBuilderFeeBp, setHlBuilderFeeBp] = useState<number>(HL_DEFAULT_BUILDER_FEE_BP);
   const [hlAgentAddress, setHlAgentAddress] = useState<string | null>(null);
   const [hlBuilderMaxFeeLabel, setHlBuilderMaxFeeLabel] = useState<string | null>(null);
@@ -9536,6 +9550,271 @@ export default function TerminalShell({
             frameless
           />
         );
+      case "balance":
+        return (
+          <BalancePanel
+            theme={theme}
+            onClose={close}
+            defaultAddress={address ?? ""}
+            hasNetwork={!!activeChainId}
+            refreshKey={portfolioRefreshKey}
+            surface={terminalMode === "forensic" ? "forensic" : "invest"}
+            frameless
+            onLookup={async (args: BalanceLookupArgs): Promise<BalanceLookupResult> => {
+              if (!activeChainId) {
+                return { ok: false, error: "Select network first." };
+              }
+              const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+              if (!targetChain) {
+                return { ok: false, error: "Select network first." };
+              }
+              let userAddress: Address;
+              try {
+                userAddress = getAddress(args.address.trim()) as Address;
+              } catch {
+                return { ok: false, error: "Enter a wallet address." };
+              }
+              try {
+                const balData = await fetchTokenBalanceData(
+                  userAddress,
+                  targetChain,
+                  args.token
+                );
+                let usd: string | null = null;
+                try {
+                  const client = getClient(targetChain);
+                  const isNative = !args.token || balData.symbol === targetChain.nativeCurrency.symbol;
+                  let tokenAddr: Address = (WRAPPED_NATIVE[targetChain.id] ||
+                    NATIVE_TOKEN_ADDRESS) as Address;
+                  let native = true;
+                  if (args.token && !isNative) {
+                    const resolved = await resolveTokenDetails(args.token, targetChain);
+                    tokenAddr = resolved.address;
+                    native = resolved.isNative;
+                  }
+                  const price = await getTokenPriceUsd(
+                    targetChain,
+                    balData.symbol,
+                    tokenAddr,
+                    native,
+                    client
+                  );
+                  if (price !== null && Number.isFinite(price)) {
+                    const amt = parseFloat(balData.balance);
+                    if (Number.isFinite(amt)) {
+                      usd = (amt * price).toLocaleString(undefined, {
+                        maximumFractionDigits: 2
+                      });
+                    }
+                  }
+                } catch {
+                  usd = null;
+                }
+                return {
+                  ok: true,
+                  data: {
+                    balance: balData.balance,
+                    symbol: balData.symbol,
+                    chainName: targetChain.name,
+                    usd
+                  }
+                };
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
+                if (/Unable to resolve token|Unknown token/i.test(msg)) {
+                  return {
+                    ok: false,
+                    error: `[✗] Unknown token on ${targetChain.name}.`
+                  };
+                }
+                return {
+                  ok: false,
+                  error: "[!] On-chain read failed — try again or check RPC."
+                };
+              }
+            }}
+          />
+        );
+      case "portfolio": {
+        const surface = terminalMode === "forensic" ? "forensic" : "invest";
+        return (
+          <PortfolioPanel
+            theme={theme}
+            onClose={close}
+            surface={surface}
+            isConnected={!!isConnected && !!address}
+            refreshKey={portfolioRefreshKey}
+            frameless
+            onRecordSnapshot={
+              surface === "invest"
+                ? () => {
+                    setOpenPanel("snapshot");
+                  }
+                : undefined
+            }
+            onFetch={async (): Promise<PortfolioFetchResult> => {
+              if (!isConnected || !address) {
+                return { ok: false, error: "Wallet not connected." };
+              }
+              try {
+                const prefs = readPf();
+                const snapshot =
+                  (typeof window !== "undefined"
+                    ? JSON.parse(
+                        localStorage.getItem(
+                          `0xterm_user_${address.toLowerCase()}`
+                        ) || "{}"
+                      ).portfolioSnapshot
+                    : null) || null;
+                const view = await fetchPortfolioView();
+                const snapMap: Record<
+                  string,
+                  { price: number | null; balance: string }
+                > = {};
+                if (snapshot?.holdings) {
+                  for (const [key, val] of Object.entries(snapshot.holdings)) {
+                    const v = val as { price: number | null; balance: string };
+                    snapMap[key] = {
+                      price: v.price ?? null,
+                      balance: v.balance ?? "0"
+                    };
+                  }
+                }
+                return {
+                  ok: true,
+                  data: {
+                    holdings: view.holdings,
+                    hiddenCount: view.hiddenCount,
+                    groups: prefs.groups,
+                    snapshot: snapMap,
+                    snapshotLabel: snapshot?.label,
+                    snapshotTime: snapshot?.timestamp
+                  }
+                };
+              } catch {
+                return {
+                  ok: false,
+                  error: "[!] On-chain read failed — try again or check RPC."
+                };
+              }
+            }}
+          />
+        );
+      }
+      case "snapshot":
+        return (
+          <SnapshotPanel
+            theme={theme}
+            onClose={close}
+            isConnected={!!isConnected && !!address}
+            frameless
+            onRecord={async (
+              args: SnapshotRecordArgs
+            ): Promise<SnapshotRecordResult> => {
+              if (!isConnected || !address) {
+                return { ok: false, error: "Wallet not connected." };
+              }
+              try {
+                const label = args.label.trim() || "now";
+                const holdings = await fetchPortfolioSnapshot(address as Address);
+                const time = new Date().toLocaleString();
+                savePreference("portfolioSnapshot", {
+                  label,
+                  timestamp: Date.now(),
+                  holdings
+                });
+                return {
+                  ok: true,
+                  label,
+                  count: Object.keys(holdings).length,
+                  time
+                };
+              } catch {
+                return {
+                  ok: false,
+                  error: "[!] On-chain read failed — try again or check RPC."
+                };
+              }
+            }}
+          />
+        );
+      case "pnl":
+        return (
+          <PnlPanel
+            theme={theme}
+            onClose={close}
+            isConnected={!!isConnected && !!address}
+            refreshKey={portfolioRefreshKey}
+            frameless
+            onFetch={async (): Promise<PnlFetchResult> => {
+              if (!isConnected || !address) {
+                return { ok: false, error: "Wallet not connected." };
+              }
+              const gate = buildPnlGate(
+                { isConnected, address, activeChainId },
+                {
+                  generateId,
+                  readPreference: (addr) =>
+                    JSON.parse(
+                      localStorage.getItem(`0xterm_user_${addr.toLowerCase()}`) ||
+                        "{}"
+                    )
+                }
+              );
+              if (gate && gate.type === "text") {
+                const t = typeof gate.text === "string" ? gate.text : "";
+                if (/No snapshot/i.test(t)) {
+                  return {
+                    ok: false,
+                    empty: true,
+                    error:
+                      "No snapshot found. Run SNAPSHOT first to establish a P/L baseline."
+                  };
+                }
+                return { ok: false, error: t || "Wallet not connected." };
+              }
+              const view = await loadPnlView({ forceBalances: true });
+              if ("type" in view && view.type === "text") {
+                const t = typeof (view as { text?: string }).text === "string"
+                  ? (view as { text: string }).text
+                  : "PNL failed.";
+                if (/No snapshot/i.test(t)) {
+                  return {
+                    ok: false,
+                    empty: true,
+                    error:
+                      "No snapshot found. Run SNAPSHOT first to establish a P/L baseline."
+                  };
+                }
+                return { ok: false, error: t };
+              }
+              return { ok: true, data: view as PnlView };
+            }}
+            onResetBaseline={async (): Promise<PnlFetchResult> => {
+              if (!isConnected || !address) {
+                return { ok: false, error: "Wallet not connected." };
+              }
+              const label = "now";
+              const holdings = await fetchPortfolioSnapshot(address as Address);
+              savePreference("portfolioSnapshot", {
+                label,
+                timestamp: Date.now(),
+                holdings
+              });
+              const view = await loadPnlView({ forceBalances: true });
+              if ("type" in view && view.type === "text") {
+                return {
+                  ok: false,
+                  error:
+                    typeof (view as { text?: string }).text === "string"
+                      ? (view as { text: string }).text
+                      : "PNL failed."
+                };
+              }
+              return { ok: true, data: view as PnlView };
+            }}
+          />
+        );
       case "dig-source":
         return <DigSourcePanel theme={theme} onClose={close} />;
       case "dig-artifact":
@@ -9852,11 +10131,21 @@ export default function TerminalShell({
                       // Re-click on the active NEWS tab → force-refresh.
                       setNewsRefreshKey((n) => n + 1);
                     } else {
+                      if (
+                        panel === "balance" ||
+                        panel === "portfolio" ||
+                        panel === "pnl"
+                      ) {
+                        setPortfolioRefreshKey((n) => n + 1);
+                      }
                       setOpenPanel(panel);
                     }
                   }}
-                  onSubTabChange={() => {
+                  onSubTabChange={(tab) => {
                     setOpenPanel(null);
+                    if (tab === "PORTFOLIO" || tab === "READ") {
+                      setPortfolioRefreshKey((n) => n + 1);
+                    }
                   }}
                   renderPanel={renderInlinePanel}
                 />
