@@ -73,7 +73,16 @@ export const fetchPortfolioHoldings = async (
   const holdings: PortfolioHolding[] = [];
 
   for (const chain of SUPPORTED_CHAINS) {
-    const client = getClient(chain);
+    // Soft-skip chains with no API-key RPC (getClient throws) or other
+    // setup failures — BALANCE only hits the active chain; PORTFOLIO must
+    // not hard-fail the whole view when one sibling chain is unconfigured (#206).
+    let client: PublicClient;
+    try {
+      client = getClient(chain);
+    } catch {
+      continue;
+    }
+
     let nativeBal = 0n;
     try {
       nativeBal = await client.getBalance({ address: userAddress });
@@ -81,14 +90,22 @@ export const fetchPortfolioHoldings = async (
       nativeBal = 0n;
     }
 
-    const nativeQuote = await getTokenQuoteUsd(
-      chain,
-      chain.nativeCurrency.symbol,
-      (WRAPPED_NATIVE[chain.id] || NATIVE_TOKEN_ADDRESS) as Address,
-      true,
-      client,
-      fetchImpl
-    );
+    let nativeQuote: { priceUsd: number | null; change24h: number | null } = {
+      priceUsd: null,
+      change24h: null
+    };
+    try {
+      nativeQuote = await getTokenQuoteUsd(
+        chain,
+        chain.nativeCurrency.symbol,
+        (WRAPPED_NATIVE[chain.id] || NATIVE_TOKEN_ADDRESS) as Address,
+        true,
+        client,
+        fetchImpl
+      );
+    } catch {
+      // pricing soft-fail — still surface the native row
+    }
     const nativePrice = nativeQuote.priceUsd;
     const nativeBalance = formatEther(nativeBal);
     const nativeValue =
@@ -176,21 +193,33 @@ export const fetchPortfolioSnapshot = async (
   const holdings: Record<string, SnapshotHolding> = {};
 
   for (const chain of SUPPORTED_CHAINS) {
-    const client = getClient(chain);
+    // Soft-skip unconfigured RPCs — same as fetchPortfolioHoldings (#206).
+    let client: PublicClient;
+    try {
+      client = getClient(chain);
+    } catch {
+      continue;
+    }
+
     let nativeBal = 0n;
     try {
       nativeBal = await client.getBalance({ address: userAddress });
     } catch {
       nativeBal = 0n;
     }
-    const nativePrice = await getTokenPriceUsd(
-      chain,
-      chain.nativeCurrency.symbol,
-      (WRAPPED_NATIVE[chain.id] || NATIVE_TOKEN_ADDRESS) as Address,
-      true,
-      client,
-      fetchImpl
-    );
+    let nativePrice: number | null = null;
+    try {
+      nativePrice = await getTokenPriceUsd(
+        chain,
+        chain.nativeCurrency.symbol,
+        (WRAPPED_NATIVE[chain.id] || NATIVE_TOKEN_ADDRESS) as Address,
+        true,
+        client,
+        fetchImpl
+      );
+    } catch {
+      nativePrice = null;
+    }
     holdings[`${chain.id}:${chain.nativeCurrency.symbol}`] = {
       price: nativePrice,
       balance: formatEther(nativeBal)

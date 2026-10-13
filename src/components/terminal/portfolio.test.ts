@@ -180,6 +180,39 @@ describe("fetchPortfolioHoldings", () => {
     const foo = res.find((h) => h.symbol === "FOO");
     expect(foo!.change24h).toBeNull();
   });
+
+  it("soft-skips chains whose getClient throws (unconfigured RPC) (#206)", async () => {
+    const okClient = mockClient({
+      getBalance: async () => 2n * 10n ** 18n,
+      readContract: async () => 0n
+    });
+    const getClient = vi.fn((chain: { id: number; name: string }) => {
+      if (chain.id !== base.id) {
+        throw new Error(
+          `[!] No API-key RPC provider configured for ${chain.name}.`
+        );
+      }
+      return okClient;
+    });
+    const d = deps({ getClient: getClient as unknown as FetchPortfolioDeps["getClient"] });
+    const res = await fetchPortfolioHoldings(USER, {}, "native", d);
+    expect(res.length).toBe(1);
+    expect(res[0].chainId).toBe(base.id);
+    expect(res[0].balance).toBe("2");
+    // Must not throw / hard-fail when sibling chains lack RPC.
+    expect(getClient.mock.calls.length).toBe(SUPPORTED_CHAINS.length);
+  });
+
+  it("returns empty holdings (does not throw) when every getClient throws (#206)", async () => {
+    const d = deps({
+      getClient: vi.fn(() => {
+        throw new Error("[!] No API-key RPC provider configured for X.");
+      })
+    });
+    await expect(fetchPortfolioHoldings(USER, {}, undefined, d)).resolves.toEqual(
+      []
+    );
+  });
 });
 
 describe("fetchPortfolioView", () => {

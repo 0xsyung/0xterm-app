@@ -9658,14 +9658,24 @@ export default function TerminalShell({
               }
               try {
                 const prefs = readPf();
-                const snapshot =
-                  (typeof window !== "undefined"
-                    ? JSON.parse(
-                        localStorage.getItem(
-                          `0xterm_user_${address.toLowerCase()}`
-                        ) || "{}"
-                      ).portfolioSnapshot
-                    : null) || null;
+                // Soft-parse snapshot blob — corrupt prefs must not hard-fail
+                // the holdings view (#206).
+                let snapshot: {
+                  holdings?: Record<string, { price: number | null; balance: string }>;
+                  label?: string;
+                  timestamp?: number;
+                } | null = null;
+                try {
+                  if (typeof window !== "undefined") {
+                    const raw = localStorage.getItem(
+                      `0xterm_user_${address.toLowerCase()}`
+                    );
+                    snapshot =
+                      (raw ? JSON.parse(raw) : {})?.portfolioSnapshot || null;
+                  }
+                } catch {
+                  snapshot = null;
+                }
                 const view = await fetchPortfolioView();
                 const snapMap: Record<
                   string,
