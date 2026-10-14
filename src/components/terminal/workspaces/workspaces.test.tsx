@@ -561,7 +561,13 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     ]);
   });
 
-  it("ready invest MARKET tools are NEWS/PRICE/SWAP only", () => {
+  it("INVEST_ACTIONS has no ticker row (#169 Soft ACK)", () => {
+    expect(INVEST_ACTIONS.some((a) => a.cmd === "ticker")).toBe(false);
+    expect(INVEST_ACTIONS.some((a) => a.label === "TICKER")).toBe(false);
+    expect(WIRED_WORKSPACE_PANELS).not.toContain("ticker" as never);
+  });
+
+    it("ready invest MARKET tools are NEWS/PRICE/SWAP only", () => {
     const market = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "MARKET");
     expect(market.map((a) => a.label)).toEqual(["NEWS", "PRICE", "SWAP"]);
   });

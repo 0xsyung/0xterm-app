@@ -110,6 +110,7 @@ export default function PricePanel({
   onRun,
   onPin,
   pinned = false,
+  isPinned,
   frameless = false
 }: {
   theme: ThemeConfig;
@@ -126,7 +127,10 @@ export default function PricePanel({
   onClose: () => void;
   onRun: (args: PriceRunArgs) => Promise<PriceRunResult>;
   onPin?: (data: PriceCardData) => void;
+  /** True when the current result is already pinned (legacy boolean). */
   pinned?: boolean;
+  /** Per-result pin check via pricePinKey (#169). Wins over `pinned` when set. */
+  isPinned?: (data: PriceCardData) => boolean;
   /** Inline mode: drop the outer card frame (border/bg/rounded/padding). */
   frameless?: boolean;
 }) {
@@ -502,16 +506,37 @@ export default function PricePanel({
         </button>
       )}
 
-      {result && (
-        <div data-testid="price-result" className="relative">
-          <PriceCard data={result} theme={theme} />
-          {onPin && !pinned && (
-            <div className="absolute top-2 right-2">
-              <PinButton onPin={() => onPin(result)} theme={theme} />
+      {result && (() => {
+        const alreadyPinned = isPinned ? isPinned(result) : pinned;
+        return (
+          <div data-testid="price-result" className="relative flex flex-col gap-1">
+            <div className="relative">
+              <PriceCard data={result} theme={theme} />
+              {onPin && !alreadyPinned && (
+                <div className="absolute top-2 right-2">
+                  <PinButton onPin={() => onPin(result)} theme={theme} />
+                </div>
+              )}
+              {alreadyPinned && (
+                <span
+                  className={`absolute top-2 right-2 uppercase tracking-widest text-[9px] px-1.5 py-0.5 border ${theme.border} ${theme.muted}`}
+                  data-testid="price-pinned-chip"
+                >
+                  Pinned
+                </span>
+              )}
             </div>
-          )}
-        </div>
-      )}
+            {!alreadyPinned && onPin && (
+              <div
+                className={`text-[9px] ${theme.muted}`}
+                data-testid="price-pin-hint"
+              >
+                Pin to keep live · refreshes in the strip.
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

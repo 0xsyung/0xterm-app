@@ -72,6 +72,14 @@ export default function PinnedPanel({
             >
               <span className="font-bold flex items-center gap-1.5">
                 <span>{p.title}</span>
+                {!!p.stale && (
+                  <span
+                    className={`ml-0.5 font-normal ${theme.warn}`}
+                    data-testid="pin-stale"
+                  >
+                    STALE
+                  </span>
+                )}
                 {!minimized && hasRefresh && (
                   <button
                     type="button"

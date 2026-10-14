@@ -44,8 +44,7 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     panel: "swap",
     tab: "MARKET"
   },
-  // unfinished = hidden until panel wired (#160)
-  { cmd: "ticker", label: "TICKER", hint: "watchlist board", tab: "MARKET" },
+  // #169 Soft ACK: MARKET TICKER removed — pinned PRICE is the live ticker
   {
     cmd: "balance",
     label: "BALANCE",

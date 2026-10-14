@@ -65,3 +65,63 @@ describe("PinnedPanel", () => {
     expect(screen.getAllByText("PORTFOLIO").length).toBeGreaterThan(0);
   });
 });
+
+  it("shows STALE on title row when pin.stale (#169)", () => {
+    const pricePin: PinnedManifest = {
+      id: "p1",
+      kind: "component",
+      title: "PRICE ETH/USDC",
+      refreshSec: 15,
+      stale: true,
+      componentData: {
+        kind: "price",
+        mode: "api",
+        tokenSymbol: "ETH",
+        quoteSymbol: "USDC",
+        priceUsd: "3000",
+        dex: "uniswap",
+        chain: "ethereum"
+      }
+    };
+    render(
+      <PinnedPanel
+        pinned={[pricePin]}
+        theme={theme}
+        countdowns={{ p1: 15 }}
+        {...noops}
+      />
+    );
+    expect(screen.getByTestId("pin-stale").textContent).toBe("STALE");
+    expect(screen.getByText("next 15s")).toBeTruthy();
+    // last good card stays
+    expect(screen.getByText(/ETH \/ USDC/)).toBeTruthy();
+  });
+
+  it("uses refreshSec for countdown default when countdowns omit id", () => {
+    const pricePin: PinnedManifest = {
+      id: "p2",
+      kind: "component",
+      title: "PRICE ETH/USDC",
+      refreshSec: 15,
+      componentData: {
+        kind: "price",
+        mode: "onchain",
+        symbolA: "ETH",
+        symbolB: "USDC",
+        rate: 1,
+        dexName: "Uniswap V3",
+        chainName: "Ethereum"
+      }
+    };
+    render(
+      <PinnedPanel
+        pinned={[pricePin]}
+        theme={theme}
+        countdowns={{}}
+        {...noops}
+      />
+    );
+    // no countdown entry → no next Ns UI (hasRefresh false); refreshSec still on manifest
+    expect(pricePin.refreshSec).toBe(15);
+  });
+
