@@ -93,6 +93,8 @@ export type PinnedManifest = {
   widgetId?: string;
   pairOrSymbols?: string;
   refreshSec?: number;
+  /** Transient UI: last background refresh failed (#169 pin-PRICE STALE). */
+  stale?: boolean;
   /** Portfolio pin: extra watch addresses (#22). */
   watchAddresses?: string[];
   // transient: the live React element for component-kind pins (price/swap/

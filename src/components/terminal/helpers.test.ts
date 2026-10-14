@@ -6,11 +6,16 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  applyPinRefreshOutcome,
   isPinnableLog,
   isPinnableManifest,
   migrateCustomTokens,
-  pricePinKey
+  PRICE_PIN_REFRESH_SEC,
+  pricePinKey,
+  withPricePinRefreshSec
 } from "./helpers";
+import { TICKER_REFRESH_SEC } from "./ticker";
+import type { PinnedManifest } from "./types";
 
 describe("isPinnableLog", () => {
   it("allows live monitors (price / balance / portfolio / ticker / news / pnl / dig-artifact / dig-run / dig-debug)", () => {
@@ -137,6 +142,62 @@ describe("pricePinKey", () => {
     expect(
       pricePinKey({ kind: "price", mode: "api", chain: "base", dex: "" }, null, null)
     ).toBeNull();
+  });
+});
+
+
+describe("price pin refresh cadence (#169)", () => {
+  it("PRICE_PIN_REFRESH_SEC matches TICKER_REFRESH_SEC (15s)", () => {
+    expect(PRICE_PIN_REFRESH_SEC).toBe(15);
+    expect(PRICE_PIN_REFRESH_SEC).toBe(TICKER_REFRESH_SEC);
+  });
+
+  it("withPricePinRefreshSec sets 15s on price component pins", () => {
+    const pin: PinnedManifest = {
+      id: "p1",
+      kind: "component",
+      title: "PRICE ETH/USDC",
+      componentData: { kind: "price", mode: "api" }
+    };
+    expect(withPricePinRefreshSec(pin).refreshSec).toBe(15);
+    expect(
+      withPricePinRefreshSec({
+        id: "b1",
+        kind: "balance",
+        title: "BALANCE"
+      } as PinnedManifest).refreshSec
+    ).toBeUndefined();
+  });
+
+  it("applyPinRefreshOutcome marks STALE on fail and clears on success", () => {
+    const pin: PinnedManifest = {
+      id: "p1",
+      kind: "component",
+      title: "PRICE ETH/USDC",
+      refreshSec: 15,
+      componentData: {
+        kind: "price",
+        mode: "api",
+        priceUsd: "1",
+        tokenSymbol: "ETH",
+        quoteSymbol: "USDC"
+      }
+    };
+    const stale = applyPinRefreshOutcome(pin, { ok: false });
+    expect(stale.stale).toBe(true);
+    expect(stale.componentData?.priceUsd).toBe("1");
+
+    const fresh = applyPinRefreshOutcome(stale, {
+      ok: true,
+      payload: {
+        componentData: {
+          ...pin.componentData,
+          priceUsd: "2"
+        }
+      }
+    });
+    expect(fresh.stale).toBe(false);
+    expect(fresh.componentData?.priceUsd).toBe("2");
   });
 });
 

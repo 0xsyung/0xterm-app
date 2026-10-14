@@ -5,7 +5,8 @@
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 import type { Address } from "viem";
-import type { CustomTokenEntry, CustomTokensMap } from "./types";
+import type { CustomTokenEntry, CustomTokensMap, PinnedManifest } from "./types";
+import { TICKER_REFRESH_SEC } from "./ticker";
 
 /**
  * Pin allowlist (issue #35): only live, glanceable monitors can be pinned.
@@ -56,6 +57,45 @@ export const pricePinKey = (
   if (!net || !d || q === "/") return null;
   return `price:api:${net}:${d}:${q}`;
 };
+
+/** Price pin auto-refresh cadence — same as CONSOLE ticker (#169 Soft ACK). */
+export const PRICE_PIN_REFRESH_SEC = TICKER_REFRESH_SEC;
+
+/** Ensure price pin manifests use the 15s ticker cadence (#169). */
+export function withPricePinRefreshSec<T extends { kind?: string; componentData?: { kind?: string }; refreshSec?: number }>(
+  m: T
+): T {
+  if (m.kind === "component" && m.componentData?.kind === "price") {
+    return { ...m, refreshSec: PRICE_PIN_REFRESH_SEC };
+  }
+  return m;
+}
+
+/**
+ * Apply a pin refresh outcome: success updates payload/componentData and clears
+ * STALE; failure keeps last quote and marks STALE (#169 Soft ACK). Quiet — no wipe.
+ */
+export function applyPinRefreshOutcome(
+  pin: PinnedManifest,
+  outcome: { ok: true; payload: unknown } | { ok: false }
+): PinnedManifest {
+  if (!outcome.ok) {
+    return { ...pin, stale: true };
+  }
+  const payload = outcome.payload;
+  const hasComponentData =
+    payload !== null &&
+    typeof payload === "object" &&
+    "componentData" in (payload as object);
+  if (hasComponentData) {
+    return {
+      ...pin,
+      componentData: (payload as { componentData: unknown }).componentData,
+      stale: false
+    };
+  }
+  return { ...pin, payload, stale: false };
+}
 
 // Normalize a raw stored custom-token blob into the current list-per-chain
 // shape. Accepts both the new form (chain -> array) and the legacy form

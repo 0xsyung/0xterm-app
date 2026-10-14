@@ -85,10 +85,12 @@ import {
 import { encodeV3ExactInputSingle } from "./swapEncode";
 import { formatViemError } from "../../lib/viemError";
 import {
+  applyPinRefreshOutcome,
   isPinnableLog,
   isPinnableManifest,
   migrateCustomTokens,
-  pricePinKey
+  pricePinKey,
+  withPricePinRefreshSec
 } from "./helpers";
 import { detectTokenType } from "./tokenType";
 import { getNativePriceUsd, getTokenPriceUsd } from "./pricing";
@@ -760,18 +762,21 @@ export default function TerminalShell({
       .then((payload) => {
         setPinned((prev) =>
           prev.map((p) => {
-            if (p.id !== id || !payload) return p;
-            // component pins (e.g. price) re-render from componentData, so a
-            // refresh may return data for either slot.
-            const hasComponentData =
-              payload && typeof payload === "object" && "componentData" in payload;
-            return hasComponentData
-              ? { ...p, componentData: payload.componentData }
-              : { ...p, payload };
+            if (p.id !== id) return p;
+            // Keep last card on empty payload; clear STALE when we have data (#169).
+            if (!payload) return { ...p, stale: false };
+            return applyPinRefreshOutcome(p, { ok: true, payload });
           })
         );
       })
-      .catch(() => {})
+      .catch(() => {
+        // Quiet fail: keep last quote, mark STALE until a successful refresh (#169).
+        setPinned((prev) =>
+          prev.map((p) =>
+            p.id === id ? applyPinRefreshOutcome(p, { ok: false }) : p
+          )
+        );
+      })
       .finally(() => {
         setRefreshingId((cur) => (cur === id ? null : cur));
         // a completed refresh (auto or manual) restarts the countdown for the
@@ -1341,6 +1346,8 @@ export default function TerminalShell({
     ) {
       const cd = log.componentData;
       base.source = cd.mode; // "pool" | "api"
+      // #169 Soft ACK: pin-PRICE is the live ticker — 15s cadence
+      base.refreshSec = TICKER_REFRESH_SEC;
       if (cd.mode === "onchain") {
         // re-run the on-chain pool price fetch
         base.chainId = activeChainId || undefined;
@@ -1662,7 +1669,9 @@ export default function TerminalShell({
           setExplorerKeys(loadExplorerKeys(prefs));
 
           if (Array.isArray(prefs.pinned) && prefs.pinned.length > 0) {
-            const clean = prefs.pinned.filter(isPinnableManifest);
+            const clean = prefs.pinned
+              .filter(isPinnableManifest)
+              .map((m: PinnedManifest) => withPricePinRefreshSec(m));
             setPinned(clean);
             rehydratePinRefresh(clean);
           }
@@ -4457,9 +4466,11 @@ export default function TerminalShell({
         }
 
         if (Array.isArray(data.pinned)) {
-          const cleaned = data.pinned.filter(
-            (p: any) => p && p.id && p.kind && isPinnableManifest(p)
-          );
+          const cleaned = data.pinned
+            .filter(
+              (p: any) => p && p.id && p.kind && isPinnableManifest(p)
+            )
+            .map((m: PinnedManifest) => withPricePinRefreshSec(m));
           setPinned(cleaned);
           rehydratePinRefresh(cleaned);
           savePreference("pinned", cleaned);
@@ -9338,6 +9349,21 @@ export default function TerminalShell({
                 componentData: data
               };
               onPin(log);
+            }}
+            isPinned={(data) => {
+              const key = pricePinKey(data, activeChainId, activeDexId);
+              if (!key) return false;
+              return pinned.some((p) => {
+                if (p.kind !== "component" || p.componentData?.kind !== "price")
+                  return false;
+                return (
+                  pricePinKey(
+                    p.componentData,
+                    p.chainId ?? null,
+                    p.dexId ?? null
+                  ) === key
+                );
+              });
             }}
             frameless
           />

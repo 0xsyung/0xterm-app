@@ -474,6 +474,75 @@ describe("PricePanel", () => {
     expect(screen.queryByTestId("price-error")).toBeNull();
   });
 
+
+  it("shows pin microcopy after successful RUN (#169)", async () => {
+    const onPin = vi.fn();
+    const onRun = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        kind: "price",
+        mode: "api",
+        tokenSymbol: "ETH",
+        quoteSymbol: "USDC",
+        priceUsd: "3000",
+        dex: "uniswap",
+        chain: "ethereum"
+      }
+    });
+    render(
+      <PricePanel
+        theme={theme}
+        defaultSource="api"
+        onClose={vi.fn()}
+        onRun={onRun}
+        onPin={onPin}
+      />
+    );
+    fireEvent.change(screen.getByTestId("price-base"), {
+      target: { value: "ETH" }
+    });
+    fireEvent.click(screen.getByTestId("price-run"));
+    await waitFor(() => expect(screen.getByTestId("price-result")).toBeTruthy());
+    const hint = screen.getByTestId("price-pin-hint");
+    expect(hint.textContent).toBe("Pin to keep live · refreshes in the strip.");
+    expect(hint.className).toMatch(/text-\[9px\]/);
+    expect(screen.getByTitle("Pin to right panel")).toBeTruthy();
+  });
+
+  it("hides pin CTA and shows Pinned chip when already pinned (#169)", async () => {
+    const onPin = vi.fn();
+    const onRun = vi.fn().mockResolvedValue({
+      ok: true,
+      data: {
+        kind: "price",
+        mode: "api",
+        tokenSymbol: "ETH",
+        quoteSymbol: "USDC",
+        priceUsd: "3000",
+        dex: "uniswap",
+        chain: "ethereum"
+      }
+    });
+    render(
+      <PricePanel
+        theme={theme}
+        defaultSource="api"
+        onClose={vi.fn()}
+        onRun={onRun}
+        onPin={onPin}
+        isPinned={() => true}
+      />
+    );
+    fireEvent.change(screen.getByTestId("price-base"), {
+      target: { value: "ETH" }
+    });
+    fireEvent.click(screen.getByTestId("price-run"));
+    await waitFor(() => expect(screen.getByTestId("price-result")).toBeTruthy());
+    expect(screen.queryByTitle("Pin to right panel")).toBeNull();
+    expect(screen.queryByTestId("price-pin-hint")).toBeNull();
+    expect(screen.getByTestId("price-pinned-chip").textContent).toBe("Pinned");
+  });
+
 describe("testnet PRICE caveat (#162)", () => {
   it("detects Sepolia / Amoy-style testnets", () => {
     expect(isPriceActionTestnet(11155111)).toBe(true); // eth sepolia
