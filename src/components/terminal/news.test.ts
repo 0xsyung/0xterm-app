@@ -38,6 +38,7 @@ import {
 } from "./news";
 import { formatLocalHm, formatLocalHms } from "./localTime";
 import { NEWS_ALLOWLIST, RSS2JSON_ENDPOINT } from "./newsAllowlist";
+import { CORS_LOL_ENDPOINT } from "./news";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixtureXml = readFileSync(
@@ -445,6 +446,54 @@ describe("fetchNewsHeadlines", () => {
     // Within the backoff window: no network call, same NEWS_TRANSPORT outcome.
     const r2 = await fetchNewsHeadlines(fetchImpl as any);
     expect(calls).toBe(n); // no re-fetch while backed off
+    expect(r2.error).toBe("NEWS_TRANSPORT");
+  });
+
+  it("falls back to cors.lol XML when rss2json is down", async () => {
+    const urls: string[] = [];
+    const fetchImpl = async (url: string) => {
+      const u = String(url);
+      urls.push(u);
+      if (u.includes("rss2json")) {
+        return {
+          ok: true,
+          text: async () => "",
+          json: async () => ({ status: "error", message: "down" })
+        } as Response;
+      }
+      if (u.includes("cors.lol")) {
+        return {
+          ok: true,
+          text: async () => fixtureXml,
+          json: async () => ({ status: "ok", items: [] })
+        } as Response;
+      }
+      throw new Error(`unexpected fetch: ${u}`);
+    };
+    const r = await fetchNewsHeadlines(fetchImpl as any, { force: true });
+    expect(r.error).toBeUndefined();
+    expect(r.usedRss2json).toBe(false);
+    expect(r.items.some((i) => i.title.includes("Bitcoin hits"))).toBe(true);
+    expect(
+      urls.some((u) => u.startsWith(CORS_LOL_ENDPOINT) && u.includes("cointelegraph.com"))
+    ).toBe(true);
+  });
+
+  it("backs off when both rss2json and cors.lol fail", async () => {
+    let calls = 0;
+    const fetchImpl = async (url: string) => {
+      calls++;
+      if (!String(url).includes("cors.lol")) {
+        throw new Error("no transport");
+      }
+      return { ok: false, text: async () => "", json: async () => null } as Response;
+    };
+    const r1 = await fetchNewsHeadlines(fetchImpl as any, { force: true });
+    expect(r1.error).toBe("NEWS_TRANSPORT");
+    const n = calls;
+    // Both transports failed → backed off: no re-fetch within the window.
+    const r2 = await fetchNewsHeadlines(fetchImpl as any);
+    expect(calls).toBe(n);
     expect(r2.error).toBe("NEWS_TRANSPORT");
   });
 });
