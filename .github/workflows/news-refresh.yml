@@ -1,0 +1,56 @@
+name: Refresh NEWS mirror
+
+# Rebuild + redeploy Pages on a schedule so same-origin /news/<id>.xml stays fresh
+# without waiting for an app commit (#213). Skips when fetch fails entirely.
+
+on:
+  schedule:
+    # Every 30 minutes (UTC)
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fetch NEWS allowlist feeds
+        run: node scripts/fetch-news-feeds.mjs
+
+      - name: Build static files
+        env:
+          NEXT_PUBLIC_HL_BUILDER_ADDRESS: ${{ secrets.NEXT_PUBLIC_HL_BUILDER_ADDRESS }}
+          NEXT_PUBLIC_NEWS_PROXY_URL: ${{ secrets.NEXT_PUBLIC_NEWS_PROXY_URL }}
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: refresh
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

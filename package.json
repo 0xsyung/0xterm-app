@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "news:fetch": "node scripts/fetch-news-feeds.mjs"
   },
   "dependencies": {
     "@ethereumjs/common": "^10.1.3",

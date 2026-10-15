@@ -126,3 +126,13 @@ export const sanitizeNewsImageUrl = (
     return null;
   }
 };
+
+/** Optional Cloudflare Worker (or tiny API) origin, no trailing slash (#213). */
+export const NEWS_PROXY_URL_ENV = "NEXT_PUBLIC_NEWS_PROXY_URL";
+
+/**
+ * Same-origin static mirror path (GitHub Pages). Build writes
+ * `public/news/<id>.xml` via `scripts/fetch-news-feeds.mjs`.
+ */
+export const NEWS_MIRROR_PATH = "/news";
+

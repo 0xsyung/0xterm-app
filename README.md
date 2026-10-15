@@ -68,6 +68,7 @@ forge test
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_HL_BUILDER_ADDRESS` | 0xterm Hyperliquid **builder** address that receives fee share on routed PERPS fills (#190). Must be a funded (≥100 USDC) standard-AA perps account. Until set, the app uses the zero-address placeholder and builder approval / order routing will fail on-chain. Testnet-first (API `api.hyperliquid-testnet.xyz`, HyperEVM 998). |
+| `NEXT_PUBLIC_NEWS_PROXY_URL` | Optional owned NEWS proxy origin (Cloudflare Worker, no trailing slash) (#213). When unset, the app uses same-origin `/news/<id>.xml` mirrors written at Pages build. |
 
 ---
 
