@@ -909,8 +909,11 @@ type CacheEntry = {
   ok: boolean;
 };
 
-/** Backoff before re-attempting a failed feed (rss2json down → no 500 spam). */
+/** Backoff before re-attempting a failed feed (both transports down → no 500 spam). */
 export const NEWS_RETRY_MS = 5 * 60_000;
+
+/** CORS-proxy fallback for allowlisted feeds when rss2json is down (no ACAO on publisher RSS). */
+export const CORS_LOL_ENDPOINT = "https://api.cors.lol/?url=";
 
 const feedCache = new Map<string, CacheEntry>();
 
@@ -951,6 +954,26 @@ async function fetchViaRss2json(
   return json;
 }
 
+/** cors.lol CORS-proxy fallback: returns raw feed XML. SSRF-guarded like rss2json. */
+async function fetchViaCorsLol(
+  allowlistedUrl: string,
+  fetchImpl: typeof fetch
+): Promise<string> {
+  if (!isAllowedNewsUrl(allowlistedUrl)) {
+    throw new Error("NEWS_BAD_URL");
+  }
+  const res = await fetchImpl(
+    `${CORS_LOL_ENDPOINT}${encodeURIComponent(allowlistedUrl)}`,
+    {
+      mode: "cors",
+      credentials: "omit",
+      headers: { Accept: "application/rss+xml, application/xml, text/xml, */*" }
+    }
+  );
+  if (!res.ok) throw new Error(`cors.lol HTTP ${res.status}`);
+  return await res.text();
+}
+
 async function fetchOneFeed(
   item: NewsAllowItem,
   fetchImpl: typeof fetch,
@@ -979,18 +1002,24 @@ async function fetchOneFeed(
   let items: NewsItem[] = [];
   let ok = false;
 
-  // #126: prefer rss2json first/only for allowlisted feeds so the browser does
-  // not log doomed CORS failures on publisher RSS (no ACAO). parseRss +
-  // fetchDirectRss remain for unit tests / future same-origin proxy.
+  // rss2json first (returns JSON); fall back to cors.lol + parseRss XML when it
+  // is down. Publisher RSS has no ACAO, so a direct browser fetch is CORS-blocked.
   try {
     const json = await fetchViaRss2json(item.rssUrl, fetchImpl);
     items = parseRss2Json(json, item.id);
     usedRss2json = true;
     ok = true;
   } catch {
-    ok = false;
-    items = [];
-    usedRss2json = false;
+    try {
+      const xml = await fetchViaCorsLol(item.rssUrl, fetchImpl);
+      items = parseRss(xml, item.id);
+      usedRss2json = false;
+      ok = true;
+    } catch {
+      ok = false;
+      items = [];
+      usedRss2json = false;
+    }
   }
 
   feedCache.set(item.rssUrl, {
