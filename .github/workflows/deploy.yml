@@ -33,10 +33,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Same-origin NEWS mirror (#213): allowlist-gated RSS → public/news/<id>.xml
+      # so the static app does not depend on rss2json/cors.lol as primary transport.
+      - name: Fetch NEWS allowlist feeds
+        run: node scripts/fetch-news-feeds.mjs
+        continue-on-error: false
+
       - name: Build static files
         # Bake HL builder fee address from repo secret (no hardcode).
+        # Optional: NEXT_PUBLIC_NEWS_PROXY_URL → CF Worker origin (no trailing slash).
         env:
           NEXT_PUBLIC_HL_BUILDER_ADDRESS: ${{ secrets.NEXT_PUBLIC_HL_BUILDER_ADDRESS }}
+          NEXT_PUBLIC_NEWS_PROXY_URL: ${{ secrets.NEXT_PUBLIC_NEWS_PROXY_URL }}
         run: npm run build
 
       - name: Upload artifact

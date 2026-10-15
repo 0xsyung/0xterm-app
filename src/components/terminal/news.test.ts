@@ -19,6 +19,9 @@ import {
   isAllowedNewsUrl,
   isSafeArticleUrl,
   newsPinKey,
+  newsMirrorUrl,
+  newsProxyRequestUrl,
+  resolveNewsProxyBase,
   formatNewsAsOf,
   formatNewsTime,
   openNewsArticle,
@@ -37,7 +40,11 @@ import {
   type NewsItem
 } from "./news";
 import { formatLocalHm, formatLocalHms } from "./localTime";
-import { NEWS_ALLOWLIST, RSS2JSON_ENDPOINT } from "./newsAllowlist";
+import {
+  NEWS_ALLOWLIST,
+  NEWS_MIRROR_PATH,
+  RSS2JSON_ENDPOINT
+} from "./newsAllowlist";
 import { CORS_LOL_ENDPOINT } from "./news";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -335,12 +342,51 @@ describe("buildNewsFooter", () => {
 });
 
 
+describe("newsProxyRequestUrl / resolveNewsProxyBase (#213)", () => {
+  it("builds proxy URL only for allowlisted RSS", () => {
+    const u = newsProxyRequestUrl(
+      "https://cointelegraph.com/rss",
+      "https://news-proxy.example"
+    );
+    expect(u).toBe(
+      "https://news-proxy.example/?url=" +
+        encodeURIComponent("https://cointelegraph.com/rss")
+    );
+    expect(() =>
+      newsProxyRequestUrl("https://evil.test/rss", "https://news-proxy.example")
+    ).toThrow(/NEWS_BAD_URL/);
+    expect(() =>
+      newsProxyRequestUrl("https://cointelegraph.com/rss", "")
+    ).toThrow(/NEWS_NO_PROXY/);
+  });
+
+  it("strips trailing slash from proxy base / env", () => {
+    expect(
+      resolveNewsProxyBase({
+        NEXT_PUBLIC_NEWS_PROXY_URL: "https://proxy.example/"
+      })
+    ).toBe("https://proxy.example");
+    expect(newsMirrorUrl("cointelegraph")).toBe(
+      `${NEWS_MIRROR_PATH}/cointelegraph.xml`
+    );
+  });
+});
+
 describe("fetchNewsHeadlines", () => {
-  it("uses bare rss2json first — no count=20, no direct publisher CORS (#126)", async () => {
+
+  it("uses bare rss2json when owned mirror misses — no count=20, no direct publisher CORS (#126/#213)", async () => {
     const urls: string[] = [];
     const fetchImpl = async (url: string) => {
       const u = String(url);
       urls.push(u);
+      if (u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => null,
+          text: async () => ""
+        } as Response;
+      }
       if (u.includes("rss2json")) {
         expect(u).not.toMatch(/count=/);
         expect(u.startsWith(`${RSS2JSON_ENDPOINT}?rss_url=`)).toBe(true);
@@ -369,7 +415,8 @@ describe("fetchNewsHeadlines", () => {
     expect(r.items.find((i) => /Bare BTC/i.test(i.title))?.imageUrl).toBe(
       "https://s3-images.ctmedia.io/cover.jpg"
     );
-    expect(urls.every((u) => u.startsWith(`${RSS2JSON_ENDPOINT}?rss_url=`))).toBe(
+    expect(urls.some((u) => u.startsWith(`${NEWS_MIRROR_PATH}/`))).toBe(true);
+    expect(urls.some((u) => u.startsWith(`${RSS2JSON_ENDPOINT}?rss_url=`))).toBe(
       true
     );
     expect(urls.some((u) => /count=20/.test(u))).toBe(false);
@@ -378,14 +425,64 @@ describe("fetchNewsHeadlines", () => {
       urls.some(
         (u) =>
           !u.includes("rss2json") &&
+          !u.startsWith(`${NEWS_MIRROR_PATH}/`) &&
           /cointelegraph\.com|decrypt\.co|coindesk\.com|thedefiant\.io/.test(u)
       )
     ).toBe(false);
   });
 
+  it("prefers same-origin owned mirror XML over third-party proxies (#213)", async () => {
+    const urls: string[] = [];
+    const fetchImpl = async (url: string) => {
+      const u = String(url);
+      urls.push(u);
+      if (u === newsMirrorUrl("cointelegraph") || u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => fixtureXml,
+          json: async () => ({ status: "ok", items: [] })
+        } as Response;
+      }
+      throw new Error(`should not hit third-party: ${u}`);
+    };
+    const r = await fetchNewsHeadlines(fetchImpl as any, { force: true });
+    expect(r.error).toBeUndefined();
+    expect(r.usedRss2json).toBe(false);
+    expect(r.items.some((i) => i.title.includes("Bitcoin hits"))).toBe(true);
+    expect(urls.every((u) => u.startsWith(`${NEWS_MIRROR_PATH}/`))).toBe(true);
+    expect(urls.some((u) => u.includes("rss2json") || u.includes("cors.lol"))).toBe(
+      false
+    );
+  });
+
+  it("rejects non-allowlist URLs at the proxy request builder (SSRF gate)", () => {
+    expect(() =>
+      newsProxyRequestUrl(
+        "https://127.0.0.1/secret",
+        "https://news-proxy.example"
+      )
+    ).toThrow(/NEWS_BAD_URL/);
+    expect(() =>
+      newsProxyRequestUrl(
+        "https://cointelegraph.com/rss/../admin",
+        "https://news-proxy.example"
+      )
+    ).toThrow(/NEWS_BAD_URL/);
+  });
+
   it("returns NEWS_TRANSPORT when all sources fail", async () => {
     const fetchImpl2 = async (url: string) => {
-      if (String(url).includes("rss2json")) {
+      const u = String(url);
+      if (u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => null,
+          text: async () => ""
+        } as Response;
+      }
+      if (u.includes("rss2json")) {
         return {
           ok: true,
           json: async () => ({ status: "error", message: "down" }),
@@ -403,7 +500,16 @@ describe("fetchNewsHeadlines", () => {
     let calls = 0;
     const fetchImpl = async (url: string) => {
       calls++;
-      if (!String(url).includes("rss2json")) {
+      const u = String(url);
+      if (u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: false,
+          status: 404,
+          text: async () => "",
+          json: async () => null
+        } as Response;
+      }
+      if (!u.includes("rss2json")) {
         throw new Error("no direct");
       }
       return {
@@ -431,7 +537,16 @@ describe("fetchNewsHeadlines", () => {
     let calls = 0;
     const fetchImpl = async (url: string) => {
       calls++;
-      if (!String(url).includes("rss2json")) {
+      const u = String(url);
+      if (u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: false,
+          status: 404,
+          text: async () => "",
+          json: async () => null
+        } as Response;
+      }
+      if (!u.includes("rss2json")) {
         throw new Error("no direct");
       }
       return {
@@ -449,11 +564,19 @@ describe("fetchNewsHeadlines", () => {
     expect(r2.error).toBe("NEWS_TRANSPORT");
   });
 
-  it("falls back to cors.lol XML when rss2json is down", async () => {
+  it("falls back to cors.lol XML when owned mirror + rss2json are down", async () => {
     const urls: string[] = [];
     const fetchImpl = async (url: string) => {
       const u = String(url);
       urls.push(u);
+      if (u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: false,
+          status: 404,
+          text: async () => "",
+          json: async () => null
+        } as Response;
+      }
       if (u.includes("rss2json")) {
         return {
           ok: true,
@@ -479,11 +602,20 @@ describe("fetchNewsHeadlines", () => {
     ).toBe(true);
   });
 
-  it("backs off when both rss2json and cors.lol fail", async () => {
+  it("backs off when owned mirror + rss2json + cors.lol fail", async () => {
     let calls = 0;
     const fetchImpl = async (url: string) => {
       calls++;
-      if (!String(url).includes("cors.lol")) {
+      const u = String(url);
+      if (u.startsWith(`${NEWS_MIRROR_PATH}/`)) {
+        return {
+          ok: false,
+          status: 404,
+          text: async () => "",
+          json: async () => null
+        } as Response;
+      }
+      if (!u.includes("cors.lol")) {
         throw new Error("no transport");
       }
       return { ok: false, text: async () => "", json: async () => null } as Response;

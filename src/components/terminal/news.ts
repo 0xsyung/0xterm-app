@@ -9,6 +9,8 @@ import {
   NEWS_ALLOWLIST_BY_URL,
   NEWS_FOOTER_BASE,
   NEWS_FOOTER_RSS2JSON,
+  NEWS_MIRROR_PATH,
+  NEWS_PROXY_URL_ENV,
   RSS2JSON_ENDPOINT,
   sanitizeNewsImageUrl,
   type NewsAllowItem,
@@ -21,6 +23,8 @@ export {
   NEWS_ALLOWLIST,
   NEWS_FOOTER_BASE,
   NEWS_FOOTER_RSS2JSON,
+  NEWS_MIRROR_PATH,
+  NEWS_PROXY_URL_ENV,
   isAllowedNewsThumbHost,
   sanitizeNewsImageUrl,
   type NewsAllowItem,
@@ -909,10 +913,10 @@ type CacheEntry = {
   ok: boolean;
 };
 
-/** Backoff before re-attempting a failed feed (both transports down → no 500 spam). */
+/** Backoff before re-attempting a failed feed (all transports down → no spam). */
 export const NEWS_RETRY_MS = 5 * 60_000;
 
-/** CORS-proxy fallback for allowlisted feeds when rss2json is down (no ACAO on publisher RSS). */
+/** Last-resort CORS-proxy when owned mirror/proxy + rss2json are down. */
 export const CORS_LOL_ENDPOINT = "https://api.cors.lol/?url=";
 
 const feedCache = new Map<string, CacheEntry>();
@@ -922,7 +926,48 @@ export const _resetNewsCache = (): void => {
   feedCache.clear();
 };
 
-/** Retained for unit tests / future same-origin proxy (#126). */
+/**
+ * Resolve optional owned NEWS proxy base (#213).
+ * Static `process.env.NEXT_PUBLIC_NEWS_PROXY_URL` so Next inlines at build.
+ * Empty → skip Worker hop; same-origin `/news/<id>.xml` remains primary.
+ */
+export function resolveNewsProxyBase(
+  env?: Record<string, string | undefined>
+): string {
+  const fromProcess = (process.env.NEXT_PUBLIC_NEWS_PROXY_URL || "")
+    .trim()
+    .replace(/\/$/, "");
+  const raw = (
+    env !== undefined
+      ? (env.NEXT_PUBLIC_NEWS_PROXY_URL ?? env[NEWS_PROXY_URL_ENV] ?? "")
+      : fromProcess
+  )
+    .trim()
+    .replace(/\/$/, "");
+  return raw;
+}
+
+/** Same-origin mirror URL for a frozen source id (`/news/cointelegraph.xml`). */
+export const newsMirrorUrl = (sourceId: NewsSourceId): string =>
+  `${NEWS_MIRROR_PATH}/${sourceId}.xml`;
+
+/**
+ * Build Worker/API request URL. Throws NEWS_BAD_URL unless `rssUrl` is
+ * allowlisted (SSRF gate — never open-proxy arbitrary hosts).
+ */
+export const newsProxyRequestUrl = (
+  allowlistedRssUrl: string,
+  proxyBase: string
+): string => {
+  if (!isAllowedNewsUrl(allowlistedRssUrl)) {
+    throw new Error("NEWS_BAD_URL");
+  }
+  const base = proxyBase.trim().replace(/\/$/, "");
+  if (!base) throw new Error("NEWS_NO_PROXY");
+  return `${base}/?url=${encodeURIComponent(allowlistedRssUrl)}`;
+};
+
+/** Retained for unit tests / direct XML fetch (#126 / #213). */
 export async function fetchDirectRss(
   url: string,
   fetchImpl: typeof fetch
@@ -933,6 +978,36 @@ export async function fetchDirectRss(
     headers: { Accept: "application/rss+xml, application/xml, text/xml, */*" }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.text();
+}
+
+/** Same-origin Pages mirror written at deploy (`public/news/<id>.xml`). */
+async function fetchViaOwnedMirror(
+  item: NewsAllowItem,
+  fetchImpl: typeof fetch
+): Promise<string> {
+  const res = await fetchImpl(newsMirrorUrl(item.id), {
+    mode: "cors",
+    credentials: "omit",
+    headers: { Accept: "application/rss+xml, application/xml, text/xml, */*" }
+  });
+  if (!res.ok) throw new Error(`mirror HTTP ${res.status}`);
+  return await res.text();
+}
+
+/** Owned CF Worker / tiny API — allowlist gated before the request is built. */
+async function fetchViaNewsProxy(
+  allowlistedUrl: string,
+  fetchImpl: typeof fetch,
+  proxyBase: string
+): Promise<string> {
+  const reqUrl = newsProxyRequestUrl(allowlistedUrl, proxyBase);
+  const res = await fetchImpl(reqUrl, {
+    mode: "cors",
+    credentials: "omit",
+    headers: { Accept: "application/rss+xml, application/xml, text/xml, */*" }
+  });
+  if (!res.ok) throw new Error(`news-proxy HTTP ${res.status}`);
   return await res.text();
 }
 
@@ -954,7 +1029,7 @@ async function fetchViaRss2json(
   return json;
 }
 
-/** cors.lol CORS-proxy fallback: returns raw feed XML. SSRF-guarded like rss2json. */
+/** cors.lol CORS-proxy last resort: raw feed XML. SSRF-guarded. */
 async function fetchViaCorsLol(
   allowlistedUrl: string,
   fetchImpl: typeof fetch
@@ -988,8 +1063,8 @@ async function fetchOneFeed(
       ok: cached.ok
     };
   }
-  // Failed feeds back off: keep showing "unavailable" without re-hitting the
-  // dead transport (rss2json 500s) every refresh tick.
+  // Failed feeds back off: keep showing "unavailable" without re-hitting dead
+  // transports every refresh tick.
   if (!force && cached && !cached.ok && now - cached.at < NEWS_RETRY_MS) {
     return {
       items: cached.items,
@@ -1001,24 +1076,41 @@ async function fetchOneFeed(
   let usedRss2json = false;
   let items: NewsItem[] = [];
   let ok = false;
+  const proxyBase = resolveNewsProxyBase();
 
-  // rss2json first (returns JSON); fall back to cors.lol + parseRss XML when it
-  // is down. Publisher RSS has no ACAO, so a direct browser fetch is CORS-blocked.
+  // Owned transports first (#213): same-origin mirror → optional CF Worker /
+  // tiny API. Demote flaky third parties (rss2json → cors.lol) to last resort.
+  // Publisher RSS has no ACAO, so a direct browser fetch is CORS-blocked.
   try {
-    const json = await fetchViaRss2json(item.rssUrl, fetchImpl);
-    items = parseRss2Json(json, item.id);
-    usedRss2json = true;
+    const xml = await fetchViaOwnedMirror(item, fetchImpl);
+    items = parseRss(xml, item.id);
+    usedRss2json = false;
     ok = true;
   } catch {
     try {
-      const xml = await fetchViaCorsLol(item.rssUrl, fetchImpl);
+      if (!proxyBase) throw new Error("NEWS_NO_PROXY");
+      const xml = await fetchViaNewsProxy(item.rssUrl, fetchImpl, proxyBase);
       items = parseRss(xml, item.id);
       usedRss2json = false;
       ok = true;
     } catch {
-      ok = false;
-      items = [];
-      usedRss2json = false;
+      try {
+        const json = await fetchViaRss2json(item.rssUrl, fetchImpl);
+        items = parseRss2Json(json, item.id);
+        usedRss2json = true;
+        ok = true;
+      } catch {
+        try {
+          const xml = await fetchViaCorsLol(item.rssUrl, fetchImpl);
+          items = parseRss(xml, item.id);
+          usedRss2json = false;
+          ok = true;
+        } catch {
+          ok = false;
+          items = [];
+          usedRss2json = false;
+        }
+      }
     }
   }
 

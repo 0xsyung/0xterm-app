@@ -1,0 +1,11 @@
+# Cloudflare Worker — allowlisted NEWS RSS proxy (#213)
+# Deploy: cd workers/news-proxy && npx wrangler deploy
+# Then set NEXT_PUBLIC_NEWS_PROXY_URL to the worker URL (no trailing slash), e.g.
+#   https://0xterm-news-proxy.<account>.workers.dev
+name = "0xterm-news-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Optional comma-separated browser origins for ACAO (empty → *)
+# ALLOWED_ORIGINS = "https://app.0xterm.xyz,http://localhost:3000"
