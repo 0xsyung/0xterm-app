@@ -44,6 +44,14 @@ export const pinGridClass = (
   return "flex-1 min-h-0 grid grid-rows-1 grid-cols-[minmax(0,1fr)_18rem] gap-2";
 };
 
+// Workspace modes (INVEST/DEV/FORENSIC): pin strip always reserves a bottom
+// auto row — never a sibling flex-1 that paints over tall panels (#209).
+// Side-column pinGrid is CONSOLE-only.
+export const workspacePinGridClass = (hasPins: boolean): string => {
+  if (!hasPins) return "flex-1 min-h-0 flex flex-col";
+  return "flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto] gap-2";
+};
+
 // Touch vs mouse. Must guard matchMedia — jsdom (and some webviews) don't
 // implement it.
 export const isCoarsePointer = (): boolean =>
