@@ -301,7 +301,7 @@ import {
   probeErc165,
   probeTokenMeta
 } from "./probeToken";
-import { pinGridClass, useLayoutBand } from "./viewport";
+import { pinGridClass, useLayoutBand, workspacePinGridClass } from "./viewport";
 import { useTerminalHeaderContentPad } from "./headerContentPad";
 import {
   deriveKeysFromSignature,
@@ -10150,43 +10150,9 @@ export default function TerminalShell({
             />
           </div>
         ) : (
-          /* Log + pin: band-driven — stack (phone/short-landscape) vs two-column (tablet/desktop). Never overlay. */
+          /* Log + pin: band-driven — stack (phone/short-landscape) vs two-column (tablet/desktop). Never overlay.
+             Workspace modes: bottom pin strip reserves auto row (#209) — not a sibling flex-1 overlay. */
           <>
-            {terminalMode !== "console" && (
-              <div className="flex-1 min-h-0 min-w-0">
-                <WorkspaceSurface
-                  key={terminalMode}
-                  theme={theme}
-                  mode={terminalMode}
-                  activePanel={openPanel}
-                  onCommand={(cmd) => {
-                    void handleCommand(cmd);
-                  }}
-                  onOpenPanel={(panel) => {
-                    if (panel === openPanel && panel === "news") {
-                      // Re-click on the active NEWS tab → force-refresh.
-                      setNewsRefreshKey((n) => n + 1);
-                    } else {
-                      if (
-                        panel === "balance" ||
-                        panel === "portfolio" ||
-                        panel === "pnl"
-                      ) {
-                        setPortfolioRefreshKey((n) => n + 1);
-                      }
-                      setOpenPanel(panel);
-                    }
-                  }}
-                  onSubTabChange={(tab) => {
-                    setOpenPanel(null);
-                    if (tab === "PORTFOLIO" || tab === "READ") {
-                      setPortfolioRefreshKey((n) => n + 1);
-                    }
-                  }}
-                  renderPanel={renderInlinePanel}
-                />
-              </div>
-            )}
             {/* #117 — prompt + log are CONSOLE-only; workspace modes keep tiles/panels (+ pins). */}
             {terminalMode === "console" ? (
             <div className={pinGridClass(band, pinned.length > 0)}>
@@ -10245,20 +10211,61 @@ export default function TerminalShell({
             />
           </div>
             ) : (
-              pinned.length > 0 && (
-                <div className="flex-1 min-h-0 min-w-0 overflow-y-auto">
-                  <PinnedPanel
-                    pinned={pinned}
+              <div
+                className={workspacePinGridClass(pinned.length > 0)}
+                data-testid="workspace-pin-grid"
+              >
+                <div className="min-h-0 min-w-0 overflow-hidden flex-1 h-full">
+                  <WorkspaceSurface
+                    key={terminalMode}
                     theme={theme}
-                    refreshing={refreshingId}
-                    countdowns={countdowns}
-                    onRefresh={onRefreshPinned}
-                    onMinimize={onMinimize}
-                    onUnpin={onUnpin}
-                    stacked={band === "stack"}
+                    mode={terminalMode}
+                    activePanel={openPanel}
+                    onCommand={(cmd) => {
+                      void handleCommand(cmd);
+                    }}
+                    onOpenPanel={(panel) => {
+                      if (panel === openPanel && panel === "news") {
+                        // Re-click on the active NEWS tab → force-refresh.
+                        setNewsRefreshKey((n) => n + 1);
+                      } else {
+                        if (
+                          panel === "balance" ||
+                          panel === "portfolio" ||
+                          panel === "pnl"
+                        ) {
+                          setPortfolioRefreshKey((n) => n + 1);
+                        }
+                        setOpenPanel(panel);
+                      }
+                    }}
+                    onSubTabChange={(tab) => {
+                      setOpenPanel(null);
+                      if (tab === "PORTFOLIO" || tab === "READ") {
+                        setPortfolioRefreshKey((n) => n + 1);
+                      }
+                    }}
+                    renderPanel={renderInlinePanel}
                   />
                 </div>
-              )
+                {pinned.length > 0 && (
+                  <div
+                    className="min-h-0 min-w-0 overflow-y-auto"
+                    data-testid="workspace-pin-strip"
+                  >
+                    <PinnedPanel
+                      pinned={pinned}
+                      theme={theme}
+                      refreshing={refreshingId}
+                      countdowns={countdowns}
+                      onRefresh={onRefreshPinned}
+                      onMinimize={onMinimize}
+                      onUnpin={onUnpin}
+                      stacked
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}

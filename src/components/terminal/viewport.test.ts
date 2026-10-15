@@ -9,7 +9,8 @@ import {
   getLayoutBand,
   getViewportState,
   isCoarsePointer,
-  pinGridClass
+  pinGridClass,
+  workspacePinGridClass
 } from "./viewport";
 
 describe("getLayoutBand", () => {
@@ -67,6 +68,23 @@ describe("pinGridClass", () => {
     expect(pinGridClass("desktop", true)).toBe(
       "flex-1 min-h-0 grid grid-rows-1 grid-cols-[minmax(0,1fr)_18rem] gap-2"
     );
+  });
+});
+
+
+describe("workspacePinGridClass", () => {
+  it("uses a plain flex column when nothing is pinned", () => {
+    expect(workspacePinGridClass(false)).toBe("flex-1 min-h-0 flex flex-col");
+  });
+
+  it("reserves an auto bottom row for the pin strip (#209)", () => {
+    expect(workspacePinGridClass(true)).toBe(
+      "flex-1 min-h-0 grid grid-rows-[minmax(0,1fr)_auto] gap-2"
+    );
+  });
+
+  it("never uses the CONSOLE side-column grid", () => {
+    expect(workspacePinGridClass(true)).not.toContain("grid-cols-");
   });
 });
 
