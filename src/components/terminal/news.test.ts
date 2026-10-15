@@ -425,6 +425,28 @@ describe("fetchNewsHeadlines", () => {
     await fetchNewsHeadlines(fetchImpl as any);
     expect(calls).toBe(n); // no extra fetches
   });
+
+  it("backs off a failed feed instead of re-fetching (rss2json 500 spam)", async () => {
+    let calls = 0;
+    const fetchImpl = async (url: string) => {
+      calls++;
+      if (!String(url).includes("rss2json")) {
+        throw new Error("no direct");
+      }
+      return {
+        ok: true,
+        text: async () => "",
+        json: async () => ({ status: "error", message: "down" })
+      } as Response;
+    };
+    const r1 = await fetchNewsHeadlines(fetchImpl as any, { force: true });
+    expect(r1.error).toBe("NEWS_TRANSPORT");
+    const n = calls;
+    // Within the backoff window: no network call, same NEWS_TRANSPORT outcome.
+    const r2 = await fetchNewsHeadlines(fetchImpl as any);
+    expect(calls).toBe(n); // no re-fetch while backed off
+    expect(r2.error).toBe("NEWS_TRANSPORT");
+  });
 });
 
 describe("sanitizeNewsImageUrl / isAllowedNewsThumbHost (#126)", () => {

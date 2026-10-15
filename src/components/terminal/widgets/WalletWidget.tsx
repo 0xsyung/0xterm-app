@@ -237,7 +237,13 @@ function StatusBody({
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
-      const env = await getEnvelope();
+      let env: Awaited<ReturnType<typeof getEnvelope>> = null;
+      try {
+        env = await getEnvelope();
+      } catch {
+        // IndexedDB blocked → no persisted envelope; treat as none.
+        env = null;
+      }
       if (cancelled) return;
       if (!env) {
         setEnvelopeSource("none");
@@ -587,7 +593,9 @@ function ImportBody({
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    void hasVault().then((h) => setNeedReplace(h));
+    void hasVault()
+      .then((h) => setNeedReplace(h))
+      .catch(() => setNeedReplace(false));
   }, []);
 
   const clearSecret = () => {

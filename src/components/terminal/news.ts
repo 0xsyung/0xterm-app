@@ -909,6 +909,9 @@ type CacheEntry = {
   ok: boolean;
 };
 
+/** Backoff before re-attempting a failed feed (rss2json down → no 500 spam). */
+export const NEWS_RETRY_MS = 5 * 60_000;
+
 const feedCache = new Map<string, CacheEntry>();
 
 /** Test hook: clear rate cache. */
@@ -954,7 +957,17 @@ async function fetchOneFeed(
   force: boolean
 ): Promise<{ items: NewsItem[]; usedRss2json: boolean; ok: boolean }> {
   const cached = feedCache.get(item.rssUrl);
-  if (!force && cached && Date.now() - cached.at < NEWS_RATE_MS) {
+  const now = Date.now();
+  if (!force && cached && now - cached.at < NEWS_RATE_MS) {
+    return {
+      items: cached.items,
+      usedRss2json: cached.usedRss2json,
+      ok: cached.ok
+    };
+  }
+  // Failed feeds back off: keep showing "unavailable" without re-hitting the
+  // dead transport (rss2json 500s) every refresh tick.
+  if (!force && cached && !cached.ok && now - cached.at < NEWS_RETRY_MS) {
     return {
       items: cached.items,
       usedRss2json: cached.usedRss2json,
