@@ -897,11 +897,11 @@ export default function TerminalShell({
   const [vaultExists, setVaultExists] = useState(false);
   useEffect(() => {
     const unsub = subscribeVault(() => setVaultTick((n) => n + 1));
-    void hasVault().then(setVaultExists);
+    void hasVault().then(setVaultExists).catch(() => setVaultExists(false));
     return unsub;
   }, []);
   useEffect(() => {
-    void hasVault().then(setVaultExists);
+    void hasVault().then(setVaultExists).catch(() => setVaultExists(false));
   }, [vaultTick]);
   const walletChip = resolveChipState({
     vaultExists,
@@ -8178,7 +8178,7 @@ export default function TerminalShell({
     const id = generateId();
     const bump = () => {
       setVaultTick((n) => n + 1);
-      void hasVault().then(setVaultExists);
+      void hasVault().then(setVaultExists).catch(() => setVaultExists(false));
     };
     const dismiss = () =>
       setLogs((prev) => prev.filter((l) => l.id !== id));
