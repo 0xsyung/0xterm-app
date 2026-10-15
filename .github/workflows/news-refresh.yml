@@ -1,12 +1,13 @@
 name: Refresh NEWS mirror
 
 # Rebuild + redeploy Pages on a schedule so same-origin /news/<id>.xml stays fresh
-# without waiting for an app commit (#213). Skips when fetch fails entirely.
+# without waiting for an app commit (#213). Skips when fetch fails entirely, and
+# skips build/deploy when fetched XML hashes match what is already published.
 
 on:
   schedule:
-    # Every 30 minutes (UTC)
-    - cron: "*/30 * * * *"
+    # Every 6 hours (UTC) — keep free Actions/Pages quota (#213 follow-up)
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -21,30 +22,78 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
       - uses: actions/checkout@v4
 
+      # Fetch is plain Node (no npm deps). Defer setup-node/npm ci until we know
+      # feeds changed so unchanged runs stay cheap.
+      - name: Fetch NEWS allowlist feeds
+        run: node scripts/fetch-news-feeds.mjs
+
+      - name: Skip deploy if feeds unchanged vs live Pages
+        id: check
+        run: |
+          set -euo pipefail
+          BASE="https://app.0xterm.xyz/news"
+          shopt -s nullglob
+          files=(public/news/*.xml)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No XML feeds on disk after fetch — failing"
+            exit 1
+          fi
+
+          changed=false
+          for f in "${files[@]}"; do
+            id=$(basename "$f" .xml)
+            new_hash=$(sha256sum "$f" | awk '{print $1}')
+            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/${id}.xml" -o "/tmp/live-${id}.xml"; then
+              live_hash=$(sha256sum "/tmp/live-${id}.xml" | awk '{print $1}')
+              if [ "$new_hash" != "$live_hash" ]; then
+                echo "CHANGED ${id} (new=${new_hash:0:12} live=${live_hash:0:12})"
+                changed=true
+              else
+                echo "same ${id} (${new_hash:0:12})"
+              fi
+            else
+              echo "MISSING on live ${id} — will deploy"
+              changed=true
+            fi
+          done
+
+          if [ "$changed" = false ]; then
+            echo "All fetched feeds match live Pages — skipping build/deploy"
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Feeds differ from live (or not published yet) — building + deploying"
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.should_deploy == 'true'
         with:
           node-version: 24
           cache: npm
 
-      - run: npm ci
-
-      - name: Fetch NEWS allowlist feeds
-        run: node scripts/fetch-news-feeds.mjs
+      - name: Install dependencies
+        if: steps.check.outputs.should_deploy == 'true'
+        run: npm ci
 
       - name: Build static files
+        if: steps.check.outputs.should_deploy == 'true'
         env:
           NEXT_PUBLIC_HL_BUILDER_ADDRESS: ${{ secrets.NEXT_PUBLIC_HL_BUILDER_ADDRESS }}
           NEXT_PUBLIC_NEWS_PROXY_URL: ${{ secrets.NEXT_PUBLIC_NEWS_PROXY_URL }}
         run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.check.outputs.should_deploy == 'true'
         with:
           path: ./out
 
   deploy:
+    if: needs.refresh.outputs.should_deploy == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
