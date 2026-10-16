@@ -193,4 +193,54 @@ describe("runMixerCommand CLI gates", () => {
     );
     expect(r.text).toMatch(/Unknown mixer subcommand/);
   });
+  it("status unspent with mock client", async () => {
+    const secrets = await createDepositSecrets();
+    const note = `tornado-eth-0.1-1-0x${bytesToHex(secrets.preimage)}`;
+    const r = await runMixerCommand(
+      baseCtx({
+        args: ["mixer", "status", note],
+        client: {
+          readContract: vi.fn().mockResolvedValue(false)
+        } as any
+      })
+    );
+    expect(r.type).toBe("mixer");
+    expect(r.payload?.status).toBe("unspent");
+  });
+
+  it("withdraw unspent opens withdraw chrome (proof fail-closed)", async () => {
+    const secrets = await createDepositSecrets();
+    const note = `tornado-eth-0.1-1-0x${bytesToHex(secrets.preimage)}`;
+    const r = await runMixerCommand(
+      baseCtx({
+        args: [
+          "mixer",
+          "withdraw",
+          note,
+          "0x0000000000000000000000000000000000000001"
+        ],
+        isConnected: true,
+        address: "0xabc0000000000000000000000000000000000001",
+        client: {
+          readContract: vi
+            .fn()
+            .mockResolvedValueOnce(false) // isSpent
+            .mockResolvedValueOnce(("0x" + "33".repeat(32)) as `0x${string}`) // root
+        } as any
+      })
+    );
+    expect(r.type).toBe("component");
+    expect(r.title).toBe("MIXER WITHDRAW");
+  });
+
+  it("deposit missing amount usage", async () => {
+    const r = await runMixerCommand(
+      baseCtx({
+        args: ["mixer", "deposit"],
+        isConnected: true,
+        address: "0xabc0000000000000000000000000000000000001"
+      })
+    );
+    expect(r.text).toMatch(/Usage: mixer deposit/);
+  });
 });

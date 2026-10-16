@@ -5,7 +5,7 @@
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MIXER_ERROR_COPY,
   MIXER_SUBCOMMANDS,
@@ -277,5 +277,40 @@ describe("note secrecy in snapshots", () => {
     expect(raw).not.toMatch(/nullifierHex/);
     expect(raw).not.toMatch(/secretHex/);
     expect(raw).not.toMatch(/"secret"/);
+  });
+});
+
+describe("poolReads", () => {
+  it("fetchPoolRow formats balance + set size", async () => {
+    const { fetchPoolRow, isNullifierSpent, fetchLastRoot } = await import(
+      "./poolReads"
+    );
+    const pool = findPool(1, "0.1")!;
+    const client = {
+      getBalance: vi.fn().mockResolvedValue(10n ** 18n),
+      readContract: vi.fn().mockResolvedValue(42n)
+    } as any;
+    const row = await fetchPoolRow(client, pool);
+    expect(row.balanceHuman).toBe("1");
+    expect(row.setSize).toBe("42");
+
+    client.readContract.mockResolvedValueOnce(true);
+    expect(
+      await isNullifierSpent(client, pool.address, ("0x" + "11".repeat(32)) as `0x${string}`)
+    ).toBe(true);
+
+    client.readContract.mockResolvedValueOnce(("0x" + "22".repeat(32)) as `0x${string}`);
+    expect(await fetchLastRoot(client, pool.address)).toMatch(/^0x/);
+
+    client.getBalance.mockRejectedValueOnce(new Error("rpc"));
+    client.readContract.mockRejectedValueOnce(new Error("rpc"));
+    const empty = await fetchPoolRow(client, pool);
+    expect(empty.balanceHuman).toBe("—");
+    expect(empty.setSize).toBe("—");
+
+    client.readContract.mockRejectedValueOnce(new Error("rpc"));
+    expect(await isNullifierSpent(client, pool.address, ("0x" + "11".repeat(32)) as `0x${string}`)).toBeNull();
+    client.readContract.mockRejectedValueOnce(new Error("rpc"));
+    expect(await fetchLastRoot(client, pool.address)).toBeNull();
   });
 });
