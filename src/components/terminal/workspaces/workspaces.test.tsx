@@ -201,7 +201,7 @@ describe("WorkspaceStrip", () => {
 });
 
 describe("WorkspaceSurface (#148/#160)", () => {
-  it("shows live INVEST sub-tabs (MARKET + PORTFOLIO + PERPS; DEX hidden) (#167)", () => {
+  it("shows live INVEST sub-tabs (MARKET + PORTFOLIO + DEX + PERPS) (#168)", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -213,11 +213,55 @@ describe("WorkspaceSurface (#148/#160)", () => {
     );
     expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PORTFOLIO$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^DEX$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PERPS$/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /DEX/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
     expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^TICKER/i })).toBeNull();
+  });
+
+  it("DEX tools are GET POOL · CREATE POOL · ADD LIQ; no lone auto-open (#168)", () => {
+    const onOpenPanel = vi.fn();
+    const onSubTabChange = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        onSubTabChange={onSubTabChange}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
+    expect(screen.getByRole("button", { name: /^GET POOL$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^CREATE POOL$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^ADD LIQ$/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^ADD LIQUIDITY$/i })).toBeNull();
+    // three wired tools → no lone auto-open (#162)
+    expect(onOpenPanel).not.toHaveBeenCalledWith("getpool");
+    expect(onOpenPanel).not.toHaveBeenCalledWith("createpool");
+    expect(onOpenPanel).not.toHaveBeenCalledWith("addliq");
+  });
+
+  it("DEX tool tabs open wired panels (#168)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel={null}
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^GET POOL$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("getpool");
+    fireEvent.click(screen.getByRole("button", { name: /^CREATE POOL$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("createpool");
+    fireEvent.click(screen.getByRole("button", { name: /^ADD LIQ$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("addliq");
   });
 
   it("NEWS is the leftmost MARKET tool tab (#152)", () => {
@@ -484,7 +528,9 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
   it("WIRED_WORKSPACE_PANELS lists the TerminalShell inline panels", () => {
     expect([...WIRED_WORKSPACE_PANELS].sort()).toEqual(
       [
+        "addliq",
         "balance",
+        "createpool",
         "dig-abi",
         "dig-artifact",
         "dig-attach",
@@ -495,6 +541,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "dig-session",
         "dig-source",
         "dig-ver",
+        "getpool",
         "info",
         "news",
         "perps",
@@ -547,6 +594,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(liveSubTabs(INVEST_SUB_TABS, INVEST_ACTIONS).map((t) => t.id)).toEqual([
       "MARKET",
       "PORTFOLIO",
+      "DEX",
       "PERPS"
     ]);
     expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS).map((t) => t.id)).toEqual([
@@ -570,6 +618,13 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     it("ready invest MARKET tools are NEWS/PRICE/SWAP only", () => {
     const market = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "MARKET");
     expect(market.map((a) => a.label)).toEqual(["NEWS", "PRICE", "SWAP"]);
+  });
+
+  it("ready invest DEX tools are GET POOL / CREATE POOL / ADD LIQ (#168)", () => {
+    const dex = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "DEX");
+    expect(dex.map((a) => a.label)).toEqual(["GET POOL", "CREATE POOL", "ADD LIQ"]);
+    expect(dex.map((a) => a.panel)).toEqual(["getpool", "createpool", "addliq"]);
+    expect(dex.map((a) => a.cmd)).toEqual(["getpool", "createpool", "addliq"]);
   });
 
   it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE/BALANCE/PORTFOLIO (#167)", () => {
@@ -651,7 +706,15 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
       /open swap panel/i
     );
     expect(screen.getByRole("button", { name: /BALANCE/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /CREATE POOL/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /GET POOL/i }).textContent).toMatch(
+      /open get pool panel/i
+    );
+    expect(screen.getByRole("button", { name: /CREATE POOL/i }).textContent).toMatch(
+      /open create pool panel/i
+    );
+    expect(screen.getByRole("button", { name: /ADD LIQ/i }).textContent).toMatch(
+      /open add liquidity panel/i
+    );
   });
 
   it("DEV strip shows EDITOR + BUILD/SHIP dig tiles (#198)", () => {

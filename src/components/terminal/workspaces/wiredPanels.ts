@@ -23,6 +23,9 @@ export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
   "portfolio",
   "snapshot",
   "pnl",
+  "getpool",
+  "createpool",
+  "addliq",
   // DEV dig (#166/#198) — keep in sync with TerminalShell.renderInlinePanel
   "dig-source",
   "dig-artifact",

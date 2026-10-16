@@ -20,6 +20,9 @@ export type WorkspacePanelId =
   | "portfolio"
   | "snapshot"
   | "pnl"
+  | "getpool"
+  | "createpool"
+  | "addliq"
   // DEV dig panels (#166/#198)
   | "dig-source"
   | "dig-artifact"

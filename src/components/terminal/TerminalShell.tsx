@@ -477,6 +477,23 @@ import SwapPanel, {
   type SwapRunArgs,
   type SwapRunResult
 } from "./widgets/SwapPanel";
+import GetPoolPanel, {
+  buildGetPoolCli,
+  type GetPoolRunArgs,
+  type GetPoolRunResult
+} from "./widgets/GetPoolPanel";
+import CreatePoolPanel, {
+  buildCreatePoolCli,
+  type CreatePoolRunArgs,
+  type CreatePoolRunResult
+} from "./widgets/CreatePoolPanel";
+import AddLiqPanel, {
+  buildAddLiqCli,
+  type AddLiqRunArgs,
+  type AddLiqRunResult
+} from "./widgets/AddLiqPanel";
+import CreatePoolWidget from "./widgets/CreatePoolWidget";
+import AddLiquidityWidget from "./widgets/AddLiquidityWidget";
 import NewsPanel from "./widgets/NewsPanel";
 import PerpsPanel, { revokeLocalAgent } from "./widgets/PerpsPanel";
 import {
@@ -2256,32 +2273,142 @@ export default function TerminalShell({
         );
       }
 
+      // Soft reserves + price for GET POOL / CLI (#168 Soft ACK)
+      let reservesNode: React.ReactNode = null;
+      let priceText = "—";
+      try {
+        if (activeDex.type === "V2") {
+          const [token0, reserves] = await Promise.all([
+            client.readContract({
+              address: pairAddress,
+              abi: uniV2PairAbi,
+              functionName: "token0"
+            }) as Promise<Address>,
+            client.readContract({
+              address: pairAddress,
+              abi: uniV2PairAbi,
+              functionName: "getReserves"
+            }) as Promise<[bigint, bigint, number]>
+          ]);
+          const isA0 = token0.toLowerCase() === addrA.toLowerCase();
+          const reserveA = isA0 ? reserves[0] : reserves[1];
+          const reserveB = isA0 ? reserves[1] : reserves[0];
+          reservesNode = (
+            <div className={`grid grid-cols-2 gap-2 ${theme.text}`}>
+              <div>
+                <div className={`text-[10px] ${theme.muted}`}>
+                  {tokenA.symbol} RESERVE
+                </div>
+                <div className={`font-bold ${theme.primary} font-mono`}>
+                  {parseFloat(
+                    formatUnits(reserveA, tokenA.decimals)
+                  ).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className={`text-[10px] ${theme.muted}`}>
+                  {tokenB.symbol} RESERVE
+                </div>
+                <div className={`font-bold ${theme.primary} font-mono`}>
+                  {parseFloat(
+                    formatUnits(reserveB, tokenB.decimals)
+                  ).toLocaleString()}
+                </div>
+              </div>
+            </div>
+          );
+        } else {
+          const feeTier =
+            feeTierArg !== undefined ? parseInt(feeTierArg) : 3000;
+          const liquidity = (await client.readContract({
+            address: pairAddress,
+            abi: parseAbi(["function liquidity() view returns (uint128)"]),
+            functionName: "liquidity"
+          })) as bigint;
+          reservesNode = (
+            <div className={`grid grid-cols-2 gap-2 ${theme.text}`}>
+              <div>
+                <div className={`text-[10px] ${theme.muted}`}>
+                  ACTIVE LIQUIDITY
+                </div>
+                <div className={`font-bold ${theme.primary} font-mono`}>
+                  {liquidity.toString()}
+                </div>
+              </div>
+              <div>
+                <div className={`text-[10px] ${theme.muted}`}>FEE TIER</div>
+                <div className={`font-bold ${theme.primary}`}>
+                  {feeTier / 10000}% ({feeTier})
+                </div>
+              </div>
+            </div>
+          );
+        }
+        try {
+          const ratio = await getPoolPriceRatio(client, {
+            dexType: activeDex.type,
+            pairAddress,
+            tokenAAddress: addrA as Address,
+            tokenADecimals: tokenA.decimals,
+            tokenBDecimals: tokenB.decimals
+          });
+          if (Number.isFinite(ratio) && ratio > 0) {
+            priceText = `1 ${tokenA.symbol} ≈ ${ratio.toPrecision(6)} ${tokenB.symbol}`;
+          }
+        } catch {
+          priceText = "—";
+        }
+      } catch {
+        reservesNode = (
+          <div className={`text-[10px] ${theme.muted}`}>Reserves unavailable</div>
+        );
+      }
+
+      const explorer = targetChain.blockExplorers?.default;
+
       return (
         <div
-          className={`my-3 p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow} text-xs`}
+          className={`my-3 p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow} text-xs space-y-2`}
+          data-testid="getpool-result-card"
         >
           <div
-            className={`flex justify-between items-center ${theme.text}/70 mb-2 border-b ${theme.border} pb-1`}
+            className={`flex justify-between items-center ${theme.text}/70 border-b ${theme.border} pb-1`}
           >
-            <span className="font-bold">ON-CHAIN POOL LOCATED</span>
+            <span className={`font-bold ${theme.primary}`}>
+              {tokenA.symbol} / {tokenB.symbol}
+            </span>
             <span>
               {activeDex.name} ({activeDex.type})
             </span>
           </div>
-          <div className={`text-lg font-bold ${theme.primary} mb-1`}>
-            {tokenA.symbol} / {tokenB.symbol}
-          </div>
           <div
-            className={`${theme.text} p-2 bg-current/10 rounded border ${theme.border} text-center my-2 font-mono flex items-center justify-center gap-2`}
+            className={`${theme.text} p-2 bg-current/10 border ${theme.border} text-center font-mono flex items-center justify-center gap-2`}
           >
             <CopyableAddress address={pairAddress} theme={theme} />
           </div>
+          {reservesNode}
+          <div>
+            <div className={`text-[10px] ${theme.muted}`}>PRICE</div>
+            <div className={`font-mono ${theme.text}`}>{priceText}</div>
+          </div>
+          {explorer?.url && (
+            <a
+              href={`${explorer.url}/address/${pairAddress}`}
+              target="_blank"
+              rel="noreferrer"
+              className={`text-[10px] underline ${theme.primary}`}
+            >
+              VIEW ON {(explorer.name || "EXPLORER").toUpperCase()}
+            </a>
+          )}
         </div>
       );
     } catch (err: any) {
       return (
-        <div className={`${theme.warn} my-2 p-3 border rounded w-full text-xs space-y-1`}>
-          <div className="font-bold">DEBUG ERROR DETAILS:</div>
+        <div className={`${theme.warn} my-2 p-3 border ${theme.rounded} w-full text-xs space-y-1`}>
+          <div className="font-bold">
+            [!] On-chain read failed — try again or check RPC.
+          </div>
           <div className="font-mono text-[10px] break-all">
             {err.message || String(err)}
           </div>
@@ -9392,6 +9519,186 @@ export default function TerminalShell({
             frameless
           />
         );
+      case "getpool": {
+        const getpoolDex =
+          activeChainId != null
+            ? (DEX_REGISTRY[activeChainId] || []).find((d) => d.id === activeDexId)
+            : undefined;
+        const getpoolNetwork = formatActionNetworkLine(activeChainId, false);
+        return (
+          <GetPoolPanel
+            theme={theme}
+            commonTokens={Object.keys(COMMON_TOKENS[activeChainId || 0] || {})}
+            onClose={close}
+            networkLine={getpoolNetwork}
+            dexLine={
+              getpoolDex
+                ? `${getpoolDex.name} (${getpoolDex.type})`
+                : null
+            }
+            showFeeTier={getpoolDex?.type !== "V2"}
+            onRun={async (args: GetPoolRunArgs): Promise<GetPoolRunResult> => {
+              const line = buildGetPoolCli({
+                tokenA: args.tokenA,
+                tokenB: args.tokenB,
+                feeTier: args.feeTier,
+                includeFee: getpoolDex?.type !== "V2"
+              });
+              const result = await commands.getpool(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from getpool." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "component" && entry.component) {
+                return { ok: true, component: entry.component };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Pool lookup failed." };
+            }}
+            frameless
+          />
+        );
+      }
+      case "createpool": {
+        const createResolved = resolveActionChain(
+          "createpool",
+          activeChainId,
+          actionNetworks
+        );
+        const createChainId = createResolved.chainId;
+        const createDexId =
+          createChainId == null
+            ? null
+            : !createResolved.usedOverride &&
+                activeDexId &&
+                (DEX_REGISTRY[createChainId] || []).some((d) => d.id === activeDexId)
+              ? activeDexId
+              : (DEX_REGISTRY[createChainId]?.[0]?.id ?? null);
+        const createDex =
+          createChainId != null && createDexId
+            ? (DEX_REGISTRY[createChainId] || []).find((d) => d.id === createDexId)
+            : undefined;
+        const createWallet = hasActiveWallet({
+          localUnlocked: isUnlocked(),
+          injectedConnected: !!isConnected && !!address
+        });
+        return (
+          <CreatePoolPanel
+            theme={theme}
+            commonTokens={Object.keys(
+              COMMON_TOKENS[createChainId || activeChainId || 0] || {}
+            )}
+            onClose={close}
+            networkLine={formatActionNetworkLine(
+              createResolved.chainId,
+              createResolved.usedOverride
+            )}
+            dexLine={
+              createDex ? `${createDex.name} (${createDex.type})` : null
+            }
+            showFeeTier={createDex?.type !== "V2"}
+            walletConnected={createWallet}
+            onRun={async (
+              args: CreatePoolRunArgs
+            ): Promise<CreatePoolRunResult> => {
+              const line = buildCreatePoolCli({
+                tokenA: args.tokenA,
+                tokenB: args.tokenB,
+                feeTier: args.feeTier,
+                includeFee: createDex?.type !== "V2"
+              });
+              const result = await commands.createpool(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from createpool." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "createpool" && entry.payload) {
+                return {
+                  ok: true,
+                  component: (
+                    <CreatePoolWidget {...entry.payload} theme={theme} />
+                  )
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Create pool failed." };
+            }}
+            frameless
+          />
+        );
+      }
+      case "addliq": {
+        const addResolved = resolveActionChain(
+          "addliq",
+          activeChainId,
+          actionNetworks
+        );
+        const addChainId = addResolved.chainId;
+        const addDexId =
+          addChainId == null
+            ? null
+            : !addResolved.usedOverride &&
+                activeDexId &&
+                (DEX_REGISTRY[addChainId] || []).some((d) => d.id === activeDexId)
+              ? activeDexId
+              : (DEX_REGISTRY[addChainId]?.[0]?.id ?? null);
+        const addDex =
+          addChainId != null && addDexId
+            ? (DEX_REGISTRY[addChainId] || []).find((d) => d.id === addDexId)
+            : undefined;
+        const addWallet = hasActiveWallet({
+          localUnlocked: isUnlocked(),
+          injectedConnected: !!isConnected && !!address
+        });
+        return (
+          <AddLiqPanel
+            theme={theme}
+            commonTokens={Object.keys(
+              COMMON_TOKENS[addChainId || activeChainId || 0] || {}
+            )}
+            onClose={close}
+            networkLine={formatActionNetworkLine(
+              addResolved.chainId,
+              addResolved.usedOverride
+            )}
+            dexLine={addDex ? `${addDex.name} (${addDex.type})` : null}
+            showFeeTier={addDex?.type !== "V2"}
+            walletConnected={addWallet}
+            onRun={async (args: AddLiqRunArgs): Promise<AddLiqRunResult> => {
+              const line = buildAddLiqCli({
+                tokenA: args.tokenA,
+                tokenB: args.tokenB,
+                amountA: args.amountA,
+                amountB: args.amountB,
+                feeTier: args.feeTier,
+                includeFee: addDex?.type !== "V2"
+              });
+              const result = await commands.addliq(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from addliq." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "addliq" && entry.payload) {
+                return {
+                  ok: true,
+                  component: (
+                    <AddLiquidityWidget {...entry.payload} theme={theme} />
+                  )
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Add liquidity failed." };
+            }}
+            frameless
+          />
+        );
+      }
       case "news":
         return (
           <NewsPanel
