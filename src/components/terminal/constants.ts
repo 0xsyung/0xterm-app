@@ -503,7 +503,8 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
     WETH: { address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals: 6, symbol: 'USDC', name: 'USD Coin' },
     'USDC.E': { address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', decimals: 6, symbol: 'USDC.E', name: 'Bridged USDC' },
-    cbETH: { address: '0x4b4327db1600B8b1440163f667e199ceF35385F5', decimals: 18, symbol: 'fxcbETH', name: 'Coinbase Wrapped Staked ETH (FXERC20)' }
+    cbETH: { address: '0x4b4327db1600B8b1440163f667e199ceF35385F5', decimals: 18, symbol: 'fxcbETH', name: 'Coinbase Wrapped Staked ETH (FXERC20)' },
+    pUSD: { address: '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB', decimals: 6, symbol: 'pUSD', name: 'Polymarket USD' }
   },
 
   // Optimism

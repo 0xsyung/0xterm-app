@@ -144,6 +144,7 @@ const COMMAND_AFFINITY: Record<string, CommandAffinity> = {
   perps: "invest",
   vault: "invest",
   poly: "invest",
+  pred: "invest",
   plan: "invest",
   when: "invest",
   will: "invest",
@@ -200,6 +201,7 @@ const FORENSIC_BLOCKED_INVEST = new Set([
   "news",
   "vault",
   "poly",
+  "pred",
   "when",
   "will",
   "allowances"
@@ -709,6 +711,53 @@ export const HELP_ROWS: HelpRow[] = [
     description: "Exact underlying allowance (0 revokes)",
     modes: ["invest"]
   },
+
+  {
+    command: "poly",
+    description: "Polymarket status (chain, pUSD, approvals, CLOB session)",
+    modes: ["invest"]
+  },
+  {
+    command: "poly list [query]",
+    description: "Polymarket markets (question, odds, volume, end)",
+    modes: ["invest"]
+  },
+  {
+    command: "poly show <id>",
+    description: "Outcomes, book, fees, min size",
+    modes: ["invest"]
+  },
+  {
+    command: "poly buy/sell <id> <outcome> <amt>",
+    description: "Sign CLOB order (wallet confirm; Polygon pUSD)",
+    modes: ["invest"]
+  },
+  {
+    command: "poly positions",
+    description: "This wallet's Polymarket positions",
+    modes: ["invest"]
+  },
+  {
+    command: "poly orders",
+    description: "Open CLOB orders",
+    modes: ["invest"]
+  },
+  {
+    command: "poly cancel <id|all>",
+    description: "Cancel open CLOB order(s)",
+    modes: ["invest"]
+  },
+  {
+    command: "poly wrap/unwrap/approve",
+    description: "pUSD collateral + exact allowance (`approve 0` revokes)",
+    modes: ["invest"]
+  },
+  {
+    command: "pred",
+    description: "Alias of `poly`",
+    modes: ["invest"]
+  },
+
 
   // dig (workshop — mode id dev)
   {

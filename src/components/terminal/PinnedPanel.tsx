@@ -9,6 +9,7 @@ import BalanceWidget from "./widgets/BalanceWidget";
 import PortfolioWidget from "./widgets/PortfolioWidget";
 import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
+import PolyWidget from "./widgets/PolyWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import PriceCard from "./widgets/PriceCard";
 import DigArtifactWidget from "./widgets/DigArtifactWidget";
@@ -155,6 +156,22 @@ function renderPinned(p: PinnedManifest, theme: any) {
       );
     case "allowances":
       return <AllowancesWidget audit={payload.audit} theme={theme} pinned />;
+    case "poly":
+      return (
+        <PolyWidget
+          mode={payload.mode}
+          theme={theme}
+          query={payload.query}
+          markets={payload.markets}
+          market={payload.market}
+          book={payload.book}
+          positions={payload.positions}
+          orders={payload.orders}
+          status={payload.status}
+          moreCount={payload.moreCount}
+          pinned
+        />
+      );
     case "vault":
       return (
         <VaultWidget

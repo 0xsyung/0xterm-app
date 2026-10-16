@@ -14,6 +14,7 @@ import BalanceWidget from "./widgets/BalanceWidget";
 import PortfolioWidget from "./widgets/PortfolioWidget";
 import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
+import PolyWidget from "./widgets/PolyWidget";
 import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import TickerWidget from "./widgets/TickerWidget";
@@ -200,6 +201,23 @@ function renderLog(
       <WalletWidget
         theme={theme}
         payload={{ mode: log.payload?.mode || "status", words: log.payload?.words }}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  if (log.type === "poly")
+    return (
+      <PolyWidget
+        mode={log.payload?.mode}
+        theme={theme}
+        query={log.payload?.query}
+        markets={log.payload?.markets}
+        market={log.payload?.market}
+        book={log.payload?.book}
+        positions={log.payload?.positions}
+        orders={log.payload?.orders}
+        status={log.payload?.status}
+        moreCount={log.payload?.moreCount}
         onPin={() => onPin(log)}
         pinned={isPinned}
       />

@@ -14,6 +14,7 @@ import {
   helpRowsForMode,
   homeModeForCommand,
   isCommandAllowed,
+  commandAffinity,
   isTerminalMode,
   loadMode,
   modeChoiceCommands,
@@ -287,9 +288,20 @@ describe("helpRowsForMode", () => {
     expect(cmds.some((c) => c.startsWith("swap"))).toBe(true);
     expect(cmds.some((c) => c.startsWith("allowances"))).toBe(true);
     expect(cmds.some((c) => c === "ticker" || c.startsWith("ticker "))).toBe(true);
+    expect(cmds.some((c) => c === "poly" || c.startsWith("poly "))).toBe(true);
+    expect(cmds.some((c) => c === "pred")).toBe(true);
     expect(cmds.some((c) => c.startsWith("dig"))).toBe(false);
     expect(cmds.some((c) => c.startsWith("is "))).toBe(false);
     expect(cmds.some((c) => c.startsWith("mode"))).toBe(true);
+  });
+
+  it("poly/pred invest-only; blocked in forensic", () => {
+    expect(isCommandAllowed("invest", "poly")).toBe(true);
+    expect(isCommandAllowed("invest", "pred")).toBe(true);
+    expect(isCommandAllowed("forensic", "poly")).toBe(false);
+    expect(isCommandAllowed("forensic", "pred")).toBe(false);
+    expect(commandAffinity("poly")).toBe("invest");
+    expect(commandAffinity("pred")).toBe("invest");
   });
 
   it("dev includes dig + is, excludes swap", () => {

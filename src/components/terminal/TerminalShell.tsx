@@ -152,6 +152,7 @@ import AllowanceRevokeWidget from "./widgets/AllowanceRevokeWidget";
 import VaultApproveWidget from "./widgets/VaultApproveWidget";
 import VaultDepositWidget from "./widgets/VaultDepositWidget";
 import VaultWidget from "./widgets/VaultWidget";
+import { runPolyCommand } from "./poly/runPoly";
 import { getPoolPriceRatio } from "./poolPrice";
 import { fetchBillboard, fetchChatThread } from "./pinLoaders";
 import {
@@ -6254,6 +6255,39 @@ export default function TerminalShell({
         title: `VAULT ${verbN.toUpperCase()} ${asset.symbol}`,
         component: widget
       };
+    },
+    poly: async (args) => {
+      const { chainId: activeChainId } = beginActionNetwork("poly");
+      const chainObj = SUPPORTED_CHAINS.find((c) => c.id === activeChainId) || null;
+      const client = chainObj ? getClient(chainObj) : null;
+      return runPolyCommand({
+        args,
+        generateId,
+        theme,
+        address: address as string | undefined,
+        isConnected: !!isConnected,
+        activeChainId: activeChainId ?? null,
+        chainObj,
+        client,
+        onPin
+      });
+    },
+    pred: async (args) => {
+      // Hard alias of poly
+      const { chainId: activeChainId } = beginActionNetwork("poly");
+      const chainObj = SUPPORTED_CHAINS.find((c) => c.id === activeChainId) || null;
+      const client = chainObj ? getClient(chainObj) : null;
+      return runPolyCommand({
+        args: ["poly", ...args.slice(1)],
+        generateId,
+        theme,
+        address: address as string | undefined,
+        isConnected: !!isConnected,
+        activeChainId: activeChainId ?? null,
+        chainObj,
+        client,
+        onPin
+      });
     },
     calldata: async (args) => {
       // calldata [help | sim] <to> <fnSig> <arg0...>

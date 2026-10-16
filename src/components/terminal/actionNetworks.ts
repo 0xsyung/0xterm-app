@@ -38,7 +38,8 @@ export type ActionId =
   | "trace"
   | "kyt"
   | "kya"
-  | "perps";
+  | "perps"
+  | "poly";
 
 export type ActionDef = {
   id: ActionId;
@@ -122,6 +123,12 @@ export const ACTION_NETWORK_REGISTRY: readonly ActionDef[] = [
     label: "vault",
     kind: "write",
     supportedChainIds: vaultChainIds()
+  },
+  {
+    id: "poly",
+    label: "poly",
+    kind: "write",
+    supportedChainIds: [137]
   },
   {
     id: "dig",
