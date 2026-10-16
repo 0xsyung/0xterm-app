@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import type { ThemeConfig } from "../types";
+import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "../widgets/floatingChatLayout";
 
 export type SnapshotRecordArgs = {
   label: string;
@@ -84,7 +85,7 @@ export default function SnapshotPanel({
 
   return (
     <div
-      className={`w-full flex flex-col gap-3 ${
+      className={`w-full flex flex-col gap-3 ${INVEST_PANEL_CHAT_GUTTER_CLASS} ${
         frameless
           ? ""
           : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`

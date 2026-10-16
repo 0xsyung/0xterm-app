@@ -11,6 +11,9 @@ import {
   FLOATING_CHAT_PANEL_H,
   FLOATING_CHAT_SHEET_BELOW_PX,
   FLOATING_CHAT_TOP_GAP_PX,
+  FLOATING_CHAT_BUBBLE_PX,
+  FLOATING_CHAT_RIGHT_PX,
+  INVEST_PANEL_CHAT_GUTTER_CLASS,
   computeFloatingChatPanelLayout,
   fallbackTopChromeHeight
 } from "./floatingChatLayout";
@@ -160,3 +163,11 @@ describe("fallbackTopChromeHeight (#185)", () => {
     );
   });
 });
+
+describe("INVEST_PANEL_CHAT_GUTTER_CLASS (#227)", () => {
+  it("is pr-16 pb-16 (~64px right clears CHAT chip)", () => {
+    expect(INVEST_PANEL_CHAT_GUTTER_CLASS).toBe("pr-16 pb-16");
+    expect(FLOATING_CHAT_RIGHT_PX + FLOATING_CHAT_BUBBLE_PX).toBeLessThanOrEqual(64);
+  });
+});
+

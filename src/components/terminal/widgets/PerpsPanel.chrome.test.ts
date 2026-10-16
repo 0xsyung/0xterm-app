@@ -45,3 +45,17 @@ describe("PerpsPanel zero-balance deposit gate (#999)", () => {
     expect(src).toMatch(/perps-deposit-hint/);
   });
 });
+
+describe("PerpsPanel CHAT gutter (#227)", () => {
+  it("shell uses INVEST_PANEL_CHAT_GUTTER_CLASS", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+    expect(src).toMatch(/INVEST_PANEL_CHAT_GUTTER_CLASS/);
+    expect(src).toMatch(
+      /\$\{theme\.text\} \$\{INVEST_PANEL_CHAT_GUTTER_CLASS\}/
+    );
+  });
+});
+
