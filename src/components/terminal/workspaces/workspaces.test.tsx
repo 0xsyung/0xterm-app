@@ -31,7 +31,7 @@ const ALL_MODE_ACTIONS = {
 
 
 describe("WorkspaceStrip", () => {
-  it("TRADE opens panel path (not bare onCommand) (#219)", () => {
+  it("DEX opens the pool panel path (not bare onCommand)", () => {
     const onCommand = vi.fn();
     const onOpenPanel = vi.fn();
     render(
@@ -42,19 +42,19 @@ describe("WorkspaceStrip", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /^TRADE/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("trade");
+    fireEvent.click(screen.getByRole("button", { name: /^DEX/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("pool");
     expect(onCommand).not.toHaveBeenCalled();
   });
 
-  it("TRADE hint is panel-oriented, not Usage dump (#219)", () => {
+  it("DEX hint is panel-oriented, not Usage dump", () => {
     render(
       <WorkspaceStrip theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
     );
-    expect(screen.getByRole("button", { name: /^TRADE/i }).textContent).toMatch(
-      /open trade panel/i
+    expect(screen.getByRole("button", { name: /^DEX/i }).textContent).toMatch(
+      /open pool panel/i
     );
-    expect(screen.getByRole("button", { name: /^TRADE/i }).textContent).not.toMatch(
+    expect(screen.getByRole("button", { name: /^DEX/i }).textContent).not.toMatch(
       /price <tA>|swap <amt>/i
     );
   });
@@ -173,7 +173,7 @@ describe("WorkspaceStrip", () => {
 });
 
 describe("WorkspaceSurface (#148/#160)", () => {
-  it("shows live INVEST sub-tabs (MARKET + PORTFOLIO + DEX + PERPS) (#168)", () => {
+  it("shows live INVEST sub-tabs (NEWS + TRADE + PORTFOLIO)", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -183,18 +183,19 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onOpenPanel={vi.fn()}
       />
     );
-    expect(screen.getByRole("button", { name: /MARKET/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^PORTFOLIO$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^DEX$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^PERPS$/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /^NEWS$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^TRADE$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PORTFOLIO$/i })).toBeTruthy();
+    // DEX/PERPS are tools under TRADE, not sub-tabs.
+    expect(screen.queryByRole("button", { name: /^DEX$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^PERPS$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^PRICE$/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^SWAP$/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^TICKER$/i })).toBeNull();
   });
 
-  it("DEX tool is POOL only; lone auto-open + hide tool-tabs (#220/#221)", () => {
+  it("TRADE shows DEX + PERPS tool tabs; DEX opens the pool panel", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -205,22 +206,21 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onCommand={vi.fn()}
         onOpenPanel={onOpenPanel}
         onSubTabChange={onSubTabChange}
-        renderPanel={() => <div data-testid="panel-pool">pool</div>}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
-    expect(onSubTabChange).toHaveBeenCalledWith("DEX");
-    // Lone POOL → tool-tabs row hidden (#221 Soft ACK); no GET/CREATE/ADD LIQ
-    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
+    expect(onSubTabChange).toHaveBeenCalledWith("TRADE");
+    // Two wired tools → tool-tabs row visible with DEX + PERPS.
+    expect(screen.getByTestId("workspace-tool-tabs")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^DEX$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^PERPS$/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^POOL$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^GET POOL$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^CREATE POOL$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^ADD LIQ$/i })).toBeNull();
-    // one wired tool → lone auto-open (#162 / #220 Soft ACK)
+    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
     expect(onOpenPanel).toHaveBeenCalledWith("pool");
   });
 
-  it("DEX re-click sub-tab still opens pool panel (#220/#221)", () => {
+  it("DEX tool opens pool panel even when re-clicked", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -229,19 +229,18 @@ describe("WorkspaceSurface (#148/#160)", () => {
         activePanel={null}
         onCommand={vi.fn()}
         onOpenPanel={onOpenPanel}
-        renderPanel={() => <div data-testid="panel-pool">pool</div>}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
       />
     );
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
     fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
-    // auto-open already called pool; re-click DEX sub-tab (no lone POOL tool button)
     expect(onOpenPanel).toHaveBeenCalledWith("pool");
     onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
     expect(onOpenPanel).toHaveBeenCalledWith("pool");
-    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
   });
 
-  it("NEWS is the leftmost MARKET tool tab (#152)", () => {
+  it("NEWS is the first INVEST sub-tab and opens the news panel", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -252,11 +251,11 @@ describe("WorkspaceSurface (#148/#160)", () => {
         renderPanel={() => <div data-testid="panel-news">news panel</div>}
       />
     );
-    const marketButtons = screen.getAllByRole("button", { name: /^(NEWS|TRADE)$/i });
-    expect(marketButtons[0].textContent).toMatch(/^NEWS$/i);
+    const newsButtons = screen.getAllByRole("button", { name: /^NEWS$/i });
+    expect(newsButtons.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("panel-news")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: /^NEWS/i }).getAttribute("aria-pressed")
+      screen.getByRole("button", { name: /^NEWS$/i }).getAttribute("aria-pressed")
     ).toBe("true");
   });
 
@@ -372,7 +371,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(tabs.className).not.toMatch(/-mt-3/);
   });
 
-  it("lone-tab sub-tabs (PERPS, DEX, DEV SOURCE) hide the tool-tabs row (#221/#220)", () => {
+  it("TRADE (DEX + PERPS) keeps the tool-tabs row; PERPS panel renders below (#221/#220)", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -383,15 +382,15 @@ describe("WorkspaceSurface (#148/#160)", () => {
         renderPanel={() => <div data-testid="panel-perps">perps</div>}
       />
     );
-    // Default invest sub-tab is MARKET (multi-action) → row visible.
-    expect(screen.getByTestId("workspace-tool-tabs")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^PERPS$/i }));
-    // PERPS has a single wired action → row hidden; panel already open.
+    // Default invest sub-tab is NEWS (single wired action) → lone row hidden.
     expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
     expect(screen.getByTestId("panel-perps")).toBeTruthy();
-    // DEX lone POOL similarly hides the tool-tabs row (#220 Soft ACK + #221)
-    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
-    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
+    // TRADE has two wired tools (DEX + PERPS) → row visible, not hidden.
+    expect(screen.getByTestId("workspace-tool-tabs")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^DEX$/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^PERPS$/i }));
+    expect(screen.getByTestId("panel-perps")).toBeTruthy();
   });
 
   it("INVEST sub-tab row is nowrap + max-md overflow-x-auto (#202)", () => {
@@ -416,12 +415,13 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="trade"
+        activePanel="perps"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-trade">trade</div>}
+        renderPanel={() => <div data-testid="panel-perps">perps</div>}
       />
     );
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
     const tabs = screen.getByTestId("workspace-tool-tabs");
     expect(tabs.className).toMatch(/\bsticky\b/);
     expect(tabs.className).toMatch(/max-md:static/);
@@ -432,15 +432,17 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="trade"
+        activePanel="perps"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-trade">trade panel</div>}
+        renderPanel={() => <div data-testid="panel-perps">perps panel</div>}
       />
     );
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
     expect(screen.getByRole("button", { name: /^NEWS$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^TRADE$/i })).toBeTruthy();
-    expect(screen.getByTestId("panel-trade")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^DEX$/i })).toBeTruthy();
+    expect(screen.getByTestId("panel-perps")).toBeTruthy();
   });
 
   it("highlights the open panel's tool tab", () => {
@@ -448,16 +450,17 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="trade"
+        activePanel="perps"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-trade">trade panel</div>}
+        renderPanel={() => <div data-testid="panel-perps">perps panel</div>}
       />
     );
-    expect(screen.getByRole("button", { name: /^TRADE$/i }).getAttribute("aria-pressed")).toBe(
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
+    expect(screen.getByRole("button", { name: /^PERPS$/i }).getAttribute("aria-pressed")).toBe(
       "true"
     );
-    expect(screen.getByRole("button", { name: /^NEWS$/i }).getAttribute("aria-pressed")).toBe(
+    expect(screen.getByRole("button", { name: /^DEX$/i }).getAttribute("aria-pressed")).toBe(
       "false"
     );
   });
@@ -494,7 +497,7 @@ describe("WorkspaceTile", () => {
     render(
       <WorkspaceTile
         theme={theme}
-        action={{ cmd: "swap 1 ETH USDC", label: "SWAP", hint: "swap <amt> <from> <to>", tab: "MARKET" }}
+        action={{ cmd: "swap 1 ETH USDC", label: "SWAP", hint: "swap <amt> <from> <to>", tab: "TRADE" }}
         onCommand={onCommand}
       />
     );
@@ -509,18 +512,18 @@ describe("WorkspaceTile", () => {
       <WorkspaceTile
         theme={theme}
         action={{
-          cmd: "trade",
-          label: "TRADE",
-          hint: "open trade panel",
-          panel: "trade",
-          tab: "MARKET"
+          cmd: "perps",
+          label: "PERPS",
+          hint: "Hyperliquid perps",
+          panel: "perps",
+          tab: "TRADE"
         }}
         onCommand={onCommand}
         onOpenPanel={onOpenPanel}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /^TRADE/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("trade");
+    fireEvent.click(screen.getByRole("button", { name: /^PERPS/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("perps");
     expect(onCommand).not.toHaveBeenCalled();
   });
 });
@@ -595,10 +598,9 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
 
   it("empty sub-tabs are omitted from live SUB_TABS filtering", () => {
     expect(liveSubTabs(INVEST_SUB_TABS, INVEST_ACTIONS).map((t) => t.id)).toEqual([
-      "MARKET",
-      "PORTFOLIO",
-      "DEX",
-      "PERPS"
+      "NEWS",
+      "TRADE",
+      "PORTFOLIO"
     ]);
     expect(liveSubTabs(DEV_SUB_TABS, DEV_ACTIONS).map((t) => t.id)).toEqual([
       "SOURCE",
@@ -618,17 +620,17 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(WIRED_WORKSPACE_PANELS).not.toContain("ticker" as never);
   });
 
-  it("ready invest MARKET tools are NEWS/TRADE only (#219)", () => {
-    const market = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "MARKET");
-    expect(market.map((a) => a.label)).toEqual(["NEWS", "TRADE"]);
-    expect(market.map((a) => a.panel)).toEqual(["news", "trade"]);
+  it("ready invest NEWS tool is NEWS only (#219)", () => {
+    const news = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "NEWS");
+    expect(news.map((a) => a.label)).toEqual(["NEWS"]);
+    expect(news.map((a) => a.panel)).toEqual(["news"]);
   });
 
-  it("ready invest DEX tool is POOL only (#220)", () => {
-    const dex = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "DEX");
-    expect(dex.map((a) => a.label)).toEqual(["POOL"]);
-    expect(dex.map((a) => a.panel)).toEqual(["pool"]);
-    expect(dex.map((a) => a.cmd)).toEqual(["pool"]);
+  it("ready invest TRADE tools are DEX + PERPS (#220)", () => {
+    const trade = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "TRADE");
+    expect(trade.map((a) => a.label)).toEqual(["DEX", "PERPS"]);
+    expect(trade.map((a) => a.panel)).toEqual(["pool", "perps"]);
+    expect(trade.map((a) => a.cmd)).toEqual(["dex", "perps"]);
   });
 
   it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE/BALANCE/PORTFOLIO (#167)", () => {
@@ -703,13 +705,14 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.getByRole("button", { name: /NEWS/i }).textContent).toMatch(
       /open news panel/i
     );
-    expect(screen.getByRole("button", { name: /^TRADE/i }).textContent).toMatch(
-      /open trade panel/i
-    );
-    expect(screen.getByRole("button", { name: /BALANCE/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^POOL/i }).textContent).toMatch(
+    expect(screen.getByRole("button", { name: /^DEX/i }).textContent).toMatch(
       /open pool panel/i
     );
+    expect(screen.getByRole("button", { name: /^PERPS/i }).textContent).toMatch(
+      /Hyperliquid perps/i
+    );
+    expect(screen.getByRole("button", { name: /BALANCE/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^POOL/i })).toBeNull();
   });
 
   it("DEV strip shows EDITOR + BUILD/SHIP dig tiles (#198)", () => {
@@ -833,7 +836,7 @@ describe("lone-tool auto-open (#162)", () => {
     expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
   });
 
-  it("does not auto-open MARKET (multiple ready tools)", () => {
+  it("does not auto-open TRADE (DEX + PERPS — multiple ready tools)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -844,6 +847,10 @@ describe("lone-tool auto-open (#162)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
+    // Default NEWS is a lone tab — auto-opens its news panel on mount.
+    expect(onOpenPanel).toHaveBeenCalledWith("news");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
     expect(onOpenPanel).not.toHaveBeenCalled();
     // Same panel-slot ModeEmpty pattern as DEV (#166 QA)
     expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();

@@ -7,13 +7,29 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { ThemeConfig } from "../types";
+import type { DexProtocol, ThemeConfig } from "../types";
+import PriceCard, { type PriceCardData } from "./PriceCard";
+import PinButton from "./PinButton";
+import {
+  PRICE_FEE_TIERS,
+  DEFAULT_PRICE_FEE,
+  type PriceSource,
+  type PriceRunArgs,
+  type PriceRunResult,
+  resolveDefaultPriceSource,
+  buildPriceCli,
+  sanitizePricePanelError,
+  isPriceActionTestnet
+} from "./PricePanel";
 import {
   SWAP_FEE_TIERS,
-  DEFAULT_SWAP_FEE,
   DEFAULT_SWAP_SLIPPAGE,
   SWAP_SLIPPAGE_QUICK,
-  isValidSlippage
+  isValidSlippage,
+  type SwapRunArgs,
+  type SwapRunResult,
+  buildSwapCli,
+  canRunSwap
 } from "./SwapPanel";
 import {
   buildGetPoolCli,
@@ -35,11 +51,23 @@ import {
 } from "./AddLiqPanel";
 
 const QUICK_TOKENS = ["ETH", "WETH", "USDC", "USDT", "DAI"] as const;
+const QUICK_FROM = ["ETH", "WETH", "USDC", "USDT", "DAI"] as const;
+const QUICK_TO = ["USDC", "USDT", "DAI", "WETH", "ETH"] as const;
 
 export default function PoolPanel({
   theme,
   commonTokens,
+  defaultSource,
+  activeChainId = null,
+  activeDexId = null,
+  dexes,
+  onDexChange,
   onClose,
+  onRunPrice,
+  onRunSwap,
+  onPin,
+  pinned = false,
+  isPinned,
   onLookup,
   onCreate,
   onAddLiq,
@@ -52,7 +80,17 @@ export default function PoolPanel({
 }: {
   theme: ThemeConfig;
   commonTokens?: string[];
+  defaultSource?: PriceSource;
+  activeChainId?: number | null;
+  activeDexId?: string | null;
+  dexes?: DexProtocol[];
+  onDexChange?: (dexId: string) => void;
   onClose: () => void;
+  onRunPrice?: (args: PriceRunArgs) => Promise<PriceRunResult>;
+  onRunSwap?: (args: SwapRunArgs) => Promise<SwapRunResult>;
+  onPin?: (data: PriceCardData) => void;
+  pinned?: boolean;
+  isPinned?: (data: PriceCardData) => boolean;
   onLookup: (args: GetPoolRunArgs) => Promise<GetPoolRunResult>;
   onCreate: (args: CreatePoolRunArgs) => Promise<CreatePoolRunResult>;
   onAddLiq: (args: AddLiqRunArgs) => Promise<AddLiqRunResult>;
@@ -63,11 +101,41 @@ export default function PoolPanel({
   includeFeeInCli?: boolean;
   walletConnected?: boolean;
 }) {
-  // Shared pair
+  // Shared pair (TOKEN A/B ↔ FROM/BASE · TO/QUOTE)
   const [tokenA, setTokenA] = useState("");
   const [tokenB, setTokenB] = useState("");
-  const [feeTier, setFeeTier] = useState<number>(DEFAULT_SWAP_FEE);
+  const [feeTier, setFeeTier] = useState<number>(DEFAULT_PRICE_FEE);
   const [pairTouched, setPairTouched] = useState(false);
+
+  // QUOTE
+  const [source, setSource] = useState<PriceSource>(() =>
+    defaultSource !== undefined
+      ? defaultSource
+      : resolveDefaultPriceSource({
+          activeChainId,
+          activeDexId,
+          dexCount: (dexes ?? []).length
+        })
+  );
+  const [selectedDexId, setSelectedDexId] = useState<string | null>(() => {
+    if (activeDexId && (dexes ?? []).some((d) => d.id === activeDexId)) {
+      return activeDexId;
+    }
+    return (dexes ?? [])[0]?.id ?? null;
+  });
+  const [priceRunning, setPriceRunning] = useState(false);
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [priceResult, setPriceResult] = useState<PriceCardData | null>(null);
+
+  // SWAP
+  const [swapAmount, setSwapAmount] = useState("");
+  const [slippage, setSlippage] = useState<number>(DEFAULT_SWAP_SLIPPAGE);
+  const [slippageInput, setSlippageInput] = useState(
+    String(DEFAULT_SWAP_SLIPPAGE)
+  );
+  const [swapRunning, setSwapRunning] = useState(false);
+  const [swapError, setSwapError] = useState<string | null>(null);
+  const [swapResult, setSwapResult] = useState<ReactNode | null>(null);
 
   // LOOKUP
   const [lookupRunning, setLookupRunning] = useState(false);
@@ -84,10 +152,6 @@ export default function PoolPanel({
   // ADD LIQ
   const [amountA, setAmountA] = useState("");
   const [amountB, setAmountB] = useState("");
-  const [slippage, setSlippage] = useState<number>(DEFAULT_SWAP_SLIPPAGE);
-  const [slippageInput, setSlippageInput] = useState(
-    String(DEFAULT_SWAP_SLIPPAGE)
-  );
   const [addRunning, setAddRunning] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addResult, setAddResult] = useState<ReactNode | null>(null);
@@ -100,30 +164,73 @@ export default function PoolPanel({
     return fromCommon.length > 0 ? fromCommon : [...QUICK_TOKENS];
   }, [commonTokens]);
 
-  const sameTokens =
+  const fromQuick = useMemo(() => {
+    const avail = new Set((commonTokens || []).map((s) => s.toUpperCase()));
+    const fromCommon = QUICK_FROM.filter(
+      (s) => avail.size === 0 || avail.has(s)
+    );
+    return fromCommon.length > 0 ? fromCommon : [...QUICK_FROM];
+  }, [commonTokens]);
+
+  const toQuick = useMemo(() => {
+    const avail = new Set((commonTokens || []).map((s) => s.toUpperCase()));
+    const fromCommon = QUICK_TO.filter(
+      (s) => avail.size === 0 || avail.has(s)
+    );
+    return fromCommon.length > 0 ? fromCommon : [...QUICK_TO];
+  }, [commonTokens]);
+
+  const dexIdsKey = (dexes ?? []).map((d) => d.id).join(",");
+  useEffect(() => {
+    const list = dexes ?? [];
+    const next =
+      activeDexId && list.some((d) => d.id === activeDexId)
+        ? activeDexId
+        : list[0]?.id ?? null;
+    setSelectedDexId(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChainId, activeDexId, dexIdsKey]);
+
+  const selectedDex = (dexes ?? []).find((d) => d.id === selectedDexId);
+  const showFee = selectedDex?.type !== "V2";
+  const emptyDex = source === "pool" && (dexes ?? []).length === 0;
+
+  const fromSameAsTo =
     tokenA.trim().length > 0 &&
     tokenB.trim().length > 0 &&
     tokenA.trim().toUpperCase() === tokenB.trim().toUpperCase();
 
-  const canLookup = canLookupPool({
-    tokenA,
-    tokenB,
-    running: lookupRunning
-  });
-  const canCreate = canPreviewCreatePool({
-    tokenA,
-    tokenB,
-    walletConnected,
-    running: createRunning
-  });
-  const canAdd = canPreviewAddLiq({
-    tokenA,
-    tokenB,
-    amountA,
-    amountB,
+  const canRunPrice =
+    tokenA.trim().length > 0 &&
+    (source !== "pool" ||
+      (tokenB.trim().length > 0 &&
+        !!selectedDexId &&
+        (dexes ?? []).length > 0 &&
+        !fromSameAsTo)) &&
+    !priceRunning;
+
+  const canSwap = canRunSwap({
+    amount: swapAmount,
+    fromToken: tokenA,
+    toToken: tokenB,
     slippage,
-    walletConnected,
-    running: addRunning
+    running: swapRunning
+  });
+
+  const pricePreview = buildPriceCli({
+    base: tokenA.trim() || "…",
+    quote: tokenB.trim(),
+    source,
+    feeTier,
+    dexType: selectedDex?.type
+  });
+
+  const swapPreview = buildSwapCli({
+    amount: swapAmount,
+    fromToken: tokenA,
+    toToken: tokenB,
+    slippage: isValidSlippage(slippage) ? slippage : DEFAULT_SWAP_SLIPPAGE,
+    feeTier
   });
 
   const lookupPreview = buildGetPoolCli({
@@ -146,6 +253,122 @@ export default function PoolPanel({
     feeTier,
     includeFee: includeFeeInCli
   });
+
+  const canLookup = canLookupPool({
+    tokenA,
+    tokenB,
+    running: lookupRunning
+  });
+  const canCreate = canPreviewCreatePool({
+    tokenA,
+    tokenB,
+    walletConnected,
+    running: createRunning
+  });
+  const canAdd = canPreviewAddLiq({
+    tokenA,
+    tokenB,
+    amountA,
+    amountB,
+    slippage,
+    walletConnected,
+    running: addRunning
+  });
+
+  const alreadyPinned = priceResult
+    ? isPinned
+      ? isPinned(priceResult)
+      : pinned
+    : false;
+
+  const applySlippage = (raw: string) => {
+    setSlippageInput(raw);
+    const n = Number(raw);
+    if (Number.isFinite(n)) setSlippage(n);
+    else setSlippage(NaN);
+  };
+
+  const pickDex = (id: string) => {
+    setSelectedDexId(id);
+    onDexChange?.(id);
+  };
+
+  const runPrice = async () => {
+    if (!onRunPrice) return;
+    if (!tokenA.trim()) return;
+    if (source === "pool") {
+      if (!tokenB.trim()) {
+        setPriceError(
+          "QUOTE required for ON-CHAIN (fee must not be parsed as quote)."
+        );
+        return;
+      }
+      if (fromSameAsTo) {
+        setPriceError("FROM and TO must differ.");
+        return;
+      }
+      if (!selectedDexId || (dexes ?? []).length === 0) {
+        setPriceError("No DEX on this network — change NETWORK.");
+        return;
+      }
+      if (selectedDexId !== activeDexId) onDexChange?.(selectedDexId);
+    }
+    setPriceError(null);
+    setPriceRunning(true);
+    try {
+      const res = await onRunPrice({
+        base: tokenA.trim(),
+        quote: tokenB.trim(),
+        source,
+        feeTier,
+        dexType: selectedDex?.type
+      });
+      if (res.ok) {
+        setPriceResult(res.data);
+      } else {
+        setPriceResult(null);
+        setPriceError(sanitizePricePanelError(res.error));
+      }
+    } catch (err: unknown) {
+      setPriceResult(null);
+      setPriceError(
+        sanitizePricePanelError(
+          err instanceof Error ? err.message : String(err)
+        )
+      );
+    } finally {
+      setPriceRunning(false);
+    }
+  };
+
+  const runSwap = async () => {
+    if (!onRunSwap) return;
+    if (!canRunSwap({ amount: swapAmount, fromToken: tokenA, toToken: tokenB, slippage })) {
+      return;
+    }
+    setSwapError(null);
+    setSwapRunning(true);
+    try {
+      const res = await onRunSwap({
+        amount: swapAmount.trim(),
+        fromToken: tokenA.trim(),
+        toToken: tokenB.trim(),
+        slippage,
+        feeTier
+      });
+      if (res.ok) {
+        setSwapResult(res.component);
+      } else {
+        setSwapResult(null);
+        setSwapError(res.error);
+      }
+    } catch (err: unknown) {
+      setSwapResult(null);
+      setSwapError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSwapRunning(false);
+    }
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -173,7 +396,7 @@ export default function PoolPanel({
       setLookupError("Enter token A and token B.");
       return;
     }
-    if (sameTokens) {
+    if (fromSameAsTo) {
       setLookupError("Token A and token B must differ.");
       return;
     }
@@ -272,13 +495,6 @@ export default function PoolPanel({
     }
   };
 
-  const applySlippage = (raw: string) => {
-    setSlippageInput(raw);
-    const n = Number(raw);
-    if (Number.isFinite(n)) setSlippage(n);
-    else setSlippage(NaN);
-  };
-
   const touch =
     "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
   const pill = (active: boolean) =>
@@ -354,7 +570,7 @@ export default function PoolPanel({
         className={`text-[9px] ${theme.muted}`}
         data-testid="pool-microcopy"
       >
-        Lookup · create if missing · add liq.
+        Quote · swap · lookup · create if missing · add liq.
       </div>
 
       {(networkLine || dexLine) && (
@@ -437,13 +653,258 @@ export default function PoolPanel({
           Enter token A and token B.
         </div>
       )}
-      {sameTokens && (
+      {fromSameAsTo && (
         <div
           className={`text-[10px] ${theme.warn || theme.muted}`}
           data-testid="pool-warn-same"
           role="alert"
         >
           Token A and token B must differ.
+        </div>
+      )}
+
+      {/* ── QUOTE ── */}
+      {sectionLabel("QUOTE")}
+      <div className="flex flex-col gap-1">
+        <span className={`uppercase text-[9px] ${theme.muted}`}>SOURCE</span>
+        <div className="flex flex-wrap gap-1" data-testid="pool-source">
+          {(["pool", "api"] as const).map((s) => {
+            const active = source === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setSource(s);
+                  if (s === "pool") setPriceError(null);
+                }}
+                className={pill(active)}
+                style={
+                  active
+                    ? { background: theme.phosphor, color: "#000000" }
+                    : undefined
+                }
+                aria-pressed={active}
+              >
+                {s === "pool" ? "ON-CHAIN" : "API"}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {source === "pool" && (
+        <div className="flex flex-col gap-1" data-testid="pool-dex">
+          <span className={`uppercase text-[9px] ${theme.muted}`}>DEX</span>
+          {emptyDex ? (
+            <div
+              className={`text-[10px] ${theme.warn || theme.muted}`}
+              data-testid="pool-dex-empty"
+              role="status"
+            >
+              No DEX on this network — change NETWORK.
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {(dexes ?? []).map((d) => {
+                const active = selectedDexId === d.id;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => pickDex(d.id)}
+                    className={pill(active)}
+                    style={
+                      active
+                        ? { background: theme.phosphor, color: "#000000" }
+                        : undefined
+                    }
+                    aria-pressed={active}
+                    data-testid={`pool-dex-option-${d.id}`}
+                  >
+                    {d.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isPriceActionTestnet(activeChainId) && (
+        <div
+          className={`text-[10px] ${theme.muted}`}
+          data-testid="pool-testnet-caveat"
+        >
+          Testnet rates are not real market prices.
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => void runPrice()}
+        disabled={!canRunPrice}
+        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+        style={{ background: theme.phosphor, color: "#000000" }}
+        data-testid="pool-run-price"
+      >
+        {priceRunning ? "…" : "RUN PRICE"}
+      </button>
+      <div
+        className={`text-[9px] ${theme.muted} font-mono`}
+        data-testid="pool-price-preview"
+      >
+        {pricePreview}
+      </div>
+      {priceError && (
+        <div
+          className={`text-[10px] ${theme.warn || theme.muted}`}
+          data-testid="pool-price-error"
+          role="alert"
+        >
+          {priceError}
+        </div>
+      )}
+      {priceError && source === "api" && (
+        <button
+          type="button"
+          onClick={() => {
+            setSource("pool");
+            setPriceError(null);
+          }}
+          className={`w-full uppercase tracking-widest text-[10px] font-bold border cursor-pointer ${theme.border} ${touch}`}
+          style={{ background: theme.phosphor, color: "#000000" }}
+          data-testid="pool-use-on-chain"
+        >
+          USE ON-CHAIN
+        </button>
+      )}
+
+      {priceResult && (
+        <div data-testid="pool-price-result" className="relative flex flex-col gap-1">
+          <div className="relative">
+            <PriceCard data={priceResult} theme={theme} />
+            {onPin && !alreadyPinned && (
+              <div className="absolute top-2 right-2">
+                <PinButton onPin={() => onPin(priceResult)} theme={theme} />
+              </div>
+            )}
+            {alreadyPinned && (
+              <span
+                className={`absolute top-2 right-2 uppercase tracking-widest text-[9px] px-1.5 py-0.5 border ${theme.border} ${theme.muted}`}
+                data-testid="pool-pinned-chip"
+              >
+                Pinned
+              </span>
+            )}
+          </div>
+          {!alreadyPinned && onPin && (
+            <div
+              className={`text-[9px] ${theme.muted}`}
+              data-testid="pool-pin-hint"
+            >
+              Pin to keep live · refreshes in the strip.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SWAP ── */}
+      {sectionLabel("SWAP")}
+      <label className="flex flex-col gap-1">
+        <span className={`uppercase text-[9px] ${theme.muted}`}>AMOUNT</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={swapAmount}
+          onChange={(e) => setSwapAmount(e.target.value)}
+          placeholder="0.0"
+          className={`w-full px-2 py-1.5 border ${theme.border} bg-transparent ${theme.text} font-mono text-[12px] outline-none ${touch}`}
+          data-testid="pool-amount"
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </label>
+
+      <div className="flex flex-col gap-1">
+        <span className={`uppercase text-[9px] ${theme.muted}`}>
+          SLIPPAGE %
+        </span>
+        <div className="flex flex-wrap items-center gap-1">
+          <input
+            type="text"
+            inputMode="decimal"
+            value={slippageInput}
+            onChange={(e) => applySlippage(e.target.value)}
+            className={`w-[72px] px-2 py-1.5 border ${theme.border} bg-transparent ${theme.text} font-mono text-[12px] outline-none ${touch}`}
+            data-testid="pool-slippage"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <div className="flex flex-wrap gap-1" data-testid="pool-slippage-quick">
+            {SWAP_SLIPPAGE_QUICK.map((s) => {
+              const active = slippage === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setSlippage(s);
+                    setSlippageInput(String(s));
+                  }}
+                  className={pill(active)}
+                  style={
+                    active
+                      ? { background: theme.phosphor, color: "#000000" }
+                      : undefined
+                  }
+                  aria-pressed={active}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void runSwap()}
+        disabled={!canSwap}
+        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+        style={{ background: theme.phosphor, color: "#000000" }}
+        data-testid="pool-run-swap"
+      >
+        {swapRunning ? "…" : "RUN SWAP"}
+      </button>
+      <div
+        className={`text-[9px] ${theme.muted} font-mono`}
+        data-testid="pool-swap-preview"
+      >
+        {swapPreview}
+      </div>
+      {!isValidSlippage(slippage) && (
+        <div
+          className={`text-[10px] ${theme.warn || theme.muted}`}
+          data-testid="pool-warn-slippage"
+          role="alert"
+        >
+          Slippage must be &gt; 0 and ≤ 100.
+        </div>
+      )}
+      {swapError && (
+        <div
+          className={`text-[10px] ${theme.warn || theme.muted}`}
+          data-testid="pool-swap-error"
+          role="alert"
+        >
+          {swapError}
+        </div>
+      )}
+      {swapResult && (
+        <div data-testid="pool-swap-result" className="relative">
+          {swapResult}
         </div>
       )}
 
@@ -570,51 +1031,6 @@ export default function PoolPanel({
         />
       </label>
 
-      <div className="flex flex-col gap-1">
-        <span className={`uppercase text-[9px] ${theme.muted}`}>
-          SLIPPAGE %
-        </span>
-        <div className="flex flex-wrap items-center gap-1">
-          <input
-            type="text"
-            inputMode="decimal"
-            value={slippageInput}
-            onChange={(e) => applySlippage(e.target.value)}
-            className={`w-[72px] px-2 py-1.5 border ${theme.border} bg-transparent ${theme.text} font-mono text-[12px] outline-none ${touch}`}
-            data-testid="pool-slippage"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <div
-            className="flex flex-wrap gap-1"
-            data-testid="pool-slippage-quick"
-          >
-            {SWAP_SLIPPAGE_QUICK.map((s) => {
-              const active = slippage === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    setSlippage(s);
-                    setSlippageInput(String(s));
-                  }}
-                  className={pill(active)}
-                  style={
-                    active
-                      ? { background: theme.phosphor, color: "#000000" }
-                      : undefined
-                  }
-                  aria-pressed={active}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       {!walletConnected && (
         <div
           className={`text-[10px] ${theme.muted}`}
@@ -639,15 +1055,6 @@ export default function PoolPanel({
       >
         {addPreview}
       </div>
-      {!isValidSlippage(slippage) && (
-        <div
-          className={`text-[10px] ${theme.warn || theme.muted}`}
-          data-testid="pool-warn-slippage"
-          role="alert"
-        >
-          Slippage must be &gt; 0 and ≤ 100.
-        </div>
-      )}
       {addError && (
         <div
           className={`text-[10px] ${theme.warn || theme.muted}`}

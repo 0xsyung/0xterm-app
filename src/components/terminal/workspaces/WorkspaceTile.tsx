@@ -38,7 +38,7 @@ export type WorkspacePanelId =
   | "dig-check";
 
 /** Sub-tab ids per workspace mode (#145). */
-export type InvestSubTab = "MARKET" | "PORTFOLIO" | "DEX" | "PERPS";
+export type InvestSubTab = "NEWS" | "TRADE" | "PORTFOLIO";
 export type DevSubTab = "SOURCE" | "BUILD" | "SHIP";
 export type ForensicSubTab = "SCREEN" | "SIM" | "TRACE" | "READ";
 

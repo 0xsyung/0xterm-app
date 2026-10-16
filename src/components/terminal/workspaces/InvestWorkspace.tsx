@@ -12,15 +12,16 @@ import type { WorkspaceAction, WorkspacePanelId, InvestSubTab } from "./Workspac
 import { readyWorkspaceActions } from "./wiredPanels";
 
 export const INVEST_SUB_TABS: { id: InvestSubTab; label: string }[] = [
-  { id: "MARKET", label: "MARKET" },
-  { id: "PORTFOLIO", label: "PORTFOLIO" },
-  { id: "DEX", label: "DEX" },
-  { id: "PERPS", label: "PERPS" }
+  { id: "NEWS", label: "NEWS" },
+  { id: "TRADE", label: "TRADE" },
+  { id: "PORTFOLIO", label: "PORTFOLIO" }
 ];
 
 /**
  * Full action catalog. Unfinished (no `panel`) are hidden until a panel is
  * wired in TerminalShell.renderInlinePanel (#160).
+ * #? Reorg: NEWS + TRADE are top-level categories; TRADE holds DEX + PERPS;
+ * quote+swap merged into the DEX POOL panel. CONSOLE price/swap unchanged.
  */
 export const INVEST_ACTIONS: WorkspaceAction[] = [
   {
@@ -28,17 +29,24 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     label: "NEWS",
     hint: "open news panel",
     panel: "news",
-    tab: "MARKET"
+    tab: "NEWS"
+  },
+  // #219 Soft ACK: PRICE+SWAP unified into POOL (DEX); CONSOLE price/swap unchanged
+  // #169 Soft ACK: MARKET TICKER removed — pinned PRICE is the live ticker
+  {
+    cmd: "dex",
+    label: "DEX",
+    hint: "open pool panel",
+    panel: "pool",
+    tab: "TRADE"
   },
   {
-    cmd: "trade",
-    label: "TRADE",
-    hint: "open trade panel",
-    panel: "trade",
-    tab: "MARKET"
+    cmd: "perps",
+    label: "PERPS",
+    hint: "Hyperliquid perps",
+    panel: "perps",
+    tab: "TRADE"
   },
-  // #219 Soft ACK: PRICE+SWAP unified into TRADE; CONSOLE price/swap unchanged
-  // #169 Soft ACK: MARKET TICKER removed — pinned PRICE is the live ticker
   {
     cmd: "balance",
     label: "BALANCE",
@@ -67,21 +75,8 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     panel: "pnl",
     tab: "PORTFOLIO"
   },
-  {
-    cmd: "pool",
-    label: "POOL",
-    hint: "open pool panel",
-    panel: "pool",
-    tab: "DEX"
-  },
   // #220 Soft ACK: GET/CREATE/ADD LIQ unified into POOL; CONSOLE cmds unchanged
-  {
-    cmd: "perps",
-    label: "PERPS",
-    hint: "Hyperliquid perps",
-    panel: "perps",
-    tab: "PERPS"
-  }
+  // #? Reorg: POOL now also holds QUOTE+SWAP; surfaced via the DEX tile above.
 ];
 
 export function InvestWorkspace({
