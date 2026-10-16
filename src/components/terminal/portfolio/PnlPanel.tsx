@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ThemeConfig } from "../types";
 import PnlWidget, { type PnlWidgetData } from "../widgets/PnlWidget";
 import { PNL_FOOTER } from "../pnl";
+import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "../widgets/floatingChatLayout";
 
 export type PnlFetchResult =
   | { ok: true; data: PnlWidgetData }
@@ -122,7 +123,7 @@ export default function PnlPanel({
 
   return (
     <div
-      className={`w-full flex flex-col gap-3 ${
+      className={`w-full flex flex-col gap-3 ${INVEST_PANEL_CHAT_GUTTER_CLASS} ${
         frameless
           ? ""
           : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`

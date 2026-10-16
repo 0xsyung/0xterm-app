@@ -95,6 +95,9 @@ describe("NewsPanel", () => {
     expect(panel.className).toMatch(/\bw-full\b/);
     expect(panel.className).toMatch(/\bmin-h-full\b/);
     expect(panel.className).not.toMatch(/max-w-/);
+    // Shared invest CHAT gutter (#227)
+    expect(panel.className).toMatch(/\bpr-16\b/);
+    expect(panel.className).toMatch(/\bpb-16\b/);
   });
 
   it("Escape fires onClose (parity with other panels)", () => {

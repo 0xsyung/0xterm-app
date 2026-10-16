@@ -76,16 +76,17 @@ describe("PoolPanel (#220)", () => {
     expect(cue.textContent).toMatch(/DEX · UNISWAP V3 \(V3\)/);
   });
 
-  it("reserves bottom + right clearance so ADD LIQ clears floating CHAT (#226)", () => {
+  it("shared panel gutter clears CHAT; ADD LIQ is w-full again (#227)", () => {
     render(<PoolPanel {...baseProps} />);
-    expect(screen.getByTestId("pool-panel").className).toMatch(/\bpb-16\b/);
-    // Clearance must live on the painted bar (pool-addliq), not only a wrapper —
-    // cfefb49's parent-only pr-16 failed Soft DOM / pixel QA.
-    expect(screen.getByTestId("pool-addliq-chat-clearance")).toBeTruthy();
-    expect(screen.getByTestId("pool-addliq").className).toMatch(
-      /w-\[calc\(100%-4rem\)\]/
-    );
-    expect(screen.getByTestId("pool-addliq").className).toMatch(/\bself-start\b/);
+    const panel = screen.getByTestId("pool-panel");
+    expect(panel.className).toMatch(/\bpr-16\b/);
+    expect(panel.className).toMatch(/\bpb-16\b/);
+    // One-off calc / clearance wrapper from #226 must be gone.
+    expect(screen.queryByTestId("pool-addliq-chat-clearance")).toBeNull();
+    const addLiq = screen.getByTestId("pool-addliq");
+    expect(addLiq.className).toMatch(/\bw-full\b/);
+    expect(addLiq.className).not.toMatch(/calc\(100%-4rem\)/);
+    expect(addLiq.className).not.toMatch(/\bself-start\b/);
   });
 
   it("shared TOKEN A/B updates all previews", () => {

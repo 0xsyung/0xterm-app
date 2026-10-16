@@ -69,4 +69,21 @@ describe("PortfolioPanel", () => {
       )
     );
   });
+
+  it("shared invest CHAT gutter on panel root (#227)", async () => {
+    const onFetch = vi.fn(async () => emptyOk);
+    render(
+      <PortfolioPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={onFetch}
+        surface="invest"
+        isConnected
+      />
+    );
+    await waitFor(() => expect(onFetch).toHaveBeenCalled());
+    const panel = screen.getByTestId("portfolio-panel");
+    expect(panel.className).toMatch(/\bpr-16\b/);
+    expect(panel.className).toMatch(/\bpb-16\b/);
+  });
 });

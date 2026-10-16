@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { DexProtocol, ThemeConfig } from "../types";
 import PriceCard, { type PriceCardData } from "./PriceCard";
 import PinButton from "./PinButton";
+import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "./floatingChatLayout";
 import {
   PRICE_FEE_TIERS,
   DEFAULT_PRICE_FEE,
@@ -540,7 +541,7 @@ export default function PoolPanel({
 
   return (
     <div
-      className={`w-full flex flex-col gap-3 pb-16 ${
+      className={`w-full flex flex-col gap-3 ${INVEST_PANEL_CHAT_GUTTER_CLASS} ${
         frameless
           ? ""
           : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
@@ -1048,23 +1049,18 @@ export default function PoolPanel({
           Connect wallet to add liquidity.
         </div>
       )}
-      {/* CHAT clearance (#226): shorten the painted phosphor bar itself.
-          cfefb49 put pr-16 only on a wrapper — Soft DOM inspect of pool-addliq /
-          pool-panel saw no clearance class and measured ~23×15 under the chip.
-          w-[calc(100%-4rem)] + self-start on the CTA forces the green fill to
-          stop ~64px early (chip 48 + right 12 + gap). Wrapper is test-id only. */}
-      <div className="w-full" data-testid="pool-addliq-chat-clearance">
-        <button
-          type="button"
-          onClick={() => void runAdd()}
-          disabled={!canAdd}
-          className={`w-[calc(100%-4rem)] max-w-full self-start uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
-          style={{ background: theme.phosphor, color: "#000000" }}
-          data-testid="pool-addliq"
-        >
-          {addRunning ? "…" : "ADD LIQ"}
-        </button>
-      </div>
+      {/* CHAT clearance (#227): panel root carries INVEST_PANEL_CHAT_GUTTER_CLASS
+          (pr-16 pb-16); ADD LIQ is w-full again — no one-off calc. */}
+      <button
+        type="button"
+        onClick={() => void runAdd()}
+        disabled={!canAdd}
+        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+        style={{ background: theme.phosphor, color: "#000000" }}
+        data-testid="pool-addliq"
+      >
+        {addRunning ? "…" : "ADD LIQ"}
+      </button>
       <div
         className={`text-[9px] ${theme.muted} font-mono`}
         data-testid="pool-addliq-preview"
