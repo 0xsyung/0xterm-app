@@ -12,6 +12,7 @@ import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
  * Actions without a panel in this set are unfinished and must not render (#160).
  */
 export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
+  "trade",
   "price",
   "swap",
   "news",

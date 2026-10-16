@@ -9,6 +9,7 @@
 import type { ThemeConfig } from "../types";
 
 export type WorkspacePanelId =
+  | "trade"
   | "price"
   | "swap"
   | "news"

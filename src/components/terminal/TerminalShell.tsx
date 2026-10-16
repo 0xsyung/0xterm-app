@@ -477,6 +477,7 @@ import SwapPanel, {
   type SwapRunArgs,
   type SwapRunResult
 } from "./widgets/SwapPanel";
+import TradePanel from "./widgets/TradePanel";
 import GetPoolPanel, {
   buildGetPoolCli,
   type GetPoolRunArgs,
@@ -9515,6 +9516,79 @@ export default function TerminalShell({
                 return { ok: false, error: entry.text };
               }
               return { ok: false, error: "Swap failed." };
+            }}
+            frameless
+          />
+        );
+      case "trade":
+        return (
+          <TradePanel
+            theme={theme}
+            commonTokens={Object.keys(COMMON_TOKENS[activeChainId || 0] || {})}
+            activeChainId={activeChainId}
+            activeDexId={activeDexId}
+            dexes={DEX_REGISTRY[activeChainId || 0] || []}
+            onDexChange={(dexId) => {
+              setActiveDexId(dexId);
+              savePreference("dexId", dexId);
+            }}
+            onClose={close}
+            onRunPrice={async (args: PriceRunArgs): Promise<PriceRunResult> => {
+              const line = buildPriceCli(args);
+              const result = await commands.price(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from price." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.componentData?.kind === "price") {
+                return {
+                  ok: true,
+                  data: entry.componentData as PriceCardData
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Price lookup failed." };
+            }}
+            onRunSwap={async (args: SwapRunArgs): Promise<SwapRunResult> => {
+              const line = buildSwapCli(args);
+              const result = await commands.swap(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from swap." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "component" && entry.component) {
+                return { ok: true, component: entry.component };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Swap failed." };
+            }}
+            onPin={(data) => {
+              const log: LogEntry = {
+                id: generateId(),
+                type: "component",
+                title: `PRICE ${data.symbolA || data.tokenSymbol || "?"}/${data.symbolB || data.quoteSymbol || "?"}`,
+                componentData: data
+              };
+              onPin(log);
+            }}
+            isPinned={(data) => {
+              const key = pricePinKey(data, activeChainId, activeDexId);
+              if (!key) return false;
+              return pinned.some((p) => {
+                if (p.kind !== "component" || p.componentData?.kind !== "price")
+                  return false;
+                return (
+                  pricePinKey(
+                    p.componentData,
+                    p.chainId ?? null,
+                    p.dexId ?? null
+                  ) === key
+                );
+              });
             }}
             frameless
           />
