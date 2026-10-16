@@ -88,3 +88,32 @@ describe("handleGchat bare usage", () => {
     expect(String((entry as { text?: string }).text)).toMatch(/testnet-only/i);
   });
 });
+
+describe("groupChat secrets", () => {
+  it("saves and loads a 32-byte secret", async () => {
+    const mem: Record<string, string> = {};
+    const storage = {
+      getItem: (k: string) => mem[k] ?? null,
+      setItem: (k: string, v: string) => {
+        mem[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete mem[k];
+      },
+      length: 0,
+      clear: () => {},
+      key: () => null
+    } as unknown as Storage;
+    const { saveGroupSecret, loadGroupSecret, clearGroupSecret, secretStorageKey } =
+      await import("./groupChat");
+    const addr = getAddress("0x3333333333333333333333333333333333333333");
+    const secret = new Uint8Array(32).map((_, i) => i);
+    saveGroupSecret(11155111, addr, secret, storage);
+    expect(mem[secretStorageKey(11155111, addr)]).toMatch(/^0x/);
+    const loaded = loadGroupSecret(11155111, addr, storage);
+    expect(loaded).not.toBeNull();
+    expect(Array.from(loaded!)).toEqual(Array.from(secret));
+    clearGroupSecret(11155111, addr, storage);
+    expect(loadGroupSecret(11155111, addr, storage)).toBeNull();
+  });
+});

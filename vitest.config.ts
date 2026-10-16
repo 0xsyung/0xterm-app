@@ -47,6 +47,8 @@ export default defineConfig({
         // covered modules — TerminalShell wires useAccount/AppKit; tx widgets call
         // wagmi hooks (writeContract/estimateGas) needing provider mocks
         "src/components/terminal/TerminalShell.tsx",
+        // gchat CLI handler (#77) — extracted from TerminalShell; pure helpers in groupChat*/groupChatCrypto tests
+        "src/components/terminal/gchatCommands.ts",
         "src/components/terminal/SwapWidget.tsx",
         "src/components/terminal/widgets/DeployWidget.tsx",
         "src/components/terminal/widgets/CreatePoolWidget.tsx",
