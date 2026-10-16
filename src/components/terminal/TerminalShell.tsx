@@ -9958,6 +9958,14 @@ export default function TerminalShell({
               if (!ensured.ok) return { ok: false as const, error: ensured.error };
               return { ok: true as const };
             }}
+            ensureWalletChain={async (chainId: number | null | undefined) => {
+              const ensured = await ensureWalletChain(chainId);
+              if (!ensured.ok) return { ok: false as const, error: ensured.error };
+              return { ok: true as const };
+            }}
+            writeContractAsync={
+              writeContractAsync as never
+            }
           />
         );
       case "sim":

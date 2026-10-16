@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   HL_BUILDER_ADDRESS_PLACEHOLDER,
   HL_DEFAULT_NETWORK,
+  HL_DEPOSIT,
   hlApiBase,
   hlEvmChainId,
   hlSignatureChainId,
@@ -30,6 +31,28 @@ describe("hl config (#190)", () => {
     expect(hlApiBase("testnet")).toContain("testnet");
     expect(hlEvmChainId("testnet")).toBe(998);
     expect(hlSignatureChainId("testnet")).toBe(0x66eee);
+  });
+
+  it("signs user-signed actions over 0x66eee on BOTH networks (SDK constant)", () => {
+    expect(hlSignatureChainId("mainnet")).toBe(0x66eee);
+    expect(hlSignatureChainId("testnet")).toBe(0x66eee);
+  });
+
+  it("deposit targets map per network (Arbitrum One / Arbitrum Sepolia)", () => {
+    expect(HL_DEPOSIT.mainnet.chainId).toBe(0xa4b1);
+    expect(HL_DEPOSIT.mainnet.usdcAddress).toBe(
+      "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+    );
+    expect(HL_DEPOSIT.mainnet.bridgeAddress).toBe(
+      "0x2Df1c51E09aECF9cacB7bc98cB1742757f163dF7"
+    );
+    expect(HL_DEPOSIT.testnet.chainId).toBe(0x66eee);
+    expect(HL_DEPOSIT.testnet.usdcAddress).toBe(
+      "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"
+    );
+    expect(HL_DEPOSIT.testnet.bridgeAddress).toBe(
+      "0x08cfc1B6b2dCF36A1480b99353A354AA8AC56f89"
+    );
   });
 
   it("maps EVM chain ids", () => {

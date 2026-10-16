@@ -3,16 +3,22 @@
  * @description L1 hash + signature split + order wire (#190)
  */
 import { describe, expect, it } from "vitest";
-import { generatePrivateKey } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
   buildCancelAction,
   buildOrderAction,
+  buildUpdateLeverageAction,
+  buildUsdClassTransferAction,
+  buildWithdrawAction,
   createL1ActionHash,
   nextNonce,
   resetNonceGuard,
   signL1Action,
   splitSignature,
-  stripTrailingZeros
+  stripTrailingZeros,
+  recoverTypedDataSigner,
+  userSignedTypedData,
+  WithdrawTypes
 } from "./index";
 
 describe("signing helpers (#190)", () => {
@@ -68,5 +74,87 @@ describe("signing helpers (#190)", () => {
     expect(orders[0].p).toBe("100");
     expect(orders[0].s).toBe("0.01");
     expect(builder.f).toBe(20);
+  });
+
+  it("buildUpdateLeverageAction matches schema order", () => {
+    const action = buildUpdateLeverageAction({
+      asset: 2,
+      leverage: 10,
+      isCross: true
+    });
+    expect(action).toEqual({
+      type: "updateLeverage",
+      asset: 2,
+      isCross: true,
+      leverage: 10
+    });
+  });
+
+  it("buildWithdrawAction includes signature chain + lowercased destination", () => {
+    const action = buildWithdrawAction({
+      network: "testnet",
+      amount: "100",
+      destination: "0xABCDEF0123456789ABCDEF0123456789ABCDEF01",
+      time: 1700000000000
+    });
+    expect(action.type).toBe("withdraw3");
+    expect(action.hyperliquidChain).toBe("Testnet");
+    expect(action.signatureChainId).toBe("0x66eee");
+    expect(action.destination).toBe(
+      "0xabcdef0123456789abcdef0123456789abcdef01"
+    );
+    expect(action.time).toBe(1700000000000);
+  });
+
+  it("buildUsdClassTransferAction carries toPerp + nonce", () => {
+    const action = buildUsdClassTransferAction({
+      network: "mainnet",
+      amount: "50",
+      toPerp: true,
+      nonce: 1700000000000
+    });
+    expect(action.type).toBe("usdClassTransfer");
+    expect(action.hyperliquidChain).toBe("Mainnet");
+    expect(action.toPerp).toBe(true);
+    expect(action.nonce).toBe(1700000000000);
+  });
+
+  it("userSignedTypedData passes the FULL action as message (no filter)", () => {
+    const action = buildWithdrawAction({
+      network: "testnet",
+      amount: "10",
+      destination: "0xABCDEF0123456789ABCDEF0123456789ABCDEF01",
+      time: 1700000000000
+    });
+    const td = userSignedTypedData(
+      "testnet",
+      WithdrawTypes,
+      "HyperliquidTransaction:Withdraw",
+      action
+    );
+    // Domain chainId is 0x66eee for both networks (SDK constant).
+    expect(td.domain.chainId).toBe(0x66eee);
+    expect(td.message).toEqual(action);
+    // All declared fields survive even though the message is the full action.
+    expect(td.types["HyperliquidTransaction:Withdraw"]).toHaveLength(4);
+  });
+
+  it("recoverTypedDataSigner recovers the signing account", async () => {
+    const wallet = privateKeyToAccount(generatePrivateKey());
+    const action = buildWithdrawAction({
+      network: "testnet",
+      amount: "10",
+      destination: "0xABCDEF0123456789ABCDEF0123456789ABCDEF01",
+      time: 1700000000000
+    });
+    const td = userSignedTypedData(
+      "testnet",
+      WithdrawTypes,
+      "HyperliquidTransaction:Withdraw",
+      action
+    );
+    const sig = await wallet.signTypedData(td as never);
+    const recovered = await recoverTypedDataSigner(td, sig);
+    expect(recovered?.toLowerCase()).toBe(wallet.address.toLowerCase());
   });
 });

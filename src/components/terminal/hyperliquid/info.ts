@@ -136,6 +136,74 @@ export async function fetchOpenOrders(
   return Array.isArray(data) ? data : [];
 }
 
+export type HlSpotBalances = {
+  balances?: { coin: string; total: string; hold: string }[];
+};
+
+/** Spot clearinghouse state — deposit lands here, then transfer to perps. */
+export async function fetchSpotClearinghouseState(
+  network: HlNetwork,
+  user: string,
+  fetchImpl?: typeof fetch
+): Promise<HlSpotBalances> {
+  return postInfo(
+    network,
+    { type: "spotClearinghouseState", user: user.toLowerCase() },
+    fetchImpl
+  );
+}
+
+export type HlUserAbstraction =
+  | "disabled"
+  | "unifiedAccount"
+  | "portfolioMargin"
+  | null;
+
+export async function fetchUserAbstraction(
+  network: HlNetwork,
+  user: string,
+  fetchImpl?: typeof fetch
+): Promise<HlUserAbstraction> {
+  const data = await postInfo<unknown>(
+    network,
+    { type: "userAbstraction", user: user.toLowerCase() },
+    fetchImpl
+  );
+  if (data === "disabled" || data === "unifiedAccount" || data === "portfolioMargin") {
+    return data;
+  }
+  return null;
+}
+
+export type HlUserFill = {
+  coin: string;
+  px: string;
+  sz: string;
+  side: string;
+  time: number;
+  startPosition: string;
+  dir?: string;
+  closedPnl?: string;
+  fee?: string;
+  oid?: number;
+  cloid?: string | null;
+  crossed?: boolean;
+  tid?: number;
+};
+
+export async function fetchUserFills(
+  network: HlNetwork,
+  user: string,
+  fetchImpl?: typeof fetch
+): Promise<HlUserFill[]> {
+  const data = await postInfo<unknown>(
+    network,
+    { type: "userFills", user: user.toLowerCase() },
+    fetchImpl
+  );
+  return Array.isArray(data) ? (data as HlUserFill[]) : [];
+}
+
 export async function fetchExtraAgents(
   network: HlNetwork,
   user: string,

@@ -1,6 +1,6 @@
 /**
  * @file PerpsPanel.tsx
- * @description INVEST PERPS panel — Hyperliquid checklist + order/positions/orders (#190)
+ * @description INVEST PERPS panel — Hyperliquid order/positions/orders + USDC transfers (#190)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -10,7 +10,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ThemeConfig } from "../types";
 import {
   PERPS_COPY,
+  HL_DEPOSIT,
   buildFeePreview,
+  buildUsdClassTransferAction,
+  buildWithdrawAction,
   clearAgentKey,
   fetchAllMids,
   fetchClearinghouseState,
@@ -18,6 +21,8 @@ import {
   fetchMaxBuilderFee,
   fetchMetaAndAssetCtxs,
   fetchOpenOrders,
+  fetchSpotClearinghouseState,
+  fetchUserAbstraction,
   formatFeePercent,
   getOrCreateAgentKey,
   getStoredAgentKey,
@@ -29,28 +34,54 @@ import {
   maxFeeSubcopy,
   midPxForCoin,
   assetIndexByCoin,
+  marketOrderPx,
   networkFromEvmChainId,
-  postApproveAgent,
   postApproveBuilderFee,
   postCancelWithAgent,
   postOrderWithAgent,
+  postUpdateLeverageWithAgent,
+  postUserSignedAction,
   resolveBuilderAddress,
   stripTrailingZeros,
   truncateAddr,
   validateOrderForm,
+  ensureAgentApproved,
+  ensureBuilderApproved,
+  WithdrawTypes,
+  UsdClassTransferTypes,
   type HlMetaResponse,
   type HlNetwork,
   type HlOpenOrder,
   type HlPosition,
+  type HlUserAbstraction,
   type OrderSide,
   type OrderType,
   type SignTypedDataFn
 } from "../hyperliquid";
 import { FLOATING_CHAT_TOP_GAP_PX } from "./floatingChatLayout";
+import { hlEvmChainId } from "../hyperliquid/config";
 
 const FILL_FG = "#000000";
 
-type PanelTab = "order" | "positions" | "orders";
+type PanelTab = "order" | "positions" | "orders" | "transfer";
+
+type TransferTab = "deposit" | "withdraw" | "toPerps" | "toSpot";
+
+const TRANSFER_LABEL: Record<TransferTab, string> = {
+  deposit: "Deposit",
+  withdraw: "Withdraw",
+  toPerps: "To perps",
+  toSpot: "To spot"
+};
+
+type TxRecord = {
+  id: number;
+  kind: TransferTab;
+  amount: string;
+  detail: string;
+  status: "pending" | "confirmed" | "error";
+  error?: string;
+};
 
 export type PerpsPanelProps = {
   theme: ThemeConfig;
@@ -64,6 +95,16 @@ export type PerpsPanelProps = {
   signTypedDataAsync: SignTypedDataFn;
   /** Ensure wallet is on the HL signature chain before user-signed actions. */
   ensureSignatureChain: (network: HlNetwork) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Ensure wallet is on an EVM chain (HyperEVM or the deposit chain). */
+  ensureWalletChain: (chainId: number | null | undefined) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** wagmi useWriteContract writeContractAsync for on-chain USDC deposit txs. */
+  writeContractAsync: (args: {
+    chainId?: number;
+    address: `0x${string}`;
+    abi: unknown;
+    functionName: string;
+    args?: readonly unknown[];
+  }) => Promise<`0x${string}`>;
   storage?: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null;
 };
 
@@ -98,6 +139,29 @@ function PhosphorPill({
   );
 }
 
+const ERC20_ABI = [
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "bool" }]
+  },
+  {
+    type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "bool" }]
+  }
+] as const;
+
 export default function PerpsPanel({
   theme,
   onClose,
@@ -108,6 +172,8 @@ export default function PerpsPanel({
   builderFeeBp = HL_DEFAULT_BUILDER_FEE_BP,
   signTypedDataAsync,
   ensureSignatureChain,
+  ensureWalletChain,
+  writeContractAsync,
   storage
 }: PerpsPanelProps) {
   const store =
@@ -136,6 +202,19 @@ export default function PerpsPanel({
   const [positions, setPositions] = useState<HlPosition[]>([]);
   const [orders, setOrders] = useState<HlOpenOrder[]>([]);
   const [pendingCancelOid, setPendingCancelOid] = useState<number | null>(null);
+
+  // Balances (spot USDC, perps equity/margin/withdrawable) + abstraction mode.
+  const [spotUsdc, setSpotUsdc] = useState<string | null>(null);
+  const [equity, setEquity] = useState<string | null>(null);
+  const [marginUsed, setMarginUsed] = useState<string | null>(null);
+  const [withdrawable, setWithdrawable] = useState<string | null>(null);
+  const [abstraction, setAbstraction] = useState<HlUserAbstraction>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const [transferTab, setTransferTab] = useState<TransferTab>("deposit");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [destination, setDestination] = useState("");
+  const [txs, setTxs] = useState<TxRecord[]>([]);
 
   const unlocked = isChecklistComplete({
     walletConnected: isConnected,
@@ -214,12 +293,43 @@ export default function PerpsPanel({
         .map((p) => p.position)
         .filter((p) => p && Number(p.szi) !== 0);
       setPositions(pos);
+      setEquity(state.marginSummary?.accountValue ?? null);
+      setMarginUsed(state.marginSummary?.totalMarginUsed ?? null);
+      setWithdrawable(state.withdrawable ?? null);
       const oo = await fetchOpenOrders(network, walletAddress);
       setOrders(Array.isArray(oo) ? oo : []);
     } catch {
       // soft
     }
   }, [network, walletAddress]);
+
+  const refreshBalances = useCallback(async () => {
+    if (!walletAddress) {
+      setSpotUsdc(null);
+      setAbstraction(null);
+      return;
+    }
+    try {
+      const spot = await fetchSpotClearinghouseState(network, walletAddress);
+      const usdc = (spot.balances || []).find((b) => b.coin === "USDC");
+      setSpotUsdc(usdc ? usdc.total : "0");
+    } catch {
+      // best-effort
+    }
+    try {
+      const mode = await fetchUserAbstraction(network, walletAddress);
+      setAbstraction(mode);
+    } catch {
+      // best-effort; show all transfer tabs
+    }
+  }, [network, walletAddress]);
+
+  // Live 6s polling of spot + perps balances while connected.
+  useEffect(() => {
+    if (!isConnected || !walletAddress) return;
+    const t = setInterval(() => setRefreshKey((k) => k + 1), 6_000);
+    return () => clearInterval(t);
+  }, [isConnected, walletAddress]);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- open-driven HL fetch (#190) */
@@ -233,6 +343,12 @@ export default function PerpsPanel({
     if (unlocked) void refreshAccount();
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [unlocked, refreshAccount]);
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- connected-driven balance fetch */
+    if (isConnected && walletAddress) void refreshBalances();
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [isConnected, walletAddress, refreshBalances, refreshKey]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -258,15 +374,19 @@ export default function PerpsPanel({
       }
       const agent = getOrCreateAgentKey(store, walletAddress, network);
       setAgentAddress(agent.address);
-      const result = await postApproveAgent({
+      const approved = await ensureAgentApproved({
         network,
+        masterAddress: walletAddress,
+        agentPrivateKey: agent.privateKey,
         agentAddress: agent.address,
+        expectedSigner: walletAddress,
         signTypedDataAsync
       });
-      if (!result.ok) {
-        setError(result.error);
+      if (!approved) {
+        setError("Agent approval failed — see message above.");
         return;
       }
+      await ensureWalletChain(hlEvmChainId(network));
       setAgentApproved(true);
       setStatus("Hyperliquid agent connected.");
       await refreshApprovals();
@@ -296,12 +416,14 @@ export default function PerpsPanel({
         network,
         builder,
         maxFeeBp: builderFeeBp,
+        expectedSigner: walletAddress,
         signTypedDataAsync
       });
       if (!result.ok) {
         setError(result.error);
         return;
       }
+      await ensureWalletChain(hlEvmChainId(network));
       setBuilderApproved(true);
       setStatus(`0xterm builder fee approved (max ${formatFeePercent(builderFeeBp)}).`);
       await refreshApprovals();
@@ -341,6 +463,20 @@ export default function PerpsPanel({
     setError(null);
     setStatus(null);
     try {
+      // Agent may have been approved earlier this session but the stored key
+      // could be stale or the approval revoked server-side — re-verify live.
+      const approved = await ensureAgentApproved({
+        network,
+        masterAddress: walletAddress,
+        agentPrivateKey: agent.privateKey,
+        agentAddress: agent.address,
+        expectedSigner: walletAddress,
+        signTypedDataAsync
+      });
+      if (!approved) {
+        setError("Agent not approved — connect Hyperliquid first.");
+        return;
+      }
       let px = price;
       if (orderType === "market") {
         const mid = midPxForCoin(mids, coin);
@@ -348,11 +484,35 @@ export default function PerpsPanel({
           setError("No mid price — try Limit or refresh.");
           return;
         }
-        const midN = Number(mid);
-        // IOC needs a crossing price; slight slip past mid.
-        const slipped = side === "long" ? midN * 1.01 : midN * 0.99;
-        px = stripTrailingZeros(slipped.toPrecision(6));
+        px = marketOrderPx(mid, side === "long");
       }
+      // Apply chosen leverage when the position is flat or on different lev.
+      const pos = positions.find((p) => p.coin === coin);
+      const currentLev = pos?.leverage?.value;
+      if (pos == null || currentLev !== leverage) {
+        await ensureWalletChain(hlEvmChainId(network));
+        const levResult = await postUpdateLeverageWithAgent({
+          network,
+          agentPrivateKey: agent.privateKey,
+          asset,
+          leverage,
+          isCross: true
+        });
+        if (!levResult.ok) {
+          setError(levResult.error);
+          return;
+        }
+      }
+      // Attach the builder only when its max fee actually registered live.
+      const builderParam = await ensureBuilderApproved({
+        network,
+        masterAddress: walletAddress,
+        builder,
+        feeTenths: Math.round(builderFeeBp * 10),
+        maxFeeBp: builderFeeBp,
+        expectedSigner: walletAddress,
+        signTypedDataAsync
+      });
       const result = await postOrderWithAgent({
         network,
         agentPrivateKey: agent.privateKey,
@@ -362,7 +522,8 @@ export default function PerpsPanel({
         size,
         tif: orderType === "market" ? "Ioc" : "Gtc",
         builderFeeBp,
-        builder
+        builder,
+        builderParam
       });
       if (!result.ok) {
         setError(result.error);
@@ -409,6 +570,183 @@ export default function PerpsPanel({
     }
   };
 
+  // ---- Transfer tab (deposit / withdraw / toPerps / toSpot) ----------------
+  function pushTx(kind: TransferTab, amountValue: string, detail: string) {
+    const tx: TxRecord = {
+      id: Date.now(),
+      kind,
+      amount: amountValue,
+      detail,
+      status: "pending"
+    };
+    setTxs((prev) => [tx, ...prev].slice(0, 10));
+  }
+
+  function markHead(
+    kind: TransferTab,
+    patch: Partial<Pick<TxRecord, "status" | "error">>
+  ) {
+    setTxs((prev) => {
+      const head = prev[0];
+      if (!head || head.kind !== kind || head.status !== "pending") return prev;
+      return [{ ...head, ...patch }, ...prev.slice(1)];
+    });
+  }
+
+  const handleDeposit = async () => {
+    if (!walletAddress) return;
+    const amountValue = transferAmount.trim();
+    if (!amountValue || Number(amountValue) <= 0) {
+      setError("Enter a deposit amount.");
+      return;
+    }
+    setBusy("deposit");
+    setError(null);
+    const deposit = HL_DEPOSIT[network];
+    const amountWei = BigInt(
+      Math.floor(Number(amountValue) * 10 ** 6)
+    );
+    let moved = false;
+    try {
+      pushTx("deposit", amountValue, `to bridge ${deposit.bridgeAddress.slice(0, 10)}…`);
+      const onChain = await ensureWalletChain(deposit.chainId);
+      if (!onChain.ok) {
+        setError(onChain.error);
+        return;
+      }
+      moved = true;
+      // Approve the bridge as spender, then transfer USDC to it. (A read of
+      // the current allowance would need a public RPC / eth_call; an approve
+      // every time is simpler and correct on Arbitrum USDC.)
+      await writeContractAsync({
+        chainId: deposit.chainId,
+        address: deposit.usdcAddress,
+        abi: ERC20_ABI,
+        functionName: "approve",
+        args: [deposit.bridgeAddress, amountWei]
+      });
+      await writeContractAsync({
+        chainId: deposit.chainId,
+        address: deposit.usdcAddress,
+        abi: ERC20_ABI,
+        functionName: "transfer",
+        args: [deposit.bridgeAddress, amountWei]
+      });
+      await ensureWalletChain(hlEvmChainId(network));
+      moved = false;
+      markHead("deposit", { status: "confirmed" });
+      setTransferAmount("");
+      setStatus("Deposit submitted — HyperCore credits spot USDC in ~1 min.");
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      markHead("deposit", { status: "error", error: msg });
+      setError(msg);
+      if (moved) {
+        await ensureWalletChain(hlEvmChainId(network)).catch(() => {});
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!walletAddress) return;
+    const amountValue = transferAmount.trim();
+    const dest = destination.trim() || walletAddress;
+    if (!amountValue || Number(amountValue) <= 0) {
+      setError("Enter a withdraw amount.");
+      return;
+    }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(dest)) {
+      setError("Enter a valid destination address (0x…).");
+      return;
+    }
+    setBusy("withdraw");
+    setError(null);
+    try {
+      const action = buildWithdrawAction({
+        network,
+        amount: amountValue,
+        destination: dest as `0x${string}`,
+        time: Date.now()
+      });
+      pushTx("withdraw", amountValue, `to ${dest.slice(0, 10)}…`);
+      const result = await postUserSignedAction({
+        network,
+        expectedSigner: walletAddress,
+        action,
+        types: WithdrawTypes,
+        primaryType: "HyperliquidTransaction:Withdraw",
+        signTypedDataAsync
+      });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      markHead("withdraw", { status: "confirmed" });
+      setTransferAmount("");
+      setDestination("");
+      setStatus("Withdraw submitted — bridges back in ~5 min.");
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      markHead("withdraw", { status: "error", error: msg });
+      setError(msg);
+    } finally {
+      await ensureWalletChain(hlEvmChainId(network)).catch(() => {});
+      setBusy(null);
+    }
+  };
+
+  const handleClassTransfer = async (toPerp: boolean) => {
+    if (!walletAddress) return;
+    const isUnified =
+      abstraction === "unifiedAccount" || abstraction === "portfolioMargin";
+    if (isUnified) {
+      setError("usdClassTransfer is disabled in unified account mode.");
+      return;
+    }
+    const amountValue = transferAmount.trim();
+    if (!amountValue || Number(amountValue) <= 0) {
+      setError("Enter a transfer amount.");
+      return;
+    }
+    const kind: TransferTab = toPerp ? "toPerps" : "toSpot";
+    setBusy(kind);
+    setError(null);
+    try {
+      const action = buildUsdClassTransferAction({
+        network,
+        amount: amountValue,
+        toPerp,
+        nonce: Date.now()
+      });
+      pushTx(kind, amountValue, toPerp ? "spot → perps" : "perps → spot");
+      const result = await postUserSignedAction({
+        network,
+        expectedSigner: walletAddress,
+        action,
+        types: UsdClassTransferTypes,
+        primaryType: "HyperliquidTransaction:UsdClassTransfer",
+        signTypedDataAsync
+      });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      markHead(kind, { status: "confirmed" });
+      setTransferAmount("");
+      setStatus(toPerp ? "Moved to perps margin." : "Moved to spot.");
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      markHead(kind, { status: "error", error: msg });
+      setError(msg);
+    } finally {
+      await ensureWalletChain(hlEvmChainId(network)).catch(() => {});
+      setBusy(null);
+    }
+  };
+
   const shell = frameless
     ? `flex flex-col gap-2 min-h-0 text-[12px] ${theme.text}`
     : `flex flex-col gap-2 border ${theme.border} ${theme.cardBg} p-3 min-h-0 text-[12px] ${theme.text}`;
@@ -416,6 +754,12 @@ export default function PerpsPanel({
   const labelCls = `uppercase text-[9px] tracking-widest ${theme.muted}`;
   const inputCls = `w-full border ${theme.border} ${theme.bg} ${theme.text} font-mono text-[12px] px-2 py-1.5 outline-none max-md:min-h-[44px]`;
   const ctaCls = `w-full uppercase tracking-widest text-[10px] font-bold border-transparent max-md:min-h-[44px] py-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`;
+
+  const isUnified =
+    abstraction === "unifiedAccount" || abstraction === "portfolioMargin";
+  const visibleTransferTabs: TransferTab[] = isUnified
+    ? TRANSFER_TABS.filter((t) => t !== "toPerps" && t !== "toSpot")
+    : TRANSFER_TABS;
 
   return (
     <div
@@ -515,7 +859,8 @@ export default function PerpsPanel({
               [
                 ["order", "Order"],
                 ["positions", "Positions"],
-                ["orders", "Orders"]
+                ["orders", "Orders"],
+                ["transfer", "Transfer"]
               ] as const
             ).map(([id, label]) => (
               <PhosphorPill
@@ -527,6 +872,30 @@ export default function PerpsPanel({
                 testId={`perps-tab-${id}`}
               />
             ))}
+          </div>
+
+          {/* Balances strip (spot USDC, perps equity/margin/withdrawable). */}
+          <div
+            className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono border-b border-t py-1"
+            style={{ borderColor: theme.border }}
+            data-testid="perps-balances"
+          >
+            <div className="flex justify-between">
+              <span className={theme.muted}>SPOT USDC</span>
+              <span className={theme.text}>{spotUsdc ?? "—"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className={theme.muted}>EQUITY</span>
+              <span className={theme.text}>{equity ?? "—"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className={theme.muted}>MARGIN</span>
+              <span className={theme.text}>{marginUsed ?? "—"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className={theme.muted}>WITHDRAWABLE</span>
+              <span className={theme.text}>{withdrawable ?? "—"}</span>
+            </div>
           </div>
 
           {tab === "order" && (
@@ -765,6 +1134,145 @@ export default function PerpsPanel({
               ))}
             </div>
           )}
+
+          {tab === "transfer" && (
+            <div className="space-y-2" data-testid="perps-transfer">
+              <div className="flex flex-wrap gap-1.5">
+                {visibleTransferTabs.map((t) => (
+                  <PhosphorPill
+                    key={t}
+                    theme={theme}
+                    label={TRANSFER_LABEL[t]}
+                    active={transferTab === t}
+                    onClick={() => setTransferTab(t)}
+                    testId={`perps-transfer-${t}`}
+                  />
+                ))}
+              </div>
+              <div className={`text-[10px] ${theme.muted}`}>
+                {transferTab === "toSpot"
+                  ? `Perps equity: ${equity ?? "—"}`
+                  : `Spot USDC: ${spotUsdc ?? "—"}`}
+              </div>
+              {transferTab === "deposit" && (
+                <div className="space-y-1.5">
+                  <div className={labelCls}>
+                    Deposit from Arbitrum
+                    {isUnified ? " · unified account" : ""}
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className={inputCls}
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    placeholder="0.0"
+                    data-testid="perps-transfer-amount"
+                  />
+                  <button
+                    type="button"
+                    data-testid="perps-deposit"
+                    disabled={!!busy}
+                    onClick={() => void handleDeposit()}
+                    className={ctaCls}
+                    style={{ background: theme.phosphor, color: FILL_FG }}
+                  >
+                    {busy === "deposit" ? "DEPOSITING…" : "DEPOSIT"}
+                  </button>
+                </div>
+              )}
+              {transferTab === "withdraw" && (
+                <div className="space-y-1.5">
+                  <div className={labelCls}>Withdraw to Arbitrum address</div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className={inputCls}
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    placeholder="0.0"
+                    data-testid="perps-transfer-amount"
+                  />
+                  <input
+                    type="text"
+                    className={inputCls}
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    placeholder={`0x… destination (default ${(walletAddress ?? "").slice(0, 10)}…)`}
+                    data-testid="perps-transfer-destination"
+                  />
+                  <button
+                    type="button"
+                    data-testid="perps-withdraw"
+                    disabled={!!busy}
+                    onClick={() => void handleWithdraw()}
+                    className={ctaCls}
+                    style={{ background: theme.phosphor, color: FILL_FG }}
+                  >
+                    {busy === "withdraw" ? "WITHDRAWING…" : "WITHDRAW"}
+                  </button>
+                </div>
+              )}
+              {(transferTab === "toPerps" || transferTab === "toSpot") && (
+                <div className="space-y-1.5">
+                  <div className={labelCls}>
+                    Move {transferTab === "toPerps" ? "to perps" : "to spot"}
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className={inputCls}
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    placeholder="0.0"
+                    data-testid="perps-transfer-amount"
+                  />
+                  <button
+                    type="button"
+                    data-testid={`perps-transfer-${transferTab}`}
+                    disabled={!!busy}
+                    onClick={() => void handleClassTransfer(transferTab === "toPerps")}
+                    className={ctaCls}
+                    style={{ background: theme.phosphor, color: FILL_FG }}
+                  >
+                    {busy === transferTab
+                      ? "TRANSFERRING…"
+                      : TRANSFER_LABEL[transferTab].toUpperCase()}
+                  </button>
+                </div>
+              )}
+              {txs.length > 0 && (
+                <div className="space-y-1">
+                  <div className={labelCls}>Transfers</div>
+                  {txs.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`border-b ${theme.border} py-1 text-[10px] font-mono flex flex-wrap gap-x-2`}
+                    >
+                      <span
+                        className={
+                          t.status === "error"
+                            ? theme.warn
+                            : t.status === "confirmed"
+                              ? theme.primary
+                              : theme.muted
+                        }
+                      >
+                        {t.status.toUpperCase()}
+                      </span>
+                      <span>
+                        {TRANSFER_LABEL[t.kind]} {t.amount} USDC {t.detail}
+                      </span>
+                      {t.error && <span className={theme.warn}>{t.error}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -785,6 +1293,13 @@ export default function PerpsPanel({
     </div>
   );
 }
+
+const TRANSFER_TABS: TransferTab[] = [
+  "deposit",
+  "withdraw",
+  "toPerps",
+  "toSpot"
+];
 
 /** Settings helper: clear local agent (no on-chain revoke API in v1). */
 export function revokeLocalAgent(
