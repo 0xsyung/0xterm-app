@@ -15,7 +15,7 @@ export const MODE_EMPTY_COPY: Record<
 > = {
   invest: {
     title: "INVEST",
-    body: "Pick a tool above — Market, Portfolio, or Perps.",
+    body: "Pick a tool above — NEWS · TRADE · PORTFOLIO.",
     testId: "mode-empty-invest"
   },
   dev: {
