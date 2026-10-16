@@ -13,6 +13,7 @@ import PortfolioWidget, {
   type PortfolioHolding,
   type SnapshotHolding
 } from "../widgets/PortfolioWidget";
+import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "../widgets/floatingChatLayout";
 
 export type PortfolioSurface = "invest" | "forensic";
 
@@ -109,7 +110,7 @@ export default function PortfolioPanel({
 
   return (
     <div
-      className={`w-full flex flex-col gap-3 ${
+      className={`w-full flex flex-col gap-3 ${INVEST_PANEL_CHAT_GUTTER_CLASS} ${
         frameless
           ? ""
           : `max-w-[640px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`

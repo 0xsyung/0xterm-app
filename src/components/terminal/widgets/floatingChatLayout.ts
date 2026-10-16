@@ -13,6 +13,15 @@ export const FLOATING_CHAT_PANEL_MIN_H = 360;
 /** Soft minHeight floor used on desktop; never exceeds available on mobile. */
 export const FLOATING_CHAT_PANEL_SOFT_MIN_H = 240;
 export const FLOATING_CHAT_RIGHT_PX = 12;
+/** Floating CHAT bubble edge length (matches FloatingChat BUBBLE). */
+export const FLOATING_CHAT_BUBBLE_PX = 48;
+/**
+ * Shared invest panel content gutter (#227 Soft ACK).
+ * `pr-16` (~64px) clears CHAT: FLOATING_CHAT_RIGHT_PX (12) + BUBBLE (48) + gap.
+ * `pb-16` keeps bottom clearance so full-bleed CTAs clear the chip vertically.
+ * Apply once on invest/tool panel roots (not per-CTA calc hacks).
+ */
+export const INVEST_PANEL_CHAT_GUTTER_CLASS = "pr-16 pb-16";
 /** Gap between top chrome bottom and panel top (#185 Stephy). */
 export const FLOATING_CHAT_TOP_GAP_PX = 8;
 /** Below this available height, use a full-width sheet (#185). */

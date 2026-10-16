@@ -60,7 +60,10 @@ import {
   type OrderType,
   type SignTypedDataFn
 } from "../hyperliquid";
-import { FLOATING_CHAT_TOP_GAP_PX } from "./floatingChatLayout";
+import {
+  FLOATING_CHAT_TOP_GAP_PX,
+  INVEST_PANEL_CHAT_GUTTER_CLASS
+} from "./floatingChatLayout";
 import { hlEvmChainId } from "../hyperliquid/config";
 
 const FILL_FG = "#000000";
@@ -756,8 +759,8 @@ export default function PerpsPanel({
   };
 
   const shell = frameless
-    ? `flex flex-col gap-2 min-h-0 text-[12px] ${theme.text}`
-    : `flex flex-col gap-2 border ${theme.border} ${theme.cardBg} p-3 min-h-0 text-[12px] ${theme.text}`;
+    ? `flex flex-col gap-2 min-h-0 text-[12px] ${theme.text} ${INVEST_PANEL_CHAT_GUTTER_CLASS}`
+    : `flex flex-col gap-2 border ${theme.border} ${theme.cardBg} p-3 min-h-0 text-[12px] ${theme.text} ${INVEST_PANEL_CHAT_GUTTER_CLASS}`;
 
   const labelCls = `uppercase text-[9px] tracking-widest ${theme.muted}`;
   const inputCls = `w-full border ${theme.border} ${theme.bg} ${theme.text} font-mono text-[12px] px-2 py-1.5 outline-none max-md:min-h-[44px]`;
