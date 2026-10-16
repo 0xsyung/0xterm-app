@@ -31,19 +31,13 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     tab: "MARKET"
   },
   {
-    cmd: "price",
-    label: "PRICE",
-    hint: "open price panel",
-    panel: "price",
+    cmd: "trade",
+    label: "TRADE",
+    hint: "open trade panel",
+    panel: "trade",
     tab: "MARKET"
   },
-  {
-    cmd: "swap",
-    label: "SWAP",
-    hint: "open swap panel",
-    panel: "swap",
-    tab: "MARKET"
-  },
+  // #219 Soft ACK: PRICE+SWAP unified into TRADE; CONSOLE price/swap unchanged
   // #169 Soft ACK: MARKET TICKER removed — pinned PRICE is the live ticker
   {
     cmd: "balance",

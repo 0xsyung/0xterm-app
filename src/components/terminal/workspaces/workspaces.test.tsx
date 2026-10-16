@@ -31,7 +31,7 @@ const ALL_MODE_ACTIONS = {
 
 
 describe("WorkspaceStrip", () => {
-  it("PRICE opens panel path (not bare onCommand)", () => {
+  it("TRADE opens panel path (not bare onCommand) (#219)", () => {
     const onCommand = vi.fn();
     const onOpenPanel = vi.fn();
     render(
@@ -42,48 +42,20 @@ describe("WorkspaceStrip", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /PRICE/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("price");
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("trade");
     expect(onCommand).not.toHaveBeenCalled();
   });
 
-  it("PRICE hint is panel-oriented, not Usage dump", () => {
+  it("TRADE hint is panel-oriented, not Usage dump (#219)", () => {
     render(
       <WorkspaceStrip theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
     );
-    expect(screen.getByRole("button", { name: /PRICE/i }).textContent).toMatch(
-      /open price panel/i
+    expect(screen.getByRole("button", { name: /^TRADE/i }).textContent).toMatch(
+      /open trade panel/i
     );
-    expect(screen.getByRole("button", { name: /PRICE/i }).textContent).not.toMatch(
-      /price <tA>/i
-    );
-  });
-
-  it("SWAP opens panel path (not bare onCommand)", () => {
-    const onCommand = vi.fn();
-    const onOpenPanel = vi.fn();
-    render(
-      <WorkspaceStrip
-        theme={theme}
-        mode="invest"
-        onCommand={onCommand}
-        onOpenPanel={onOpenPanel}
-      />
-    );
-    fireEvent.click(screen.getByRole("button", { name: /SWAP/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("swap");
-    expect(onCommand).not.toHaveBeenCalled();
-  });
-
-  it("SWAP hint is panel-oriented, not Usage dump", () => {
-    render(
-      <WorkspaceStrip theme={theme} mode="invest" onCommand={vi.fn()} onOpenPanel={vi.fn()} />
-    );
-    expect(screen.getByRole("button", { name: /SWAP/i }).textContent).toMatch(
-      /open swap panel/i
-    );
-    expect(screen.getByRole("button", { name: /SWAP/i }).textContent).not.toMatch(
-      /swap <amt>/i
+    expect(screen.getByRole("button", { name: /^TRADE/i }).textContent).not.toMatch(
+      /price <tA>|swap <amt>/i
     );
   });
 
@@ -216,8 +188,10 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(screen.getByRole("button", { name: /^DEX$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PERPS$/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /NETWORK/i })).toBeNull();
-    expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^TICKER/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /^TRADE$/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^PRICE$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^SWAP$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^TICKER$/i })).toBeNull();
   });
 
   it("DEX tools are GET POOL · CREATE POOL · ADD LIQ; no lone auto-open (#168)", () => {
@@ -275,7 +249,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
         renderPanel={() => <div data-testid="panel-news">news panel</div>}
       />
     );
-    const marketButtons = screen.getAllByRole("button", { name: /^(NEWS|PRICE|SWAP)$/i });
+    const marketButtons = screen.getAllByRole("button", { name: /^(NEWS|TRADE)$/i });
     expect(marketButtons[0].textContent).toMatch(/^NEWS$/i);
     expect(screen.getByTestId("panel-news")).toBeTruthy();
     expect(
@@ -436,10 +410,10 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="price"
+        activePanel="trade"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-price">price</div>}
+        renderPanel={() => <div data-testid="panel-trade">trade</div>}
       />
     );
     const tabs = screen.getByTestId("workspace-tool-tabs");
@@ -452,15 +426,15 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="price"
+        activePanel="trade"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-price">price panel</div>}
+        renderPanel={() => <div data-testid="panel-trade">trade panel</div>}
       />
     );
-    expect(screen.getByRole("button", { name: /^PRICE/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^SWAP/i })).toBeTruthy();
-    expect(screen.getByTestId("panel-price")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^NEWS$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^TRADE$/i })).toBeTruthy();
+    expect(screen.getByTestId("panel-trade")).toBeTruthy();
   });
 
   it("highlights the open panel's tool tab", () => {
@@ -468,16 +442,16 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="price"
+        activePanel="trade"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-price">price panel</div>}
+        renderPanel={() => <div data-testid="panel-trade">trade panel</div>}
       />
     );
-    expect(screen.getByRole("button", { name: /^PRICE/i }).getAttribute("aria-pressed")).toBe(
+    expect(screen.getByRole("button", { name: /^TRADE$/i }).getAttribute("aria-pressed")).toBe(
       "true"
     );
-    expect(screen.getByRole("button", { name: /^SWAP/i }).getAttribute("aria-pressed")).toBe(
+    expect(screen.getByRole("button", { name: /^NEWS$/i }).getAttribute("aria-pressed")).toBe(
       "false"
     );
   });
@@ -529,18 +503,18 @@ describe("WorkspaceTile", () => {
       <WorkspaceTile
         theme={theme}
         action={{
-          cmd: "price",
-          label: "PRICE",
-          hint: "open price panel",
-          panel: "price",
+          cmd: "trade",
+          label: "TRADE",
+          hint: "open trade panel",
+          panel: "trade",
           tab: "MARKET"
         }}
         onCommand={onCommand}
         onOpenPanel={onOpenPanel}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /PRICE/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("price");
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("trade");
     expect(onCommand).not.toHaveBeenCalled();
   });
 });
@@ -572,7 +546,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "sim",
         "snapshot",
         "swap",
-        "trace"
+        "trace",
+        "trade"
       ].sort()
     );
   });
@@ -636,9 +611,10 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(WIRED_WORKSPACE_PANELS).not.toContain("ticker" as never);
   });
 
-    it("ready invest MARKET tools are NEWS/PRICE/SWAP only", () => {
+  it("ready invest MARKET tools are NEWS/TRADE only (#219)", () => {
     const market = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "MARKET");
-    expect(market.map((a) => a.label)).toEqual(["NEWS", "PRICE", "SWAP"]);
+    expect(market.map((a) => a.label)).toEqual(["NEWS", "TRADE"]);
+    expect(market.map((a) => a.panel)).toEqual(["news", "trade"]);
   });
 
   it("ready invest DEX tools are GET POOL / CREATE POOL / ADD LIQ (#168)", () => {
@@ -720,11 +696,8 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.getByRole("button", { name: /NEWS/i }).textContent).toMatch(
       /open news panel/i
     );
-    expect(screen.getByRole("button", { name: /PRICE/i }).textContent).toMatch(
-      /open price panel/i
-    );
-    expect(screen.getByRole("button", { name: /SWAP/i }).textContent).toMatch(
-      /open swap panel/i
+    expect(screen.getByRole("button", { name: /^TRADE/i }).textContent).toMatch(
+      /open trade panel/i
     );
     expect(screen.getByRole("button", { name: /BALANCE/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /GET POOL/i }).textContent).toMatch(
