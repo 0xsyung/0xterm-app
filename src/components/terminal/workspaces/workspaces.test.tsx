@@ -298,8 +298,8 @@ describe("WorkspaceSurface (#148/#160)", () => {
     );
     expect(screen.queryByRole("button", { name: /^SCREEN$/i })).toBeNull();
     expect(screen.getByRole("button", { name: /^READ$/i })).toBeTruthy();
-    // SIM appears as both sub-tab and tool tab
-    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(2);
+    // SIM is a lone tab — tool-tabs row hidden, only the sub-tab button remains
+    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(1);
     expect(screen.getAllByRole("button", { name: /^TRACE$/i }).length).toBeGreaterThanOrEqual(1);
     // #162 — entering forensic auto-opens the lone SIM tool
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
@@ -321,7 +321,8 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     expect(screen.getByRole("button", { name: /^SOURCE$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /EDITOR/i })).toBeTruthy();
+    // Lone-tab row hidden — no duplicate EDITOR tool button under SOURCE (#220)
+    expect(screen.queryByRole("button", { name: /EDITOR/i })).toBeNull();
     // #162 lone-tool — SOURCE has exactly one wired tool
     expect(onOpenPanel).toHaveBeenCalledWith("dig-source");
   });
@@ -381,16 +382,36 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="dev"
-        activePanel="dig-source"
+        activePanel="dig-artifact"
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
         renderPanel={() => <div data-testid="panel-x">x</div>}
       />
     );
+    fireEvent.click(screen.getByRole("button", { name: /^BUILD$/i }));
     const tabs = screen.getByTestId("workspace-tool-tabs");
     expect(tabs.className).toMatch(/\bmb-2\b/);
     expect(tabs.className).toMatch(/border-b/);
     expect(tabs.className).not.toMatch(/-mt-3/);
+  });
+
+  it("lone-tab sub-tabs (PERPS, DEV SOURCE) hide the tool-tabs row (#220)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel="perps"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={() => <div data-testid="panel-perps">perps</div>}
+      />
+    );
+    // Default invest sub-tab is MARKET (multi-action) → row visible.
+    expect(screen.getByTestId("workspace-tool-tabs")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^PERPS$/i }));
+    // PERPS has a single wired action → row hidden; panel already open.
+    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
+    expect(screen.getByTestId("panel-perps")).toBeTruthy();
   });
 
   it("INVEST sub-tab row is nowrap + max-md overflow-x-auto (#202)", () => {
@@ -472,10 +493,10 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    // Mount auto-opens SIM; clicking the tool tab still opens sim
+    // Mount auto-opens SIM; re-clicking the SIM sub-tab still opens sim
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
     onOpenPanel.mockClear();
-    fireEvent.click(screen.getAllByRole("button", { name: /^SIM/i })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: /^SIM/i })[0]);
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
   });
 
@@ -766,8 +787,8 @@ describe("lone-tool auto-open (#162)", () => {
       />
     );
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
-    // Tool tab row kept — SIM still present as a tool button
-    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(2);
+    // Lone-tab row hidden — only the sub-tab SIM button remains (no duplicate)
+    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(1);
   });
 
   it("auto-opens Trace when switching to TRACE", () => {

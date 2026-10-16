@@ -119,14 +119,22 @@ export function WorkspaceSurface({
     (a) => a.tab === activeSubTab
   );
 
-  const loneReadyPanel = (
-    tab: string
-  ): WorkspacePanelId | null => {
-    const ready = readyWorkspaceActions(MODE_ACTIONS[mode]).filter(
-      (a) => a.tab === tab
-    );
-    if (ready.length === 1 && ready[0].panel) return ready[0].panel;
-    return null;
+  const readyForTab = (tab: string): WorkspaceAction[] =>
+    readyWorkspaceActions(MODE_ACTIONS[mode]).filter((a) => a.tab === tab);
+
+  /**
+   * Sub-tab with exactly one wired action: its panel auto-opens on entry
+   * (#162), so the tool-tabs row would only repeat the same lone button
+   * (PERPS tab + PERPS tile → duplicate). Hide the row entirely then.
+   */
+  const isLoneReadyTab = (tab: string): boolean => {
+    const ready = readyForTab(tab);
+    return ready.length === 1 && ready[0].panel !== undefined;
+  };
+
+  const loneReadyPanel = (tab: string): WorkspacePanelId | null => {
+    if (!isLoneReadyTab(tab)) return null;
+    return readyForTab(tab)[0].panel!;
   };
 
   /**
@@ -156,13 +164,15 @@ export function WorkspaceSurface({
       activeSubTab={activeSubTab}
       onSubTabChange={handleSubTabChange}
     >
-      <WorkspaceToolTabs
-        theme={theme}
-        actions={toolActions}
-        activeTool={activePanel}
-        onCommand={onCommand}
-        onOpenPanel={onOpenPanel}
-      />
+      {!isLoneReadyTab(activeSubTab) && (
+        <WorkspaceToolTabs
+          theme={theme}
+          actions={toolActions}
+          activeTool={activePanel}
+          onCommand={onCommand}
+          onOpenPanel={onOpenPanel}
+        />
+      )}
       {activePanel && renderPanel ? (
         renderPanel(activePanel)
       ) : (
