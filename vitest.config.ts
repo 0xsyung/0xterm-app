@@ -54,6 +54,9 @@ export default defineConfig({
         "src/components/terminal/widgets/CreatePoolWidget.tsx",
         "src/components/terminal/widgets/AddLiquidityWidget.tsx",
         "src/components/terminal/widgets/InitializePoolWidget.tsx",
+        // poly trade/collateral chrome (#20) — wagmi write + CLOB sign; logic in poly/*.ts
+        "src/components/terminal/widgets/PolyTradeWidget.tsx",
+        "src/components/terminal/widgets/PolyCollateralWidget.tsx",
         // wagmi provider/app glue + GA4 adapter — thin entry chrome (#6)
         "src/config/wagmi.ts",
         "src/app/layout.tsx",

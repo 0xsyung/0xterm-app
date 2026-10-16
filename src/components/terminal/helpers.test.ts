@@ -30,6 +30,8 @@ describe("isPinnableLog", () => {
     expect(isPinnableLog({ type: "dig-artifact" })).toBe(true);
     expect(isPinnableLog({ type: "dig-run" })).toBe(true);
     expect(isPinnableLog({ type: "dig-debug" })).toBe(true);
+    expect(isPinnableLog({ type: "poly" })).toBe(true);
+    expect(isPinnableLog({ type: "vault" })).toBe(true);
     expect(
       isPinnableLog({ type: "component", componentData: { kind: "kyt" } })
     ).toBe(true);
