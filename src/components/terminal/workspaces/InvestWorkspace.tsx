@@ -73,9 +73,27 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     panel: "pnl",
     tab: "PORTFOLIO"
   },
-  { cmd: "createpool", label: "CREATE POOL", hint: "create a pool", tab: "DEX" },
-  { cmd: "getpool", label: "GET POOL", hint: "look up a pool", tab: "DEX" },
-  { cmd: "addliq", label: "ADD LIQUIDITY", hint: "add liquidity", tab: "DEX" },
+  {
+    cmd: "getpool",
+    label: "GET POOL",
+    hint: "open get pool panel",
+    panel: "getpool",
+    tab: "DEX"
+  },
+  {
+    cmd: "createpool",
+    label: "CREATE POOL",
+    hint: "open create pool panel",
+    panel: "createpool",
+    tab: "DEX"
+  },
+  {
+    cmd: "addliq",
+    label: "ADD LIQ",
+    hint: "open add liquidity panel",
+    panel: "addliq",
+    tab: "DEX"
+  },
   {
     cmd: "perps",
     label: "PERPS",
