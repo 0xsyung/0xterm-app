@@ -224,6 +224,11 @@ export default function PerpsPanel({
     builderApproved
   });
 
+  // Zero spot USDC → the checklist can never complete (Hyperliquid rejects all
+  // /exchange actions for fundless accounts), so surface the Transfer tab
+  // (deposit) pre-unlock — it is the only path that fixes the account.
+  const depositNeeded = spotUsdc === "0";
+
   const feePreview = useMemo(
     () => buildFeePreview(builderFeeBp),
     [builderFeeBp]
@@ -384,8 +389,8 @@ export default function PerpsPanel({
         expectedSigner: walletAddress,
         signTypedDataAsync
       });
-      if (!approved) {
-        setError("Agent approval failed — see message above.");
+      if (!approved.ok) {
+        setError(approved.error);
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
@@ -475,8 +480,8 @@ export default function PerpsPanel({
         expectedSigner: walletAddress,
         signTypedDataAsync
       });
-      if (!approved) {
-        setError("Agent not approved — connect Hyperliquid first.");
+      if (!approved.ok) {
+        setError(approved.error);
         return;
       }
       let px = price;
@@ -847,11 +852,16 @@ export default function PerpsPanel({
               )}
             </div>
           </div>
-          <div className={`text-[10px] ${theme.muted}`}>{PERPS_COPY.unlockHint}</div>
+          <div className={`text-[10px] ${theme.muted}`}>
+            {PERPS_COPY.unlockHint}
+            {depositNeeded && (
+              <div data-testid="perps-deposit-hint">Deposit USDC to start trading.</div>
+            )}
+          </div>
         </div>
       )}
 
-      {isConnected && unlocked && (
+      {isConnected && (unlocked || depositNeeded) && (
         <>
           <div
             className="sticky top-0 z-[1] max-md:static max-md:z-auto flex flex-wrap gap-1.5 py-1"

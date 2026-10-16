@@ -5,6 +5,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
+  ensureAgentApproved,
   ensureBuilderApproved,
   marketOrderPx,
   postCancelWithAgent,
@@ -349,5 +350,107 @@ describe("hl builder + market px (#190)", () => {
     expect(marketOrderPx("64123.456789", true)).toMatch(/^\d+(\.\d+)?$/);
     const short = marketOrderPx("64123.456789", false);
     expect(Number(short)).toBeLessThan(64123.456789);
+  });
+});
+
+describe("ensureAgentApproved (#999 zero-balance)", () => {
+  it("surfaces the real server rejection instead of null", async () => {
+    const wallet = privateKeyToAccount(generatePrivateKey());
+    const signTypedDataAsync: SignTypedDataFn = async (args) =>
+      wallet.signTypedData(args as Parameters<typeof wallet.signTypedData>[0]);
+    const agentPk = generatePrivateKey();
+    const agentAddr = privateKeyToAccount(agentPk).address;
+    const fetchImpl = vi.fn(async (url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(
+        String((init as { body?: string })?.body ?? "{}")
+      ) as Record<string, unknown>;
+      if (body.type === "extraAgents") {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: "err",
+          response: "Must deposit before performing actions."
+        })
+      };
+    }) as unknown as MockFetch;
+
+    const result = await ensureAgentApproved({
+      network: "testnet",
+      masterAddress: wallet.address,
+      agentPrivateKey: agentPk,
+      agentAddress: agentAddr,
+      expectedSigner: wallet.address,
+      signTypedDataAsync,
+      fetchImpl
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe("Must deposit before performing actions.");
+    }
+  });
+
+  it("returns the key without posting when already listed", async () => {
+    const wallet = privateKeyToAccount(generatePrivateKey());
+    const signTypedDataAsync: SignTypedDataFn = async (args) =>
+      wallet.signTypedData(args as Parameters<typeof wallet.signTypedData>[0]);
+    const agentPk = generatePrivateKey();
+    const agentAddr = privateKeyToAccount(agentPk).address;
+    const fetchImpl = vi.fn(async (url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(
+        String((init as { body?: string })?.body ?? "{}")
+      ) as Record<string, unknown>;
+      if (body.type === "extraAgents") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [{ address: agentAddr, name: "", validUntil: 0 }]
+        };
+      }
+      throw new Error("unexpected /exchange call for already-listed agent");
+    }) as unknown as MockFetch;
+
+    const result = await ensureAgentApproved({
+      network: "testnet",
+      masterAddress: wallet.address,
+      agentPrivateKey: agentPk,
+      agentAddress: agentAddr,
+      expectedSigner: wallet.address,
+      signTypedDataAsync,
+      fetchImpl
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.agentPrivateKey).toBe(agentPk);
+  });
+
+  it("reports approve-ok-but-not-listed", async () => {
+    const wallet = privateKeyToAccount(generatePrivateKey());
+    const signTypedDataAsync: SignTypedDataFn = async (args) =>
+      wallet.signTypedData(args as Parameters<typeof wallet.signTypedData>[0]);
+    const agentPk = generatePrivateKey();
+    const agentAddr = privateKeyToAccount(agentPk).address;
+    const fetchImpl = vi.fn(async (url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(
+        String((init as { body?: string })?.body ?? "{}")
+      ) as Record<string, unknown>;
+      if (body.type === "extraAgents") {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      return { ok: true, status: 200, json: async () => ({ status: "ok" }) };
+    }) as unknown as MockFetch;
+
+    const result = await ensureAgentApproved({
+      network: "testnet",
+      masterAddress: wallet.address,
+      agentPrivateKey: agentPk,
+      agentAddress: agentAddr,
+      expectedSigner: wallet.address,
+      signTypedDataAsync,
+      fetchImpl
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/not listed/);
   });
 });
