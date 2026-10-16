@@ -437,6 +437,10 @@ import SocialPanel, {
   type InboxSenderSummary,
   type InboxThreadView,
 } from "./SocialPanel";
+import { handleGchat } from "./gchatCommands";
+import { GCHAT_SUBCOMMANDS, groupId, loadGroupStore, saveGroupStore, upsertGroup } from "./groupChat";
+import { fetchGroupThread, listGroupSummaries } from "./groupChatLoaders";
+import type { InboxGroupSummary } from "./inbox/InboxViews";
 import FloatingChat from "./widgets/FloatingChat";
 import ChannelSwitchToast from "./widgets/ChannelSwitchToast";
 import SettingsPanel from "./widgets/SettingsPanel";
@@ -897,6 +901,8 @@ export default function TerminalShell({
 
   // Autocomplete State
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [focusGroupAddress, setFocusGroupAddress] = useState<Address | null>(null);
+  const [inboxGroups, setInboxGroups] = useState<InboxGroupSummary[]>([]);
   const [terminalMode, setTerminalMode] = useState<TerminalMode>(() =>
     typeof window !== "undefined" ? loadMode(window.localStorage) : DEFAULT_MODE
   );
@@ -2137,6 +2143,46 @@ export default function TerminalShell({
       keyChanged: false
     };
   }, [isConnected, address, activeChainId, activeChatContractOnChain, ensNameFor, getChatKeyPair]);
+
+  const refreshInboxGroups = useCallback(async () => {
+    const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+    if (!chain || !chain.testnet) {
+      setInboxGroups([]);
+      return;
+    }
+    try {
+      const list = await listGroupSummaries(getClient(chain), chain.id);
+      setInboxGroups(list);
+    } catch {
+      setInboxGroups([]);
+    }
+  }, [activeChainId]);
+
+  useEffect(() => {
+    void refreshInboxGroups();
+  }, [refreshInboxGroups]);
+
+  const loadGroupThreadCb = useCallback(
+    async (group: Address) => {
+      if (!isConnected || !address) throw new Error("Connect a wallet to use gchat.");
+      const chain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+      if (!chain) throw new Error("Set a network first.");
+      const store = loadGroupStore();
+      const existing = store.groups.find(
+        (g) => g.address.toLowerCase() === group.toLowerCase()
+      );
+      let next = existing
+        ? store
+        : upsertGroup(store, { chainId: chain.id, address: group, name: "" });
+      next = { ...next, lastOpenedId: groupId(chain.id, group) };
+      saveGroupStore(next);
+      return fetchGroupThread(getClient(chain), group, getAddress(address), {
+        chainId: chain.id,
+        signMessage: (message) => signMessageActive(message)
+      });
+    },
+    [isConnected, address, activeChainId]
+  );
 
   const handleThemeSwitch = (newTheme: ThemeMode) => {
     onThemeChange(newTheme);
@@ -8550,6 +8596,46 @@ export default function TerminalShell({
   };
   commands.channels = commands.channel;
 
+  commands.gchat = async (args) => {
+    const { chainId: activeChainId } = beginActionNetwork("gchat");
+    return handleGchat(args, {
+      generateId,
+      isConnected: !!isConnected,
+      address: address as Address | undefined,
+      activeChainId,
+      getClient,
+      writeContractAsync: async (args) =>
+        writeContractActive(args, `gchat ${args.functionName || ""}`),
+      ensureWalletChain,
+      signMessageActive,
+      resolveEnsOrAddress: async (query, chainId) => {
+        try {
+          return await resolveChatRecipient(query);
+        } catch {
+          return null;
+        }
+      },
+      openGroupInSocial: (group, chainId) => {
+        setFocusGroupAddress(group);
+        setPrimaryTab("social");
+        setSocialSubTab("inbox");
+        const store = loadGroupStore();
+        const existing = store.groups.find(
+          (g) => g.address.toLowerCase() === group.toLowerCase()
+        );
+        let next = existing
+          ? store
+          : upsertGroup(store, { chainId, address: group, name: "" });
+        next = { ...next, lastOpenedId: groupId(chainId, group) };
+        saveGroupStore(next);
+        void refreshInboxGroups();
+      },
+      shortAddress: (addr) =>
+        addr.length > 10 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr
+    });
+  };
+
+
   commands.provideliq = commands.addliq;
   commands.pf = commands.portfolio; // #22 — alias, same data model
   commands.bal = commands.balance;
@@ -9291,6 +9377,8 @@ export default function TerminalShell({
           // 4c. Board subcommands
         } else if (command === "board" && currentArgIdx === 1) {
           candidates = ["post", "list"];
+        } else if (command === "gchat" && currentArgIdx === 1) {
+          candidates = [...GCHAT_SUBCOMMANDS];
         } else if (command === "share" && currentArgIdx === 1) {
           candidates = ["portfolio", "pnl", "status", "off"];
 
@@ -11039,6 +11127,24 @@ export default function TerminalShell({
                 const addr = await resolveChatRecipient(peerInput);
                 await handleCommand(`chat ${peerInput} ${message}`);
                 return addr;
+              }}
+              groups={inboxGroups}
+              focusGroupAddress={focusGroupAddress}
+              loadGroupThread={loadGroupThreadCb}
+              sendGroupMessage={async (group, text) => {
+                await handleCommand(`gchat send ${group} ${JSON.stringify(text)}`);
+              }}
+              inviteGroupMember={async (group, who) => {
+                setFocusGroupAddress(group);
+                await handleCommand(`gchat invite ${who}`);
+              }}
+              transferGroupOwner={async (group, who) => {
+                setFocusGroupAddress(group);
+                await handleCommand(`gchat transfer ${who}`);
+              }}
+              leaveGroup={async (group) => {
+                await handleCommand(`gchat leave ${group}`);
+                void refreshInboxGroups();
               }}
             />
           </div>

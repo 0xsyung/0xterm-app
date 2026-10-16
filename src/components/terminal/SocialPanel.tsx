@@ -15,15 +15,19 @@ import type { BillboardPost } from "./widgets/BillboardWidget";
 import { SegmentButton } from "./widgets/SegmentButton";
 import {
   ChannelSwitcher,
+  GroupThreadMessages,
+  InboxGroupList,
   InboxThreadList,
   InboxThreadMessages,
   NewConversationForm,
+  type GroupThreadView,
+  type InboxGroupSummary,
   type InboxSenderSummary,
   type InboxThreadView
 } from "./inbox/InboxViews";
 import type { ChatChannel, ChannelId } from "./chatChannels";
 
-export type { InboxSenderSummary, InboxThreadView };
+export type { InboxSenderSummary, InboxThreadView, InboxGroupSummary, GroupThreadView };
 
 function errMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "message" in err) {
@@ -55,7 +59,14 @@ export default function SocialPanel({
   startConversation,
   channels,
   activeChannelId,
-  onSwitchChannel
+  onSwitchChannel,
+  groups = [],
+  loadGroupThread,
+  sendGroupMessage,
+  inviteGroupMember,
+  transferGroupOwner,
+  leaveGroup,
+  focusGroupAddress
 }: {
   theme: ThemeConfig;
   subTab: SocialSubTab;
@@ -78,12 +89,22 @@ export default function SocialPanel({
   activeChannelId?: ChannelId | null;
   /** User picked a different channel in the dropdown. */
   onSwitchChannel?: (channel: ChatChannel) => void;
+  /** Bookmarked / joined groups for Inbox (#77) — not ChannelSwitcher. */
+  groups?: InboxGroupSummary[];
+  loadGroupThread?: (group: Address) => Promise<GroupThreadView>;
+  sendGroupMessage?: (group: Address, text: string) => Promise<void>;
+  inviteGroupMember?: (group: Address, who: string) => Promise<void>;
+  transferGroupOwner?: (group: Address, who: string) => Promise<void>;
+  leaveGroup?: (group: Address) => Promise<void>;
+  /** When set (e.g. from `gchat open`), focus that group thread. */
+  focusGroupAddress?: Address | null;
 }) {
   const [senders, setSenders] = useState<InboxSenderSummary[] | null>(null);
   const [inboxError, setInboxError] = useState<string | null>(null);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [thread, setThread] = useState<InboxThreadView | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
+  const [groupThread, setGroupThread] = useState<GroupThreadView | null>(null);
   const [sending, setSending] = useState(false);
 
   const [board, setBoard] = useState<BoardView | null>(null);
@@ -136,6 +157,7 @@ export default function SocialPanel({
     /* eslint-disable react-hooks/set-state-in-effect -- tab-driven Social fetch */
     if (subTab === "inbox") {
       setThread(null);
+      setGroupThread(null);
       void refreshSenders();
     } else {
       void refreshBoard();
@@ -144,6 +166,7 @@ export default function SocialPanel({
   }, [subTab, refreshSenders, refreshBoard]);
 
   const openThread = async (peer: Address) => {
+    setGroupThread(null);
     setThreadLoading(true);
     try {
       const t = await loadThread(peer);
@@ -155,6 +178,27 @@ export default function SocialPanel({
       setThreadLoading(false);
     }
   };
+
+  const openGroup = async (group: Address) => {
+    if (!loadGroupThread) return;
+    setThread(null);
+    setThreadLoading(true);
+    try {
+      const t = await loadGroupThread(group);
+      setGroupThread(t);
+    } catch (err: unknown) {
+      setInboxError(errMessage(err, "Failed to load group."));
+      setGroupThread(null);
+    } finally {
+      setThreadLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (subTab !== "inbox" || !focusGroupAddress || !loadGroupThread) return;
+    void openGroup(focusGroupAddress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- focus once per address
+  }, [focusGroupAddress, subTab]);
 
   const handleStart = async (peerInput: string, message: string) => {
     if (!startConversation) throw new Error("Send unavailable.");
@@ -256,8 +300,10 @@ export default function SocialPanel({
               channelLabel &&
               senders &&
               senders.length === 0 &&
+              (!groups || groups.length === 0) &&
               !inboxLoading &&
-              !thread && (
+              !thread &&
+              !groupThread && (
                 <div className="space-y-2">
                   <div className={theme.muted}>No conversations</div>
                   {canCompose && (
@@ -270,7 +316,10 @@ export default function SocialPanel({
                   )}
                 </div>
               )}
-            {senders && senders.length > 0 && !thread && !threadLoading && (
+            {((senders && senders.length > 0) || (groups && groups.length > 0)) &&
+              !thread &&
+              !groupThread &&
+              !threadLoading && (
               <div className="space-y-2">
                 {canCompose && (
                   <NewConversationForm
@@ -280,13 +329,23 @@ export default function SocialPanel({
                     radius={radius}
                   />
                 )}
-                <InboxThreadList
-                  theme={theme}
-                  senders={senders}
-                  onOpenThread={(peer) => void openThread(peer)}
-                  emptyLabel="No conversations"
-                  radius={radius}
-                />
+                {senders && senders.length > 0 && (
+                  <InboxThreadList
+                    theme={theme}
+                    senders={senders}
+                    onOpenThread={(peer) => void openThread(peer)}
+                    emptyLabel="No conversations"
+                    radius={radius}
+                  />
+                )}
+                {groups && groups.length > 0 && (
+                  <InboxGroupList
+                    theme={theme}
+                    groups={groups}
+                    onOpenGroup={(addr) => void openGroup(addr)}
+                    radius={radius}
+                  />
+                )}
               </div>
             )}
             {threadLoading && <div className={theme.muted}>Decrypting…</div>}
@@ -297,6 +356,57 @@ export default function SocialPanel({
                 onBack={() => setThread(null)}
                 emptyLabel="No messages in this conversation."
                 onSend={sendMessage ? (t) => handleSend(t) : undefined}
+                sending={sending}
+              />
+            )}
+            {groupThread && (
+              <GroupThreadMessages
+                theme={theme}
+                thread={groupThread}
+                onBack={() => setGroupThread(null)}
+                onSend={
+                  sendGroupMessage
+                    ? async (text) => {
+                        setSending(true);
+                        try {
+                          await sendGroupMessage(groupThread.address, text);
+                          if (loadGroupThread) {
+                            setGroupThread(await loadGroupThread(groupThread.address));
+                          }
+                        } finally {
+                          setSending(false);
+                        }
+                      }
+                    : undefined
+                }
+                onInvite={
+                  inviteGroupMember
+                    ? async (who) => {
+                        await inviteGroupMember(groupThread.address, who);
+                        if (loadGroupThread) {
+                          setGroupThread(await loadGroupThread(groupThread.address));
+                        }
+                      }
+                    : undefined
+                }
+                onTransfer={
+                  transferGroupOwner
+                    ? async (who) => {
+                        await transferGroupOwner(groupThread.address, who);
+                        if (loadGroupThread) {
+                          setGroupThread(await loadGroupThread(groupThread.address));
+                        }
+                      }
+                    : undefined
+                }
+                onLeave={
+                  leaveGroup
+                    ? async () => {
+                        await leaveGroup(groupThread.address);
+                        setGroupThread(null);
+                      }
+                    : undefined
+                }
                 sending={sending}
               />
             )}

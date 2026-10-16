@@ -430,3 +430,347 @@ export function InboxThreadMessages({
     </div>
   );
 }
+
+// —— Group threads (#77) — same bubble chrome, distinct header / chips ——
+
+export type InboxGroupSummary = {
+  address: Address;
+  name: string;
+  memberCount: number;
+  dead?: boolean;
+};
+
+export type GroupMemberView = {
+  address: Address;
+  isOwner?: boolean;
+  isSelf?: boolean;
+};
+
+export type GroupThreadView = {
+  address: Address;
+  name: string;
+  self: Address;
+  dead: boolean;
+  isMember: boolean;
+  isOwner: boolean;
+  members: GroupMemberView[];
+  messages: ChatMessage[];
+};
+
+export type InboxGroupListProps = {
+  theme: ThemeConfig;
+  groups: InboxGroupSummary[];
+  onOpenGroup: (address: Address) => void;
+  radius?: string;
+};
+
+/** Group rows inside Social Inbox (GROUP chip; not a ChannelSwitcher entry). */
+export function InboxGroupList({
+  theme,
+  groups,
+  onOpenGroup,
+  radius = "rounded-none"
+}: InboxGroupListProps) {
+  if (groups.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      <div
+        className={`font-bold ${theme.primary} text-[10px] uppercase tracking-widest`}
+      >
+        Groups
+      </div>
+      {groups.map((g) => {
+        const short = shortAddr(g.address);
+        return (
+          <button
+            key={g.address}
+            type="button"
+            onClick={() => onOpenGroup(g.address)}
+            className={`w-full text-left px-2 py-2 border ${theme.border} ${theme.text} cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] hover:opacity-90 ${radius}`}
+          >
+            <span
+              className={`mr-2 uppercase text-[10px] tracking-widest ${theme.muted}`}
+            >
+              GROUP
+            </span>
+            <span className="font-bold normal-case">{g.name || short}</span>
+            <span className={`ml-2 ${theme.muted}`}>
+              {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
+            </span>
+            {g.dead && (
+              <span
+                className={`ml-2 uppercase text-[10px] tracking-widest ${theme.warn || theme.muted}`}
+              >
+                DEAD
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export type GroupThreadMessagesProps = {
+  theme: ThemeConfig;
+  thread: GroupThreadView;
+  onBack?: () => void;
+  onSend?: (text: string) => Promise<void> | void;
+  onInvite?: (who: string) => Promise<void> | void;
+  onTransfer?: (who: string) => Promise<void> | void;
+  onLeave?: () => Promise<void> | void;
+  sending?: boolean;
+};
+
+/** Group thread chrome — GROUP · header, owner chip, dead badge, shared bubbles. */
+export function GroupThreadMessages({
+  theme,
+  thread,
+  onBack,
+  onSend,
+  onInvite,
+  onTransfer,
+  onLeave,
+  sending = false
+}: GroupThreadMessagesProps) {
+  const [draft, setDraft] = useState("");
+  const [inviteDraft, setInviteDraft] = useState("");
+  const [transferDraft, setTransferDraft] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const submit = async () => {
+    const text = draft.trim();
+    if (!text || !onSend || sending || thread.dead || !thread.isMember) return;
+    setSendError(null);
+    try {
+      await onSend(text);
+      setDraft("");
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message?: unknown }).message || "Send failed")
+          : "Send failed";
+      setSendError(msg);
+    }
+  };
+
+  const warn = theme.warn || theme.muted;
+
+  return (
+    <div className="space-y-2 flex flex-col min-h-0 flex-1">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className={`uppercase text-[10px] underline cursor-pointer ${theme.primary} pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] self-start`}
+        >
+          ‹ threads
+        </button>
+      )}
+      <div
+        className={`flex justify-between items-center ${theme.text}/70 border-b ${theme.border} pb-1 shrink-0`}
+      >
+        <span className="font-bold">
+          GROUP · {thread.name || shortAddr(thread.address)}
+        </span>
+        {thread.dead ? (
+          <span className={`uppercase text-[10px] ${warn}`}>dead</span>
+        ) : (
+          <span className={`uppercase text-[10px] ${theme.muted}`}>encrypted</span>
+        )}
+      </div>
+      <div className={`flex flex-wrap gap-1.5 text-[10px] ${theme.muted} shrink-0`}>
+        {thread.members.map((m) => (
+          <span
+            key={m.address}
+            className={`px-1.5 py-0.5 border ${theme.border} normal-case`}
+          >
+            {shortAddr(m.address)}
+            {m.isSelf ? " · you" : ""}
+            {m.isOwner && (
+              <span className={`ml-1 uppercase tracking-widest ${theme.primary}`}>
+                OWNER
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+      {thread.isOwner && thread.isMember && !thread.dead && (
+        <div className="flex flex-wrap gap-1.5 shrink-0">
+          {onInvite && (
+            <div className="flex gap-1 items-stretch flex-1 min-w-[12rem]">
+              <input
+                type="text"
+                value={inviteDraft}
+                onChange={(e) => setInviteDraft(e.target.value)}
+                placeholder="invite addr|ens"
+                className={`flex-1 min-w-0 px-2 py-1 text-[10px] bg-transparent outline-none border ${theme.border} ${theme.text} normal-case`}
+                spellCheck={false}
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className={`px-2 uppercase text-[10px] tracking-widest border ${theme.border} cursor-pointer ${theme.primary}`}
+                onClick={() => {
+                  const who = inviteDraft.trim();
+                  if (!who) return;
+                  setActionError(null);
+                  void Promise.resolve(onInvite(who))
+                    .then(() => setInviteDraft(""))
+                    .catch((err: unknown) =>
+                      setActionError(
+                        err && typeof err === "object" && "message" in err
+                          ? String((err as { message?: unknown }).message)
+                          : "Invite failed"
+                      )
+                    );
+                }}
+              >
+                INVITE
+              </button>
+            </div>
+          )}
+          {onTransfer && (
+            <div className="flex gap-1 items-stretch flex-1 min-w-[12rem]">
+              <input
+                type="text"
+                value={transferDraft}
+                onChange={(e) => setTransferDraft(e.target.value)}
+                placeholder="transfer addr|ens"
+                className={`flex-1 min-w-0 px-2 py-1 text-[10px] bg-transparent outline-none border ${theme.border} ${theme.text} normal-case`}
+                spellCheck={false}
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className={`px-2 uppercase text-[10px] tracking-widest border ${theme.border} cursor-pointer ${theme.primary}`}
+                onClick={() => {
+                  const who = transferDraft.trim();
+                  if (!who) return;
+                  setActionError(null);
+                  void Promise.resolve(onTransfer(who))
+                    .then(() => setTransferDraft(""))
+                    .catch((err: unknown) =>
+                      setActionError(
+                        err && typeof err === "object" && "message" in err
+                          ? String((err as { message?: unknown }).message)
+                          : "Transfer failed"
+                      )
+                    );
+                }}
+              >
+                TRANSFER
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {thread.isMember && onLeave && (
+        <button
+          type="button"
+          onClick={() => {
+            setActionError(null);
+            void Promise.resolve(onLeave()).catch((err: unknown) =>
+              setActionError(
+                err && typeof err === "object" && "message" in err
+                  ? String((err as { message?: unknown }).message)
+                  : "Leave failed"
+              )
+            );
+          }}
+          className={`self-start uppercase text-[10px] tracking-widest border ${theme.border} px-2 py-1 cursor-pointer ${theme.muted}`}
+        >
+          LEAVE
+        </button>
+      )}
+      {actionError && (
+        <div className={`text-[10px] ${theme.muted}`}>{actionError}</div>
+      )}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
+        {thread.messages.length === 0 ? (
+          <div className={theme.muted}>No messages yet</div>
+        ) : (
+          thread.messages.map((m, i) => {
+            const isSelf = m.from.toLowerCase() === thread.self.toLowerCase();
+            const dt = new Date(m.timestamp * 1000);
+            const time = `${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}`;
+            return (
+              <div
+                key={i}
+                className={`flex flex-col gap-0.5 ${
+                  isSelf ? "items-end" : "items-start"
+                }`}
+              >
+                <div
+                  className={`px-3 py-1.5 border ${theme.border} ${
+                    isSelf ? theme.primary : theme.text
+                  } bg-black/30`}
+                >
+                  {thread.dead && (m.decryptFailed || m.decrypted === undefined) ? (
+                    <span className={theme.muted}>[dead group]</span>
+                  ) : m.decryptFailed ? (
+                    <span className={theme.muted}>
+                      [cannot decrypt — wrong key]
+                    </span>
+                  ) : m.decrypted !== undefined ? (
+                    m.decrypted
+                  ) : (
+                    <span className={theme.muted}>[encrypted]</span>
+                  )}
+                </div>
+                <div className={`text-[10px] ${theme.muted} normal-case`}>
+                  {isSelf ? "you" : shortAddr(m.from)} · {time}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+      {thread.dead || !thread.isMember ? (
+        <div className={`text-[10px] ${theme.muted} shrink-0`}>
+          {thread.dead
+            ? "Group is dead — no join or send."
+            : "Not a member of this group."}
+        </div>
+      ) : onSend ? (
+        <div className="shrink-0 flex flex-col gap-1 pt-1 border-t border-transparent">
+          {sendError && (
+            <div className={`text-[10px] ${theme.muted}`}>{sendError}</div>
+          )}
+          <div className="flex gap-1.5 items-stretch">
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void submit();
+                }
+              }}
+              placeholder="Message…"
+              disabled={sending}
+              className={`flex-1 min-w-0 px-2 py-1.5 text-xs bg-transparent outline-none border ${theme.border} ${theme.text} pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px]`}
+              spellCheck={false}
+              autoComplete="off"
+              aria-label="Message"
+            />
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={sending || !draft.trim()}
+              className={`px-3 uppercase text-[10px] tracking-widest border ${theme.border} cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] ${
+                sending || !draft.trim() ? "opacity-40 cursor-default" : theme.primary
+              }`}
+              aria-label="Send"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

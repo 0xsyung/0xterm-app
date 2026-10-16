@@ -8,6 +8,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { THEMES } from "../constants";
 import {
   ChannelSwitcher,
+  GroupThreadMessages,
+  InboxGroupList,
   InboxThreadList,
   InboxThreadMessages,
   NewConversationForm,
@@ -362,5 +364,67 @@ describe("ChannelSwitcher chrome (#183)", () => {
     const cls = sel.className.split(/\s+/);
     expect(cls).toContain(theme.text);
     expect(cls).not.toContain(theme.muted);
+  });
+});
+
+
+describe("group inbox chrome (#77)", () => {
+  const theme = {
+    primary: "text-green-400",
+    muted: "text-zinc-500",
+    text: "text-zinc-100",
+    border: "border-zinc-700",
+    warn: "text-amber-400",
+    cardBg: "bg-black"
+  } as any;
+
+  it("renders GROUP chip and DEAD mark", () => {
+    const { getByText } = render(
+      <InboxGroupList
+        theme={theme}
+        groups={[
+          {
+            address: "0x1111111111111111111111111111111111111111" as any,
+            name: "crew",
+            memberCount: 2,
+            dead: true
+          }
+        ]}
+        onOpenGroup={() => {}}
+      />
+    );
+    expect(getByText("GROUP")).toBeTruthy();
+    expect(getByText("crew")).toBeTruthy();
+    expect(getByText("DEAD")).toBeTruthy();
+  });
+
+  it("shows GROUP · header and dead composer copy", () => {
+    const { getByText } = render(
+      <GroupThreadMessages
+        theme={theme}
+        thread={{
+          address: "0x1111111111111111111111111111111111111111" as any,
+          name: "crew",
+          self: "0x2222222222222222222222222222222222222222" as any,
+          dead: true,
+          isMember: false,
+          isOwner: false,
+          members: [],
+          messages: [
+            {
+              from: "0x1111111111111111111111111111111111111111",
+              timestamp: 1,
+              iv: "0x00",
+              ciphertext: "0x00",
+              decryptFailed: true
+            }
+          ]
+        }}
+      />
+    );
+    expect(getByText(/GROUP · crew/)).toBeTruthy();
+    expect(getByText("dead")).toBeTruthy();
+    expect(getByText("[dead group]")).toBeTruthy();
+    expect(getByText(/Group is dead/)).toBeTruthy();
   });
 });

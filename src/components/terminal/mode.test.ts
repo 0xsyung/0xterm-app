@@ -340,8 +340,34 @@ describe("Social tab help copy (#162)", () => {
     const row = helpRowsForMode("console").find((r) => r.command === "Social tab");
     expect(row).toBeTruthy();
     expect(row!.description).toBe(
-      "Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live under SOCIAL (not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* still work from the prompt."
+      "Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live under SOCIAL (not pinnable). Group threads appear under Inbox (GROUP chip; not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* / gchat* still work from the prompt."
     );
     expect(row!.description).not.toMatch(/TERMINAL \| SOCIAL/);
+  });
+});
+
+
+describe("gchat affinity + help (#77)", () => {
+  it("classifies gchat as global", () => {
+    expect(classifyLiveVerb("gchat")).toBe("global");
+  });
+
+  it("allows gchat in invest/dev/forensic/console", () => {
+    for (const mode of ["invest", "dev", "forensic", "console"] as const) {
+      expect(isCommandAllowed(mode, "gchat")).toBe(true);
+    }
+  });
+
+  it("lists gchat rows in every mode help", () => {
+    for (const mode of ["invest", "dev", "forensic", "console"] as const) {
+      const cmds = helpRowsForMode(mode).map((r) => r.command);
+      expect(cmds.some((c) => c.startsWith("gchat "))).toBe(true);
+      expect(cmds.some((c) => /channel/i.test(c) && c.startsWith("gchat"))).toBe(false);
+    }
+    const create = helpRowsForMode("invest").find((r) =>
+      r.command.startsWith("gchat create")
+    );
+    expect(create?.description.toLowerCase()).toContain("group");
+    expect(create?.description.toLowerCase()).not.toContain("channel");
   });
 });

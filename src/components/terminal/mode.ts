@@ -106,6 +106,7 @@ const COMMAND_AFFINITY: Record<string, CommandAffinity> = {
   boardfee: "global",
   channel: "global",
   channels: "global",
+  gchat: "global",
   clear: "global",
   msg: "global",
   messages: "global",
@@ -550,9 +551,55 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["global"]
   },
   {
+    command: "gchat create <name>",
+    description:
+      "Deploy a self-managed on-chain group (testnets; per-group contract)",
+    modes: ["global"]
+  },
+  {
+    command: "gchat list",
+    description: "List groups you belong to (marks dead groups)",
+    modes: ["global"]
+  },
+  {
+    command: "gchat open <addr>",
+    description: "Open a group thread in Social · Inbox",
+    modes: ["global"]
+  },
+  {
+    command: "gchat join <addr>",
+    description: "Join a group you were invited to",
+    modes: ["global"]
+  },
+  {
+    command: "gchat invite <addr|ens>",
+    description: "Owner: invite a member",
+    modes: ["global"]
+  },
+  {
+    command: "gchat leave [<addr>]",
+    description: "Leave the open (or named) group; last member kills the group",
+    modes: ["global"]
+  },
+  {
+    command: "gchat transfer <addr|ens>",
+    description: "Owner: transfer ownership",
+    modes: ["global"]
+  },
+  {
+    command: "gchat send <addr> <msg>",
+    description: "Send an encrypted group message (members only)",
+    modes: ["global"]
+  },
+  {
+    command: "gchat members <addr>",
+    description: "Show members + owner",
+    modes: ["global"]
+  },
+  {
     command: "Social tab",
     description:
-      "Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live under SOCIAL (not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* still work from the prompt.",
+      "Header modes: INVEST · DEV · FORENSIC · SOCIAL. Inbox + Board live under SOCIAL (not pinnable). Group threads appear under Inbox (GROUP chip; not pinnable). Unread badges poll ~60s. Commands inbox / chat / board / channel* / gchat* still work from the prompt.",
     modes: ["global"]
   },
 
