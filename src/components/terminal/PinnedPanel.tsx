@@ -10,6 +10,7 @@ import PortfolioWidget from "./widgets/PortfolioWidget";
 import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
 import PolyWidget from "./widgets/PolyWidget";
+import MixerWidget from "./widgets/MixerWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import PriceCard from "./widgets/PriceCard";
 import DigArtifactWidget from "./widgets/DigArtifactWidget";
@@ -184,6 +185,18 @@ function renderPinned(p: PinnedManifest, theme: any) {
           known={payload.known}
           entryName={payload.entryName}
           listRows={payload.listRows}
+          theme={theme}
+          pinned
+        />
+      );
+    case "mixer":
+      return (
+        <MixerWidget
+          mode={payload.mode || "pools"}
+          chainLabel={payload.chainLabel || "—"}
+          poolRows={payload.rows}
+          notes={payload.notes}
+          statusPayload={payload.mode === "status" ? payload : undefined}
           theme={theme}
           pinned
         />

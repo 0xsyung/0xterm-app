@@ -15,6 +15,7 @@ import PortfolioWidget from "./widgets/PortfolioWidget";
 import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
 import PolyWidget from "./widgets/PolyWidget";
+import MixerWidget from "./widgets/MixerWidget";
 import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import TickerWidget from "./widgets/TickerWidget";
@@ -231,6 +232,19 @@ function renderLog(
         known={log.payload?.known}
         entryName={log.payload?.entryName}
         listRows={log.payload?.listRows}
+        theme={theme}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  if (log.type === "mixer")
+    return (
+      <MixerWidget
+        mode={log.payload?.mode || "pools"}
+        chainLabel={log.payload?.chainLabel || "—"}
+        poolRows={log.payload?.rows}
+        notes={log.payload?.notes}
+        statusPayload={log.payload?.mode === "status" ? log.payload : undefined}
         theme={theme}
         onPin={() => onPin(log)}
         pinned={isPinned}

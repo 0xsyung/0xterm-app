@@ -21,6 +21,8 @@ export default defineConfig({
         // IndexedDB + command router need browser/worker; pure helpers tested separately (#39)
         "src/components/terminal/dig/idb.ts",
         "src/components/terminal/dig/runDig.ts",
+        // poly command router (#20) — wallet/RPC/CLOB; pure helpers in poly/*.ts unit tests
+        "src/components/terminal/poly/runPoly.ts",
         // Dig widgets are presentational chrome (Stephy lock); logic in dig/*.ts
         "src/components/terminal/widgets/DigEditorWidget.tsx",
         "src/components/terminal/widgets/DigArtifactWidget.tsx",
@@ -54,9 +56,13 @@ export default defineConfig({
         "src/components/terminal/widgets/CreatePoolWidget.tsx",
         "src/components/terminal/widgets/AddLiquidityWidget.tsx",
         "src/components/terminal/widgets/InitializePoolWidget.tsx",
-        // poly trade/collateral chrome (#20) — wagmi write + CLOB sign; logic in poly/*.ts
+        // poly list/show chrome + trade/collateral (#20) — presentational / wagmi; logic in poly/*.ts
+        "src/components/terminal/widgets/PolyWidget.tsx",
         "src/components/terminal/widgets/PolyTradeWidget.tsx",
         "src/components/terminal/widgets/PolyCollateralWidget.tsx",
+        // mixer deposit/withdraw chrome (#111) — wagmi write; logic in mixer/*.ts
+        "src/components/terminal/widgets/MixerDepositWidget.tsx",
+        "src/components/terminal/widgets/MixerWithdrawWidget.tsx",
         // wagmi provider/app glue + GA4 adapter — thin entry chrome (#6)
         "src/config/wagmi.ts",
         "src/app/layout.tsx",
@@ -64,6 +70,8 @@ export default defineConfig({
         "src/app/providers.tsx",
         "src/lib/analytics.ts",
         "src/**/*.test.{ts,tsx}",
+        // ambient module stubs — no runtime
+        "src/types/**",
       ],
       thresholds: {
         // #6 gate — scoped to files we own (wagmi-bound chrome excluded above).

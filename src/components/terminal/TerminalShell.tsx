@@ -217,6 +217,7 @@ import {
   type VaultShowData,
   type VaultVerb
 } from "./vault";
+import { runMixerCommand } from "./mixer/runMixer";
 import {
   ARB_EXECUTOR,
   ARB_ERROR
@@ -6335,6 +6336,22 @@ export default function TerminalShell({
         onPin
       });
     },
+    mixer: async (args) => {
+      // Soft ACK #111: active chain only — no --chain / no action-network override.
+      const chainObj = SUPPORTED_CHAINS.find((c) => c.id === activeChainId) || null;
+      const client = chainObj ? getClient(chainObj) : null;
+      return runMixerCommand({
+        args,
+        generateId,
+        theme,
+        address: address as string | undefined,
+        isConnected: !!isConnected,
+        activeChainId: activeChainId ?? null,
+        chainObj,
+        client,
+        onPin
+      });
+    },
     calldata: async (args) => {
       // calldata [help | sim] <to> <fnSig> <arg0...>
       const sub = (args[1] || "").toLowerCase();
@@ -9474,6 +9491,8 @@ export default function TerminalShell({
           candidates = ["100", "500", "3000", "10000"];
 
           // 9. Deploy Command
+        } else if (command === "mixer" && currentArgIdx === 1) {
+          candidates = ["pools", "deposit", "withdraw", "status", "notes", "help"];
         } else if (command === "dig" && currentArgIdx === 1) {
           candidates = [
             "new",
