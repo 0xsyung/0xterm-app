@@ -68,26 +68,13 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     tab: "PORTFOLIO"
   },
   {
-    cmd: "getpool",
-    label: "GET POOL",
-    hint: "open get pool panel",
-    panel: "getpool",
+    cmd: "pool",
+    label: "POOL",
+    hint: "open pool panel",
+    panel: "pool",
     tab: "DEX"
   },
-  {
-    cmd: "createpool",
-    label: "CREATE POOL",
-    hint: "open create pool panel",
-    panel: "createpool",
-    tab: "DEX"
-  },
-  {
-    cmd: "addliq",
-    label: "ADD LIQ",
-    hint: "open add liquidity panel",
-    panel: "addliq",
-    tab: "DEX"
-  },
+  // #220 Soft ACK: GET/CREATE/ADD LIQ unified into POOL; CONSOLE cmds unchanged
   {
     cmd: "perps",
     label: "PERPS",

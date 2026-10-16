@@ -24,6 +24,7 @@ export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
   "portfolio",
   "snapshot",
   "pnl",
+  "pool",
   "getpool",
   "createpool",
   "addliq",

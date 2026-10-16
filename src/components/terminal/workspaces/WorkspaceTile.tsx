@@ -21,6 +21,7 @@ export type WorkspacePanelId =
   | "portfolio"
   | "snapshot"
   | "pnl"
+  | "pool"
   | "getpool"
   | "createpool"
   | "addliq"

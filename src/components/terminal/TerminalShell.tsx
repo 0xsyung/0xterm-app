@@ -493,6 +493,7 @@ import AddLiqPanel, {
   type AddLiqRunArgs,
   type AddLiqRunResult
 } from "./widgets/AddLiqPanel";
+import PoolPanel from "./widgets/PoolPanel";
 import CreatePoolWidget from "./widgets/CreatePoolWidget";
 import AddLiquidityWidget from "./widgets/AddLiquidityWidget";
 import NewsPanel from "./widgets/NewsPanel";
@@ -2263,15 +2264,18 @@ export default function TerminalShell({
       }
 
       if (!pairAddress || pairAddress === NATIVE_TOKEN_ADDRESS) {
-        return (
-          <div className={`${theme.warn} my-2 p-3 border ${theme.rounded} w-full text-xs`}>
+        return {
+          missing: true as const,
+          node: (
+          <div className={`${theme.warn} my-2 p-3 border ${theme.rounded} w-full text-xs`} data-testid="getpool-missing">
             <div className="font-bold mb-1">NO POOL FOUND</div>
             <div>
               No {activeDex.type} pool exists for {tokenA.symbol}/
               {tokenB.symbol} on {activeDex.name}.
             </div>
           </div>
-        );
+          )
+        };
       }
 
       // Soft reserves + price for GET POOL / CLI (#168 Soft ACK)
@@ -2367,7 +2371,9 @@ export default function TerminalShell({
 
       const explorer = targetChain.blockExplorers?.default;
 
-      return (
+      return {
+        missing: false as const,
+        node: (
         <div
           className={`my-3 p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow} text-xs space-y-2`}
           data-testid="getpool-result-card"
@@ -2403,9 +2409,12 @@ export default function TerminalShell({
             </a>
           )}
         </div>
-      );
+      )
+      };
     } catch (err: any) {
-      return (
+      return {
+        missing: false as const,
+        node: (
         <div className={`${theme.warn} my-2 p-3 border ${theme.rounded} w-full text-xs space-y-1`}>
           <div className="font-bold">
             [!] On-chain read failed — try again or check RPC.
@@ -2414,7 +2423,8 @@ export default function TerminalShell({
             {err.message || String(err)}
           </div>
         </div>
-      );
+        )
+      };
     }
   };
 
@@ -5137,7 +5147,7 @@ export default function TerminalShell({
           text: "Usage: getpool <tokenA> <tokenB> [fee]"
         };
 
-      const poolWidget = await fetchPoolAddress(
+      const poolLookup = await fetchPoolAddress(
         args[1],
         args[2],
         targetChain,
@@ -5147,8 +5157,9 @@ export default function TerminalShell({
       return {
         id: generateId(),
         type: "component",
-        component: poolWidget,
-        title: `POOL ${args[1].toUpperCase()}/${args[2].toUpperCase()}`
+        component: poolLookup.node,
+        title: `POOL ${args[1].toUpperCase()}/${args[2].toUpperCase()}`,
+        poolMissing: poolLookup.missing
       };
     },
     addliq: async (args) => {
@@ -9593,6 +9604,143 @@ export default function TerminalShell({
             frameless
           />
         );
+      case "pool": {
+        const poolCreateResolved = resolveActionChain(
+          "createpool",
+          activeChainId,
+          actionNetworks
+        );
+        const poolCreateChainId = poolCreateResolved.chainId;
+        const poolCreateDexId =
+          poolCreateChainId == null
+            ? null
+            : !poolCreateResolved.usedOverride &&
+                activeDexId &&
+                (DEX_REGISTRY[poolCreateChainId] || []).some(
+                  (d) => d.id === activeDexId
+                )
+              ? activeDexId
+              : (DEX_REGISTRY[poolCreateChainId]?.[0]?.id ?? null);
+        const poolCreateDex =
+          poolCreateChainId != null && poolCreateDexId
+            ? (DEX_REGISTRY[poolCreateChainId] || []).find(
+                (d) => d.id === poolCreateDexId
+              )
+            : undefined;
+        const poolLookupDex =
+          activeChainId != null
+            ? (DEX_REGISTRY[activeChainId] || []).find((d) => d.id === activeDexId)
+            : undefined;
+        const poolWallet = hasActiveWallet({
+          localUnlocked: isUnlocked(),
+          injectedConnected: !!isConnected && !!address
+        });
+        const poolShowFee = (poolCreateDex ?? poolLookupDex)?.type !== "V2";
+        return (
+          <PoolPanel
+            theme={theme}
+            commonTokens={Object.keys(
+              COMMON_TOKENS[
+                poolCreateChainId || activeChainId || 0
+              ] || {}
+            )}
+            onClose={close}
+            networkLine={formatActionNetworkLine(
+              poolCreateResolved.chainId,
+              poolCreateResolved.usedOverride
+            )}
+            dexLine={
+              poolCreateDex
+                ? `${poolCreateDex.name} (${poolCreateDex.type})`
+                : poolLookupDex
+                  ? `${poolLookupDex.name} (${poolLookupDex.type})`
+                  : null
+            }
+            showFeeTier={poolShowFee}
+            includeFeeInCli={poolShowFee}
+            walletConnected={poolWallet}
+            onLookup={async (args: GetPoolRunArgs): Promise<GetPoolRunResult> => {
+              const line = buildGetPoolCli({
+                tokenA: args.tokenA,
+                tokenB: args.tokenB,
+                feeTier: args.feeTier,
+                includeFee: poolLookupDex?.type !== "V2"
+              });
+              const result = await commands.getpool(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from getpool." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "component" && entry.component) {
+                return {
+                  ok: true,
+                  component: entry.component,
+                  missing: !!entry.poolMissing
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Pool lookup failed." };
+            }}
+            onCreate={async (
+              args: CreatePoolRunArgs
+            ): Promise<CreatePoolRunResult> => {
+              const line = buildCreatePoolCli({
+                tokenA: args.tokenA,
+                tokenB: args.tokenB,
+                feeTier: args.feeTier,
+                includeFee: poolCreateDex?.type !== "V2"
+              });
+              const result = await commands.createpool(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from createpool." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "createpool" && entry.payload) {
+                return {
+                  ok: true,
+                  component: (
+                    <CreatePoolWidget {...entry.payload} theme={theme} />
+                  )
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Create pool failed." };
+            }}
+            onAddLiq={async (args: AddLiqRunArgs): Promise<AddLiqRunResult> => {
+              const line = buildAddLiqCli({
+                tokenA: args.tokenA,
+                tokenB: args.tokenB,
+                amountA: args.amountA,
+                amountB: args.amountB,
+                feeTier: args.feeTier,
+                includeFee: poolCreateDex?.type !== "V2"
+              });
+              const result = await commands.addliq(line.split(/\s+/), line);
+              if (!result) {
+                return { ok: false, error: "No result from addliq." };
+              }
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "addliq" && entry.payload) {
+                return {
+                  ok: true,
+                  component: (
+                    <AddLiquidityWidget {...entry.payload} theme={theme} />
+                  )
+                };
+              }
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                return { ok: false, error: entry.text };
+              }
+              return { ok: false, error: "Add liquidity failed." };
+            }}
+            frameless
+          />
+        );
+      }
       case "getpool": {
         const getpoolDex =
           activeChainId != null
@@ -9624,7 +9772,11 @@ export default function TerminalShell({
               }
               const entry = Array.isArray(result) ? result[0] : result;
               if (entry?.type === "component" && entry.component) {
-                return { ok: true, component: entry.component };
+                return {
+                  ok: true,
+                  component: entry.component,
+                  missing: !!entry.poolMissing
+                };
               }
               if (entry?.type === "text" && typeof entry.text === "string") {
                 return { ok: false, error: entry.text };
