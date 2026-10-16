@@ -17,7 +17,7 @@ export const userPrefsWalletKey = (address: string): string =>
 
 /**
  * UI prefs safe to keep without a connected wallet.
- * Excludes secrets (rpcProviders, explorerKeys), wallet-bound scrollback
+ * Excludes secrets (rpcProviders, explorerKeys, kytVendor), wallet-bound scrollback
  * (logs/history/pinned/portfolioSnapshot/bindings), and custom tokens.
  */
 export const SAFE_ANON_PREF_KEYS = [

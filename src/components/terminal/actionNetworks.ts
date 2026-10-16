@@ -36,6 +36,8 @@ export type ActionId =
   | "ens"
   | "sim"
   | "trace"
+  | "kyt"
+  | "kya"
   | "perps";
 
 export type ActionDef = {
@@ -172,6 +174,18 @@ export const ACTION_NETWORK_REGISTRY: readonly ActionDef[] = [
   {
     id: "trace",
     label: "trace",
+    kind: "read",
+    supportedChainIds: allChainIds()
+  },
+  {
+    id: "kyt",
+    label: "kyt",
+    kind: "read",
+    supportedChainIds: allChainIds()
+  },
+  {
+    id: "kya",
+    label: "kya",
     kind: "read",
     supportedChainIds: allChainIds()
   },

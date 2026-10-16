@@ -30,6 +30,12 @@ describe("isPinnableLog", () => {
     expect(isPinnableLog({ type: "dig-artifact" })).toBe(true);
     expect(isPinnableLog({ type: "dig-run" })).toBe(true);
     expect(isPinnableLog({ type: "dig-debug" })).toBe(true);
+    expect(
+      isPinnableLog({ type: "component", componentData: { kind: "kyt" } })
+    ).toBe(true);
+    expect(
+      isPinnableLog({ type: "component", componentData: { kind: "kya" } })
+    ).toBe(true);
   });
 
   it("rejects non-live log kinds", () => {
@@ -57,7 +63,7 @@ describe("isPinnableLog", () => {
     }
   });
 
-  it("rejects component logs that are not price", () => {
+  it("rejects component logs that are not price/kyt/kya", () => {
     expect(isPinnableLog({ type: "component" })).toBe(false);
     expect(isPinnableLog({ type: "component", componentData: { kind: "swap" } })).toBe(false);
     expect(isPinnableLog({ type: "component", componentData: undefined })).toBe(false);
@@ -75,6 +81,12 @@ describe("isPinnableManifest", () => {
     expect(isPinnableManifest({ kind: "dig-artifact" })).toBe(true);
     expect(isPinnableManifest({ kind: "dig-run" })).toBe(true);
     expect(isPinnableManifest({ kind: "dig-debug" })).toBe(true);
+    expect(
+      isPinnableManifest({ kind: "component", componentData: { kind: "kyt" } })
+    ).toBe(true);
+    expect(
+      isPinnableManifest({ kind: "component", componentData: { kind: "kya" } })
+    ).toBe(true);
   });
 
   it("rejects manifests for non-live kinds", () => {

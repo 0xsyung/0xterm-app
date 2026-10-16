@@ -36,7 +36,7 @@ describe("actionNetworks registry (#156)", () => {
       ])
     );
     expect(readIds).toEqual(
-      expect.arrayContaining(["ens", "sim", "trace"])
+      expect.arrayContaining(["ens", "sim", "trace", "kyt", "kya"])
     );
     expect(ACTION_NETWORK_REGISTRY.length).toBe(
       WRITE_ACTIONS.length + READ_ACTIONS.length
