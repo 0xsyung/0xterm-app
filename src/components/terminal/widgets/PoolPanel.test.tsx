@@ -76,9 +76,13 @@ describe("PoolPanel (#220)", () => {
     expect(cue.textContent).toMatch(/DEX · UNISWAP V3 \(V3\)/);
   });
 
-  it("reserves bottom padding so ADD LIQ clears floating CHAT (#226)", () => {
+  it("reserves bottom + right clearance so ADD LIQ clears floating CHAT (#226)", () => {
     render(<PoolPanel {...baseProps} />);
     expect(screen.getByTestId("pool-panel").className).toMatch(/\bpb-16\b/);
+    // Horizontal: full-bleed green bar must stop before 48×48 CHAT (pr-16 ≈ 64px).
+    expect(screen.getByTestId("pool-addliq-chat-clearance").className).toMatch(
+      /\bpr-16\b/
+    );
   });
 
   it("shared TOKEN A/B updates all previews", () => {

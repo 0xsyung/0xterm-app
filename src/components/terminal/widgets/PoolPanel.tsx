@@ -1048,16 +1048,21 @@ export default function PoolPanel({
           Connect wallet to add liquidity.
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => void runAdd()}
-        disabled={!canAdd}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
-        data-testid="pool-addliq"
-      >
-        {addRunning ? "…" : "ADD LIQ"}
-      </button>
+      {/* Right inset: solid ADD LIQ bar must stop before fixed 48×48 CHAT
+          (right:12 + 48 + gap ≈ 64px). pb-16 alone clears AMOUNT A/B vertically
+          but the full-bleed bar still ran under the chip (#226 Syung hold). */}
+      <div className="pr-16" data-testid="pool-addliq-chat-clearance">
+        <button
+          type="button"
+          onClick={() => void runAdd()}
+          disabled={!canAdd}
+          className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+          style={{ background: theme.phosphor, color: "#000000" }}
+          data-testid="pool-addliq"
+        >
+          {addRunning ? "…" : "ADD LIQ"}
+        </button>
+      </div>
       <div
         className={`text-[9px] ${theme.muted} font-mono`}
         data-testid="pool-addliq-preview"
