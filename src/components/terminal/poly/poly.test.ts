@@ -32,9 +32,39 @@ import {
   midpointFromBook,
   normalizeGammaMarket,
   resolveOutcomeToken,
-  POLY_BOOK_DRIFT_BPS
+  POLY_BOOK_DRIFT_BPS,
+  gammaSearch,
+  gammaGetMarket,
+  fetchBook,
+  cancelOrders,
+  postOrder
 } from "./index";
+import { runPolyCommand } from "./runPoly";
+import type { ThemeConfig } from "../types";
 import { maxUint256 } from "viem";
+
+const theme = {
+  primary: "text-green-400",
+  warn: "text-yellow-400",
+  muted: "text-zinc-500",
+  border: "border-zinc-700",
+  cardBg: "bg-zinc-900",
+  rounded: "rounded",
+  glow: "",
+  text: "text-zinc-100"
+} as unknown as ThemeConfig;
+
+function mockFetch(handler: (url: string, init?: RequestInit) => { status: number; json: unknown }) {
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const r = handler(url, init);
+    return {
+      ok: r.status >= 200 && r.status < 300,
+      status: r.status,
+      json: async () => r.json
+    } as Response;
+  }) as typeof fetch;
+}
 
 describe("poly constants / collateral", () => {
   it("pUSD and USDC.e addresses match Soft ACK", () => {
@@ -171,5 +201,190 @@ describe("poly gamma normalize", () => {
 describe("poly error copy", () => {
   it("wrong chain Soft copy", () => {
     expect(polyErrorLine("POLY_WRONG_CHAIN")).toContain("network polygon");
+  });
+});
+
+
+describe("poly gamma/clob fetch", () => {
+  it("gammaSearch active markets", async () => {
+    const f = mockFetch(() => ({
+      status: 200,
+      json: [
+        {
+          id: "1",
+          slug: "a",
+          question: "Q?",
+          outcomes: ["Yes", "No"],
+          outcomePrices: ["0.5", "0.5"],
+          clobTokenIds: ["t1", "t2"],
+          volume: 10
+        }
+      ]
+    }));
+    const rows = await gammaSearch(undefined, { fetch: f });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].question).toBe("Q?");
+  });
+
+  it("gammaSearch query hits public-search", async () => {
+    const f = mockFetch((url) => {
+      expect(url).toContain("public-search");
+      return {
+        status: 200,
+        json: {
+          events: [
+            {
+              markets: [
+                {
+                  id: "2",
+                  slug: "b",
+                  question: "B?",
+                  outcomes: ["Yes", "No"],
+                  clobTokenIds: ["x", "y"]
+                }
+              ]
+            }
+          ]
+        }
+      };
+    });
+    const rows = await gammaSearch("election", { fetch: f });
+    expect(rows[0].slug).toBe("b");
+  });
+
+  it("gammaGetMarket by slug", async () => {
+    const f = mockFetch((url) => {
+      if (url.includes("slug="))
+        return {
+          status: 200,
+          json: [
+            {
+              id: "9",
+              slug: "will-x",
+              question: "Will X?",
+              clobTokenIds: ["1", "2"],
+              outcomes: ["Yes", "No"]
+            }
+          ]
+        };
+      return { status: 404, json: {} };
+    });
+    const m = await gammaGetMarket("will-x", { fetch: f });
+    expect(m?.id).toBe("9");
+  });
+
+  it("fetchBook parses levels + geoblock", async () => {
+    const f = mockFetch(() => ({
+      status: 200,
+      json: {
+        bids: [["0.4", "10"]],
+        asks: [["0.6", "12"]],
+        tick_size: "0.01",
+        min_order_size: "5",
+        neg_risk: false
+      }
+    }));
+    const b = await fetchBook("tok", { fetch: f });
+    expect(b.bestBid).toBe(0.4);
+    expect(b.bestAsk).toBe(0.6);
+    expect(b.minOrderSize).toBe(5);
+
+    const geo = mockFetch(() => ({ status: 403, json: {} }));
+    await expect(fetchBook("tok", { fetch: geo })).rejects.toThrow(/POLY_GEOBLOCK/);
+  });
+
+  it("cancelOrders all + postOrder reject", async () => {
+    const creds = { apiKey: "k", secret: Buffer.from("s").toString("base64"), passphrase: "p" };
+    const f = mockFetch((url, init) => {
+      if (url.includes("cancel-all")) return { status: 200, json: { success: true } };
+      return { status: 400, json: { success: false, errorMsg: "bad" } };
+    });
+    expect((await cancelOrders("0x1", creds, "all", { fetch: f })).ok).toBe(true);
+    const order = buildOrderStruct({
+      maker: "0x1111111111111111111111111111111111111111",
+      tokenId: "1",
+      makerAmount: 1n,
+      takerAmount: 1n,
+      side: 0
+    });
+    const posted = await postOrder(
+      "0x1111111111111111111111111111111111111111",
+      creds,
+      order,
+      "0xsig",
+      "GTC",
+      false,
+      { fetch: f }
+    );
+    expect(posted.success).toBe(false);
+    expect(posted.errorMsg).toBe("bad");
+  });
+});
+
+describe("runPolyCommand", () => {
+  const base = {
+    generateId: () => "id1",
+    theme,
+    address: undefined as string | undefined,
+    isConnected: false,
+    activeChainId: 137 as number | null,
+    chainObj: { id: 137, name: "Polygon" } as any,
+    client: null as any,
+    onPin: () => {}
+  };
+
+  it("bare poly returns status component", async () => {
+    const log = await runPolyCommand({ ...base, args: ["poly"] });
+    expect(log.type).toBe("poly");
+    expect(log.payload.mode).toBe("status");
+  });
+
+  it("pred help text", async () => {
+    const log = await runPolyCommand({ ...base, args: ["poly", "help"] });
+    expect(log.type).toBe("text");
+    expect(log.text).toMatch(/poly list/);
+  });
+
+  it("list disconnected OK", async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = mockFetch(() => ({
+      status: 200,
+      json: [
+        {
+          id: "1",
+          slug: "s",
+          question: "Q",
+          outcomes: ["Yes", "No"],
+          clobTokenIds: ["a", "b"],
+          outcomePrices: ["0.5", "0.5"]
+        }
+      ]
+    })) as any;
+    try {
+      const log = await runPolyCommand({ ...base, args: ["poly", "list"] });
+      expect(log.type).toBe("poly");
+      expect(log.payload.mode).toBe("list");
+      expect(log.payload.markets).toHaveLength(1);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+
+  it("buy refuses wrong chain", async () => {
+    const log = await runPolyCommand({
+      ...base,
+      activeChainId: 1,
+      isConnected: true,
+      address: "0x1111111111111111111111111111111111111111",
+      args: ["poly", "buy", "m", "yes", "1"]
+    });
+    expect(log.warn).toBe(true);
+    expect(log.text).toMatch(/POLY_WRONG_CHAIN/);
+  });
+
+  it("unknown subcommand", async () => {
+    const log = await runPolyCommand({ ...base, args: ["poly", "nope"] });
+    expect(log.warn).toBe(true);
+    expect(log.text).toMatch(/Unknown poly subcommand/);
   });
 });
