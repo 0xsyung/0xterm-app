@@ -7,6 +7,7 @@ import {
   HL_BUILDER_ADDRESS_PLACEHOLDER,
   HL_DEFAULT_NETWORK,
   HL_DEPOSIT,
+  HL_MIN_DEPOSIT_USDC,
   hlApiBase,
   hlEvmChainId,
   hlSignatureChainId,
@@ -36,6 +37,11 @@ describe("hl config (#190)", () => {
   it("signs user-signed actions over 0x66eee on BOTH networks (SDK constant)", () => {
     expect(hlSignatureChainId("mainnet")).toBe(0x66eee);
     expect(hlSignatureChainId("testnet")).toBe(0x66eee);
+  });
+
+
+  it("enforces 5 USDC bridge deposit floor constant", () => {
+    expect(HL_MIN_DEPOSIT_USDC).toBe(5);
   });
 
   it("deposit targets map per network (Arbitrum One / Arbitrum Sepolia)", () => {

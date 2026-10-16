@@ -11,6 +11,7 @@ import type { ThemeConfig } from "../types";
 import {
   PERPS_COPY,
   HL_DEPOSIT,
+  HL_MIN_DEPOSIT_USDC,
   buildFeePreview,
   buildUsdClassTransferAction,
   buildWithdrawAction,
@@ -44,6 +45,7 @@ import {
   resolveBuilderAddress,
   stripTrailingZeros,
   truncateAddr,
+  validateDepositAmount,
   validateOrderForm,
   ensureAgentApproved,
   ensureBuilderApproved,
@@ -596,8 +598,9 @@ export default function PerpsPanel({
   const handleDeposit = async () => {
     if (!walletAddress) return;
     const amountValue = transferAmount.trim();
-    if (!amountValue || Number(amountValue) <= 0) {
-      setError("Enter a deposit amount.");
+    const depositErr = validateDepositAmount(amountValue);
+    if (depositErr) {
+      setError(depositErr);
       return;
     }
     setBusy("deposit");
@@ -1162,18 +1165,27 @@ export default function PerpsPanel({
                   </div>
                   <input
                     type="number"
-                    min="0"
+                    min={HL_MIN_DEPOSIT_USDC}
                     step="any"
                     className={inputCls}
                     value={transferAmount}
                     onChange={(e) => setTransferAmount(e.target.value)}
-                    placeholder="0.0"
+                    placeholder={`${HL_MIN_DEPOSIT_USDC}.0`}
                     data-testid="perps-transfer-amount"
                   />
+                  <div
+                    className={`text-[10px] ${theme.muted}`}
+                    data-testid="perps-deposit-min-hint"
+                  >
+                    Min {HL_MIN_DEPOSIT_USDC} USDC — smaller deposits are not
+                    credited and are lost.
+                  </div>
                   <button
                     type="button"
                     data-testid="perps-deposit"
-                    disabled={!!busy}
+                    disabled={
+                      !!busy || validateDepositAmount(transferAmount) != null
+                    }
                     onClick={() => void handleDeposit()}
                     className={ctaCls}
                     style={{ background: theme.phosphor, color: FILL_FG }}

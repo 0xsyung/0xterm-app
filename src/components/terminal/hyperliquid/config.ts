@@ -114,10 +114,13 @@ export function hlEvmChainId(network: HlNetwork): number {
  * On-chain USDC deposit targets for the Hyperliquid bridge (demo
  * src/ethereum/bridge.ts). Depositing = sending native USDC from the listed EVM
  * chain to the bridge; HyperCore credits the *sending* account in under a
- * minute (5 USDC minimum). Mainnet uses Arbitrum One (0xa4b1), testnet uses
- * Arbitrum Sepolia (0x66eee) — the same chain the user-signed signing flow
- * already switches to.
+ * minute (`HL_MIN_DEPOSIT_USDC` minimum — smaller amounts are not credited and
+ * are lost). Mainnet uses Arbitrum One (0xa4b1), testnet uses Arbitrum Sepolia
+ * (0x66eee) — the same chain the user-signed signing flow already switches to.
  */
+/** Hyperliquid bridge minimum — deposits below this are not credited / lost. */
+export const HL_MIN_DEPOSIT_USDC = 5;
+
 export type HlDepositTarget = {
   /** EIP-1193 hex chain id of the deposit chain. */
   chainId: number;

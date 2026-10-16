@@ -19,3 +19,16 @@ describe("PerpsPanel chrome (#202)", () => {
     );
   });
 });
+
+describe("PerpsPanel deposit floor (#224)", () => {
+  it("gates handleDeposit + CTA on validateDepositAmount / HL_MIN_DEPOSIT_USDC", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+    expect(src).toMatch(/validateDepositAmount\(amountValue\)/);
+    expect(src).toMatch(/validateDepositAmount\(transferAmount\)/);
+    expect(src).toMatch(/HL_MIN_DEPOSIT_USDC/);
+    expect(src).toMatch(/perps-deposit-min-hint/);
+  });
+});

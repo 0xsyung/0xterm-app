@@ -3,8 +3,10 @@
  * @description Tick/lot + trailing-zero helpers (#190)
  */
 import { describe, expect, it } from "vitest";
+import { HL_MIN_DEPOSIT_USDC } from "./config";
 import {
   stripTrailingZeros,
+  validateDepositAmount,
   validateLotSize,
   validateLeverage,
   validateOrderForm,
@@ -54,5 +56,20 @@ describe("order validation (#190)", () => {
         leverage: 5
       })
     ).toMatch(/price/i);
+  });
+});
+
+describe("deposit floor (#224)", () => {
+  it(`rejects amounts under ${HL_MIN_DEPOSIT_USDC} USDC`, () => {
+    expect(validateDepositAmount("")).toMatch(/deposit amount/i);
+    expect(validateDepositAmount("0")).toMatch(/deposit amount/i);
+    expect(validateDepositAmount("4.99")).toMatch(/Minimum deposit/i);
+    expect(validateDepositAmount("4.99")).toMatch(String(HL_MIN_DEPOSIT_USDC));
+  });
+
+  it(`allows amounts at or above ${HL_MIN_DEPOSIT_USDC} USDC`, () => {
+    expect(validateDepositAmount("5")).toBeNull();
+    expect(validateDepositAmount("5.0")).toBeNull();
+    expect(validateDepositAmount("100")).toBeNull();
   });
 });
