@@ -1048,15 +1048,17 @@ export default function PoolPanel({
           Connect wallet to add liquidity.
         </div>
       )}
-      {/* Right inset: solid ADD LIQ bar must stop before fixed 48×48 CHAT
-          (right:12 + 48 + gap ≈ 64px). pb-16 alone clears AMOUNT A/B vertically
-          but the full-bleed bar still ran under the chip (#226 Syung hold). */}
-      <div className="pr-16" data-testid="pool-addliq-chat-clearance">
+      {/* CHAT clearance (#226): shorten the painted phosphor bar itself.
+          cfefb49 put pr-16 only on a wrapper — Soft DOM inspect of pool-addliq /
+          pool-panel saw no clearance class and measured ~23×15 under the chip.
+          w-[calc(100%-4rem)] + self-start on the CTA forces the green fill to
+          stop ~64px early (chip 48 + right 12 + gap). Wrapper is test-id only. */}
+      <div className="w-full" data-testid="pool-addliq-chat-clearance">
         <button
           type="button"
           onClick={() => void runAdd()}
           disabled={!canAdd}
-          className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
+          className={`w-[calc(100%-4rem)] max-w-full self-start uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
           style={{ background: theme.phosphor, color: "#000000" }}
           data-testid="pool-addliq"
         >

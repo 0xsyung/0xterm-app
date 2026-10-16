@@ -79,10 +79,13 @@ describe("PoolPanel (#220)", () => {
   it("reserves bottom + right clearance so ADD LIQ clears floating CHAT (#226)", () => {
     render(<PoolPanel {...baseProps} />);
     expect(screen.getByTestId("pool-panel").className).toMatch(/\bpb-16\b/);
-    // Horizontal: full-bleed green bar must stop before 48×48 CHAT (pr-16 ≈ 64px).
-    expect(screen.getByTestId("pool-addliq-chat-clearance").className).toMatch(
-      /\bpr-16\b/
+    // Clearance must live on the painted bar (pool-addliq), not only a wrapper —
+    // cfefb49's parent-only pr-16 failed Soft DOM / pixel QA.
+    expect(screen.getByTestId("pool-addliq-chat-clearance")).toBeTruthy();
+    expect(screen.getByTestId("pool-addliq").className).toMatch(
+      /w-\[calc\(100%-4rem\)\]/
     );
+    expect(screen.getByTestId("pool-addliq").className).toMatch(/\bself-start\b/);
   });
 
   it("shared TOKEN A/B updates all previews", () => {
