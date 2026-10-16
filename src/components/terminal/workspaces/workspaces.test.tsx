@@ -194,7 +194,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(screen.queryByRole("button", { name: /^TICKER$/i })).toBeNull();
   });
 
-  it("DEX tool is POOL only; lone auto-open on DEX entry (#220)", () => {
+  it("DEX tool is POOL only; lone auto-open + hide tool-tabs (#220/#221)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -205,11 +205,14 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onCommand={vi.fn()}
         onOpenPanel={onOpenPanel}
         onSubTabChange={onSubTabChange}
+        renderPanel={() => <div data-testid="panel-pool">pool</div>}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
     expect(onSubTabChange).toHaveBeenCalledWith("DEX");
-    expect(screen.getByRole("button", { name: /^POOL$/i })).toBeTruthy();
+    // Lone POOL → tool-tabs row hidden (#221 Soft ACK); no GET/CREATE/ADD LIQ
+    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^POOL$/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^GET POOL$/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^CREATE POOL$/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /^ADD LIQ$/i })).toBeNull();
@@ -217,7 +220,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(onOpenPanel).toHaveBeenCalledWith("pool");
   });
 
-  it("DEX POOL tool tab opens wired pool panel (#220)", () => {
+  it("DEX re-click sub-tab still opens pool panel (#220/#221)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -226,13 +229,16 @@ describe("WorkspaceSurface (#148/#160)", () => {
         activePanel={null}
         onCommand={vi.fn()}
         onOpenPanel={onOpenPanel}
+        renderPanel={() => <div data-testid="panel-pool">pool</div>}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
-    // auto-open already called pool; clicking POOL tab also opens
-    onOpenPanel.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: /^POOL$/i }));
+    // auto-open already called pool; re-click DEX sub-tab (no lone POOL tool button)
     expect(onOpenPanel).toHaveBeenCalledWith("pool");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("pool");
+    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
   });
 
   it("NEWS is the leftmost MARKET tool tab (#152)", () => {
@@ -366,7 +372,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(tabs.className).not.toMatch(/-mt-3/);
   });
 
-  it("lone-tab sub-tabs (PERPS, DEV SOURCE) hide the tool-tabs row (#220)", () => {
+  it("lone-tab sub-tabs (PERPS, DEX, DEV SOURCE) hide the tool-tabs row (#221/#220)", () => {
     render(
       <WorkspaceSurface
         theme={theme}
@@ -383,6 +389,9 @@ describe("WorkspaceSurface (#148/#160)", () => {
     // PERPS has a single wired action → row hidden; panel already open.
     expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
     expect(screen.getByTestId("panel-perps")).toBeTruthy();
+    // DEX lone POOL similarly hides the tool-tabs row (#220 Soft ACK + #221)
+    fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
+    expect(screen.queryByTestId("workspace-tool-tabs")).toBeNull();
   });
 
   it("INVEST sub-tab row is nowrap + max-md overflow-x-auto (#202)", () => {
