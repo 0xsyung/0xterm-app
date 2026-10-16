@@ -994,7 +994,7 @@ describe("DigSourcePanel OPEN pick + SAVE AS picker (#198)", () => {
     delete (window as any).showSaveFilePicker;
   });
 
-  it("SAVE AS AbortError falls back to download + Soft ACK (#199)", async () => {
+  it("SAVE AS AbortError does not download (#228)", async () => {
     loadDigSource.mockResolvedValue({
       filename: "Abort.sol",
       content: "body",
@@ -1013,11 +1013,36 @@ describe("DigSourcePanel OPEN pick + SAVE AS picker (#198)", () => {
       fireEvent.click(screen.getByTestId("dig-source-action-save-as"));
     });
     await waitFor(() => {
-      expect(createObjectURL).toHaveBeenCalled();
-      expect(screen.getByTestId("dig-source-download-ack").textContent).toMatch(
-        /\[✓\] Downloaded Abort\.sol\./
-      );
+      expect((window as any).showSaveFilePicker).toHaveBeenCalled();
     });
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("dig-source-download-ack")).toBeNull();
+    delete (window as any).showSaveFilePicker;
+  });
+
+  it("SAVE AS other picker failure does not download (#228)", async () => {
+    loadDigSource.mockResolvedValue({
+      filename: "Deny.sol",
+      content: "body",
+      updatedAt: 1
+    });
+    const err = new DOMException("Permission denied", "NotAllowedError");
+    (window as any).showSaveFilePicker = vi.fn(async () => {
+      throw err;
+    });
+    const createObjectURL = vi.fn(() => "blob:deny-fallback");
+    global.URL.createObjectURL = createObjectURL;
+    global.URL.revokeObjectURL = vi.fn();
+    render(<DigSourcePanel theme={theme} onClose={vi.fn()} />);
+    await waitFor(() => screen.getByTestId("dig-source-action-save-as"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dig-source-action-save-as"));
+    });
+    await waitFor(() => {
+      expect((window as any).showSaveFilePicker).toHaveBeenCalled();
+    });
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("dig-source-download-ack")).toBeNull();
     delete (window as any).showSaveFilePicker;
   });
 
