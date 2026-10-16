@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * @file PoolPanel.test.tsx
- * @description DEX POOL — QUOTE/SWAP + LOOKUP/CREATE/ADD LIQ stacked (#220/#224 reorg)
+ * @description DEX POOL — QUOTE/SWAP + LOOKUP/CREATE/ADD LIQ stacked (#220/#224/#226)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -54,6 +54,31 @@ describe("PoolPanel (#220)", () => {
     expect(screen.getByTestId("pool-lookup")).toBeTruthy();
     expect(screen.getByTestId("pool-create")).toBeTruthy();
     expect(screen.getByTestId("pool-addliq")).toBeTruthy();
+  });
+
+  it("LOOKUP shows NETWORK+DEX cue; unset falls back (#226 Soft leftover)", () => {
+    render(<PoolPanel {...baseProps} />);
+    const cue = screen.getByTestId("pool-lookup-cue");
+    expect(cue.textContent).toMatch(/NETWORK · — \(change NETWORK\)/);
+    expect(cue.textContent).toMatch(/DEX · —/);
+  });
+
+  it("LOOKUP cue surfaces networkLine + dexLine when set (#226)", () => {
+    render(
+      <PoolPanel
+        {...baseProps}
+        networkLine="on BASE"
+        dexLine="UNISWAP V3 (V3)"
+      />
+    );
+    const cue = screen.getByTestId("pool-lookup-cue");
+    expect(cue.textContent).toMatch(/NETWORK · on BASE/);
+    expect(cue.textContent).toMatch(/DEX · UNISWAP V3 \(V3\)/);
+  });
+
+  it("reserves bottom padding so ADD LIQ clears floating CHAT (#226)", () => {
+    render(<PoolPanel {...baseProps} />);
+    expect(screen.getByTestId("pool-panel").className).toMatch(/\bpb-16\b/);
   });
 
   it("shared TOKEN A/B updates all previews", () => {

@@ -1,6 +1,6 @@
 /**
  * @file PoolPanel.tsx
- * @description INVEST DEX POOL — shared pair + LOOKUP/CREATE/ADD LIQ stacked (#220)
+ * @description INVEST DEX POOL — shared pair + LOOKUP/CREATE/ADD LIQ stacked (#220/#226)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -540,7 +540,7 @@ export default function PoolPanel({
 
   return (
     <div
-      className={`w-full flex flex-col gap-3 ${
+      className={`w-full flex flex-col gap-3 pb-16 ${
         frameless
           ? ""
           : `max-w-[390px] p-3 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
@@ -910,6 +910,15 @@ export default function PoolPanel({
 
       {/* ── LOOKUP ── */}
       {sectionLabel("LOOKUP")}
+      <div
+        className={`text-[9px] ${theme.muted} font-mono space-y-0.5`}
+        data-testid="pool-lookup-cue"
+      >
+        <div>
+          NETWORK · {networkLine ?? "— (change NETWORK)"}
+        </div>
+        <div>DEX · {dexLine ?? "—"}</div>
+      </div>
       <button
         type="button"
         onClick={() => void runLookup()}

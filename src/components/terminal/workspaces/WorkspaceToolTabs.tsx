@@ -17,6 +17,10 @@ import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
  * #198: sticky tabs keep solid theme.bg + border-b; no -mt-3 overlap onto
  * panel header — ≥8px gap under the row so title never sits under z-index.
  * #202: on max-md drop sticky (static) so tool tabs + Perps tabs do not dual-pin.
+ * #226: when a panel is open, drop sticky entirely — scrollIntoView / tall
+ * panels (POOL) were pinning the row over POOL title · PAIR · TOKEN A labels
+ * with no way to scroll the chrome back into view when the panel fit the
+ * viewport. Empty ModeEmpty keeps sticky so short browse still pins.
  */
 export function WorkspaceToolTabs({
   theme,
@@ -34,9 +38,14 @@ export function WorkspaceToolTabs({
   const touch =
     "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
 
+  const stick =
+    activeTool != null
+      ? "relative z-auto"
+      : "sticky top-0 z-10 max-md:static max-md:z-auto";
+
   return (
     <div
-      className={`sticky top-0 z-10 max-md:static max-md:z-auto -mx-3 px-3 pt-2 pb-2 mb-2 flex flex-wrap gap-1.5 border-b ${theme.border} ${theme.bg}`}
+      className={`${stick} -mx-3 px-3 pt-2 pb-2 mb-2 flex flex-wrap gap-1.5 border-b ${theme.border} ${theme.bg}`}
       data-testid="workspace-tool-tabs"
     >
       {actions.map((a) => {

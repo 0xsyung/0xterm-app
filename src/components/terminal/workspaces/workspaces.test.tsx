@@ -415,16 +415,34 @@ describe("WorkspaceSurface (#148/#160)", () => {
       <WorkspaceSurface
         theme={theme}
         mode="invest"
-        activePanel="perps"
+        activePanel={null}
         onCommand={vi.fn()}
         onOpenPanel={vi.fn()}
-        renderPanel={() => <div data-testid="panel-perps">perps</div>}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
     const tabs = screen.getByTestId("workspace-tool-tabs");
+    // Empty ModeEmpty: sticky retained (#198), de-stacked on max-md (#202).
     expect(tabs.className).toMatch(/\bsticky\b/);
     expect(tabs.className).toMatch(/max-md:static/);
+  });
+
+  it("tool tabs drop sticky when a panel is open (#226 chrome)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="invest"
+        activePanel="pool"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={() => <div data-testid="panel-pool">pool</div>}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
+    const tabs = screen.getByTestId("workspace-tool-tabs");
+    // Panel open: static so sticky row cannot cover POOL header / PAIR labels.
+    expect(tabs.className).not.toMatch(/\bsticky\b/);
+    expect(tabs.className).toMatch(/\brelative\b/);
   });
 
   it("keeps tool tabs visible and renders the panel below when one is open", () => {
