@@ -57,6 +57,9 @@ export default defineConfig({
         // poly trade/collateral chrome (#20) — wagmi write + CLOB sign; logic in poly/*.ts
         "src/components/terminal/widgets/PolyTradeWidget.tsx",
         "src/components/terminal/widgets/PolyCollateralWidget.tsx",
+        // mixer deposit/withdraw chrome (#111) — wagmi write; logic in mixer/*.ts
+        "src/components/terminal/widgets/MixerDepositWidget.tsx",
+        "src/components/terminal/widgets/MixerWithdrawWidget.tsx",
         // wagmi provider/app glue + GA4 adapter — thin entry chrome (#6)
         "src/config/wagmi.ts",
         "src/app/layout.tsx",

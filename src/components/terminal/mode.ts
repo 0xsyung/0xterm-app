@@ -151,6 +151,7 @@ const COMMAND_AFFINITY: Record<string, CommandAffinity> = {
   will: "invest",
   arb: "invest",
   allowances: "invest",
+  mixer: "invest",
 
   // —— dig (workshop verbs) ——
   dig: "dev",
@@ -205,7 +206,8 @@ const FORENSIC_BLOCKED_INVEST = new Set([
   "pred",
   "when",
   "will",
-  "allowances"
+  "allowances",
+  "mixer"
 ]);
 
 export function isTerminalMode(value: unknown): value is TerminalMode {
@@ -805,6 +807,36 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["invest"]
   },
 
+{
+    command: "mixer",
+    description: "Privacy-pool mixer status / usage (Tornado Classic–style v1)",
+    modes: ["invest"]
+  },
+  {
+    command: "mixer pools",
+    description: "Supported pools on this chain (denomination, token, balance)",
+    modes: ["invest"]
+  },
+  {
+    command: "mixer deposit <amount> [pool]",
+    description: "Generate encrypted note + deposit commitment (wallet confirms)",
+    modes: ["invest"]
+  },
+  {
+    command: "mixer withdraw <note>",
+    description: "Local SNARK proof + withdraw to a fresh recipient",
+    modes: ["invest"]
+  },
+  {
+    command: "mixer status <note>",
+    description: "Spent / unspent from on-chain state",
+    modes: ["invest"]
+  },
+  {
+    command: "mixer notes",
+    description: "List locally stored encrypted notes (secrets never shown)",
+    modes: ["invest"]
+  },
 
   // dig (workshop — mode id dev)
   {

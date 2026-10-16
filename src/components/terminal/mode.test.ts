@@ -146,7 +146,8 @@ describe("isCommandAllowed — classification table", () => {
     "addliq",
     "provideliq",
     "arb",
-    "allowances"
+    "allowances",
+    "mixer"
   ];
 
   it("globals work in every mode", () => {
@@ -173,6 +174,7 @@ describe("isCommandAllowed — classification table", () => {
       "initialize",
       "arb",
       "allowances",
+      "mixer",
       "plan",
       "getpool",
       "pool",
@@ -287,6 +289,7 @@ describe("helpRowsForMode", () => {
     const cmds = helpRowsForMode("invest").map((r) => r.command);
     expect(cmds.some((c) => c.startsWith("swap"))).toBe(true);
     expect(cmds.some((c) => c.startsWith("allowances"))).toBe(true);
+    expect(cmds.some((c) => c.startsWith("mixer"))).toBe(true);
     expect(cmds.some((c) => c === "ticker" || c.startsWith("ticker "))).toBe(true);
     expect(cmds.some((c) => c === "poly" || c.startsWith("poly "))).toBe(true);
     expect(cmds.some((c) => c === "pred")).toBe(true);
@@ -319,6 +322,7 @@ describe("helpRowsForMode", () => {
     expect(cmds.some((c) => c.startsWith("kya "))).toBe(true);
     expect(cmds.some((c) => c.startsWith("swap"))).toBe(false);
     expect(cmds.some((c) => c.startsWith("dig"))).toBe(false);
+    expect(cmds.some((c) => c.startsWith("mixer"))).toBe(false);
   });
 });
 
