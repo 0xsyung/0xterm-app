@@ -24,10 +24,28 @@ export const FORENSIC_SUB_TABS: { id: ForensicSubTab; label: string }[] = [
  * Never wire READ with only `price` — lone-tool auto-open of INVEST PricePanel (#194).
  */
 export const FORENSIC_ACTIONS: WorkspaceAction[] = [
-  // unfinished = hidden until panel wired (#160)
-  { cmd: "kyt", label: "KYT", hint: "screen address", tab: "SCREEN" },
-  { cmd: "kya", label: "KYA", hint: "screen address", tab: "SCREEN" },
-  { cmd: "is", label: "CHECK TOKEN", hint: "check token standard", tab: "SCREEN" },
+  // #170 Soft ACK — SCREEN KYT · KYA · CHECK TOKEN
+  {
+    cmd: "kyt",
+    label: "KYT",
+    hint: "open kyt panel",
+    panel: "kyt",
+    tab: "SCREEN"
+  },
+  {
+    cmd: "kya",
+    label: "KYA",
+    hint: "open kya panel",
+    panel: "kya",
+    tab: "SCREEN"
+  },
+  {
+    cmd: "is",
+    label: "CHECK TOKEN",
+    hint: "open check token panel",
+    panel: "is",
+    tab: "SCREEN"
+  },
   {
     cmd: "sim",
     label: "SIM",
