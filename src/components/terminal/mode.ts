@@ -855,6 +855,41 @@ export const HELP_ROWS: HelpRow[] = [
     command: "trace <txhash>",
     description: "Render an opcode trace via debug_traceTransaction",
     modes: ["forensic"]
+  },
+  {
+    command: "kyt <txhash> [--hops 1-5]",
+    description: "Heuristic v1 hop trace: OFAC / mixer / bridge / CEX labels (default 3 hops, max 5)",
+    modes: ["forensic"]
+  },
+  {
+    command: "kyt set explorer <etherscanV2Key>",
+    description: "Etherscan API v2 key for hops (shared with kya)",
+    modes: ["forensic"]
+  },
+  {
+    command: "kyt set provider elliptic|chainalysis|trm <key>",
+    description: "Store a vendor key; v1 still runs heuristic until the vendor client ships (kyt.vendor_unwired)",
+    modes: ["forensic"]
+  },
+  {
+    command: "kyt provider",
+    description: "Print active screening mode (heuristic v1 until a vendor client runs)",
+    modes: ["forensic"]
+  },
+  {
+    command: "kyt refresh ofac",
+    description: "Rebuild OFAC SDN address extract from Treasury (falls back to snapshot)",
+    modes: ["forensic"]
+  },
+  {
+    command: "kyt labels",
+    description: "Label-set version, OFAC as-of, mixer/bridge/CEX counts",
+    modes: ["forensic"]
+  },
+  {
+    command: "kya <address|ens> [--export] [--hops 1-5]",
+    description: "Heuristic v1 address history: first/last, sampled volume, counterparties, shared OFAC/mixer/bridge/CEX labels",
+    modes: ["forensic"]
   }
 ];
 

@@ -299,10 +299,12 @@ describe("helpRowsForMode", () => {
     expect(cmds.some((c) => c.startsWith("swap"))).toBe(false);
   });
 
-  it("forensic includes price/is, excludes swap/dig", () => {
+  it("forensic includes price/is/kyt/kya, excludes swap/dig", () => {
     const cmds = helpRowsForMode("forensic").map((r) => r.command);
     expect(cmds.some((c) => c.startsWith("price"))).toBe(true);
     expect(cmds.some((c) => c.startsWith("is "))).toBe(true);
+    expect(cmds.some((c) => c.startsWith("kyt "))).toBe(true);
+    expect(cmds.some((c) => c.startsWith("kya "))).toBe(true);
     expect(cmds.some((c) => c.startsWith("swap"))).toBe(false);
     expect(cmds.some((c) => c.startsWith("dig"))).toBe(false);
   });

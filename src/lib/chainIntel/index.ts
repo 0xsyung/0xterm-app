@@ -11,3 +11,4 @@ export * from "./scoring";
 export * from "./hopsSource";
 export * from "./kyt";
 export * from "./kya";
+export * from "./cli";

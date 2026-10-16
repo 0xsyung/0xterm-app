@@ -378,10 +378,12 @@ import TracePanel, {
   type TraceRunResult
 } from "./sim/TracePanel";
 import KytPanel, {
+  KytResultCard,
   type KytRunArgs,
   type KytRunResult
 } from "./screen/KytPanel";
 import KyaPanel, {
+  KyaResultCard,
   type KyaRunArgs,
   type KyaRunResult
 } from "./screen/KyaPanel";
@@ -393,7 +395,21 @@ import {
   runKytHeuristic,
   runKyaHeuristic,
   KYT_ERROR,
-  KYA_ERROR
+  KYA_ERROR,
+  parseKytCli,
+  parseKyaCli,
+  KYT_USAGE,
+  KYA_USAGE,
+  formatKytLabelsSummary,
+  formatKytProviderLine,
+  tryRefreshOfac,
+  applyExplorerKeyToChains,
+  downloadKyaJson,
+  shortTxTitle,
+  shortAddrTitle,
+  loadKytVendor,
+  KYT_VENDOR_PREF_KEY,
+  type KytVendorPrefs
 } from "../../lib/chainIntel";
 import InfoPanel, {
   explorerViewLabel,
@@ -715,6 +731,17 @@ export default function TerminalShell({
       prefs = {};
     }
     return loadExplorerKeys(prefs);
+  });
+  const [kytVendor, setKytVendor] = useState<KytVendorPrefs | null>(() => {
+    if (typeof window === "undefined") return null;
+    let prefs: Record<string, unknown> = {};
+    try {
+      const raw = localStorage.getItem("0xterm_user_");
+      if (raw) prefs = JSON.parse(raw);
+    } catch {
+      prefs = {};
+    }
+    return loadKytVendor(prefs);
   });
 
   // F-key bindings (#28): device-level so F-keys work logged-out. Only diffs
@@ -1704,6 +1731,7 @@ export default function TerminalShell({
           if (prefs.activeRpcProviders)
             setActiveRpcProviders(prefs.activeRpcProviders);
           setExplorerKeys(loadExplorerKeys(prefs));
+          setKytVendor(loadKytVendor(prefs));
 
           if (Array.isArray(prefs.pinned) && prefs.pinned.length > 0) {
             const clean = prefs.pinned
@@ -2900,6 +2928,7 @@ export default function TerminalShell({
       savePreference("activeRpcProviders", patch.activeRpcProviders);
     }
     setExplorerKeys(loadExplorerKeys(patch.preferencesToPersist));
+    setKytVendor(loadKytVendor(patch.preferencesToPersist));
     const mergedBindings = mergeImportedBindings(
       loadBindings(window.localStorage),
       patch.preferencesToPersist?.bindings
@@ -4594,6 +4623,7 @@ export default function TerminalShell({
           if (data.preferences.activeRpcProviders)
             setActiveRpcProviders(data.preferences.activeRpcProviders);
           setExplorerKeys(loadExplorerKeys(data.preferences));
+          setKytVendor(loadKytVendor(data.preferences));
           const mergedBindings = mergeImportedBindings(
             loadBindings(window.localStorage),
             data.preferences.bindings
@@ -6449,6 +6479,215 @@ export default function TerminalShell({
         type: "component",
         component: widget,
         title: `TRACE ${truncateAddress(args[1])}`
+      };
+    },
+    kyt: async (args) => {
+      // kyt <txhash> [--hops] | set explorer|provider | provider | refresh ofac | labels (#16)
+      const action = parseKytCli(args);
+      if (action.kind === "usage") {
+        return { id: generateId(), type: "text", text: KYT_USAGE };
+      }
+      if (action.kind === "error") {
+        return { id: generateId(), type: "text", warn: true, text: action.error };
+      }
+      if (action.kind === "labels") {
+        return {
+          id: generateId(),
+          type: "text",
+          text: formatKytLabelsSummary()
+        };
+      }
+      if (action.kind === "provider") {
+        return {
+          id: generateId(),
+          type: "text",
+          text: formatKytProviderLine(kytVendor)
+        };
+      }
+      if (action.kind === "set_explorer") {
+        const chainIds = SUPPORTED_CHAINS.map((c) => c.id);
+        const next = applyExplorerKeyToChains(explorerKeys, chainIds, action.key);
+        setExplorerKeys(next);
+        savePreference("explorerKeys", next);
+        return {
+          id: generateId(),
+          type: "text",
+          text: "[✓] Etherscan API v2 key saved for hops (shared with kya)."
+        };
+      }
+      if (action.kind === "set_provider") {
+        const next: KytVendorPrefs = { name: action.vendor, key: action.key };
+        setKytVendor(next);
+        savePreference(KYT_VENDOR_PREF_KEY, next);
+        return {
+          id: generateId(),
+          type: "text",
+          text: KYT_ERROR.vendor_unwired
+        };
+      }
+      if (action.kind === "refresh_ofac") {
+        const refreshed = await tryRefreshOfac();
+        if (!refreshed.ok) {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: refreshed.error
+          };
+        }
+        return { id: generateId(), type: "text", text: refreshed.note };
+      }
+      // run
+      const { chainId: activeCid } = beginActionNetwork("kyt");
+      const chainObj = activeCid
+        ? SUPPORTED_CHAINS.find((c) => c.id === activeCid)
+        : undefined;
+      if (!chainObj) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: KYT_ERROR.no_network
+        };
+      }
+      let client;
+      try {
+        client = getClient(chainObj);
+      } catch (e: unknown) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: e instanceof Error ? e.message : KYT_ERROR.rpc_fail
+        };
+      }
+      const rpcUrl = resolveRpcUrl(chainObj);
+      const explorerKey = explorerKeys[chainObj.id] || null;
+      const apiUrl = explorerApiUrl(chainObj);
+      const outcome = await runKytHeuristic({
+        txHash: action.txHash,
+        hops: action.hops,
+        chainId: chainObj.id,
+        chainName: chainObj.name,
+        client,
+        hopsSource: { rpcUrl, explorerKey },
+        alchemyRpcUrl: rpcUrl,
+        explorer:
+          explorerKey && apiUrl ? { apiUrl, apiKey: explorerKey } : null
+      });
+      if (!outcome.ok) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: outcome.error
+        };
+      }
+      const card = (
+        <KytResultCard data={outcome.result} theme={theme} />
+      );
+      return {
+        id: generateId(),
+        type: "component",
+        component: card,
+        title: `KYT ${shortTxTitle(outcome.result.txHash)}`,
+        componentData: { kind: "kyt", txHash: outcome.result.txHash }
+      };
+    },
+    kya: async (args) => {
+      // kya <address|ens> [--export] [--hops] (#17) — keys via kyt set …
+      const action = parseKyaCli(args);
+      if (action.kind === "usage") {
+        return { id: generateId(), type: "text", text: KYA_USAGE };
+      }
+      if (action.kind === "error") {
+        return { id: generateId(), type: "text", warn: true, text: action.error };
+      }
+      const { chainId: activeCid } = beginActionNetwork("kya");
+      const chainObj = activeCid
+        ? SUPPORTED_CHAINS.find((c) => c.id === activeCid)
+        : undefined;
+      if (!chainObj) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: KYA_ERROR.no_network
+        };
+      }
+      let subject = action.subject;
+      let ensLabel: string | undefined;
+      if (!/^0x[0-9a-fA-F]{40}$/.test(subject)) {
+        try {
+          const resolved = await getClient(chainObj).getEnsAddress({
+            name: subject
+          });
+          if (!resolved) {
+            return {
+              id: generateId(),
+              type: "text",
+              warn: true,
+              text: KYA_ERROR.bad_ens(chainObj.name)
+            };
+          }
+          ensLabel = subject;
+          subject = resolved;
+        } catch {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: KYA_ERROR.bad_ens(chainObj.name)
+          };
+        }
+      }
+      let client;
+      try {
+        client = getClient(chainObj);
+      } catch (e: unknown) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: e instanceof Error ? e.message : KYA_ERROR.no_source
+        };
+      }
+      const rpcUrl = resolveRpcUrl(chainObj);
+      const explorerKey = explorerKeys[chainObj.id] || null;
+      const apiUrl = explorerApiUrl(chainObj);
+      const outcome = await runKyaHeuristic({
+        address: subject,
+        hops: action.hops,
+        chainId: chainObj.id,
+        chainName: chainObj.name,
+        client,
+        hopsSource: { rpcUrl, explorerKey },
+        alchemyRpcUrl: rpcUrl,
+        explorer:
+          explorerKey && apiUrl ? { apiUrl, apiKey: explorerKey } : null,
+        ens: ensLabel
+      });
+      if (!outcome.ok) {
+        return {
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: outcome.error
+        };
+      }
+      if (action.exportJson) {
+        downloadKyaJson(outcome.result, chainObj.id, outcome.result.address);
+      }
+      const card = (
+        <KyaResultCard data={outcome.result} theme={theme} />
+      );
+      const titleSubject = ensLabel || shortAddrTitle(outcome.result.address);
+      return {
+        id: generateId(),
+        type: "component",
+        component: card,
+        title: `KYA ${titleSubject}`,
+        componentData: { kind: "kya", address: outcome.result.address }
       };
     },
     balance: async (args) => await buildBalance(args),
