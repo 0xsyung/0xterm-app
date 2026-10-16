@@ -655,6 +655,45 @@ export const chatFactoryAbi = parseAbi([
   'event ChannelCreated(address indexed channel, address indexed deployer, string name, uint256 fee)',
 ])
 
+/** Shared GroupChat logic per chain (GroupChatFactory.implementation). Fill after DeployGroupChat. */
+export const GROUP_CHAT_IMPLEMENTATION: Record<number, Address> = {
+}
+
+/** EIP-1167 factory per chain for self-managed groups (#77). Fill after DeployGroupChat. */
+export const GROUP_CHAT_FACTORY: Record<number, Address> = {
+}
+
+export const groupChatAbi = parseAbi([
+  'function sendMessage(bytes12 iv, bytes calldata senderKey, bytes calldata ciphertext) payable returns (bytes32 id)',
+  'function getMessages(uint256 start, uint256 count) view returns ((address from, uint256 timestamp, bytes12 iv, bytes senderKey, bytes ciphertext)[] msgs)',
+  'function messageCount() view returns (uint256)',
+  'function getMembers() view returns (address[])',
+  'function memberCount() view returns (uint256)',
+  'function isMember(address who) view returns (bool)',
+  'function invite(address who)',
+  'function join()',
+  'function leave()',
+  'function alive() view returns (bool)',
+  'function setPublicKey(bytes key, uint8 v, bytes32 r, bytes32 s)',
+  'function getPublicKey(address who) view returns (bytes)',
+  'function setEnvelope(address who, bytes wrapped)',
+  'function getEnvelope(address who) view returns (bytes)',
+  'function fee() view returns (uint256)',
+  'function name() view returns (string)',
+  'function owner() view returns (address)',
+  'function setFee(uint256 newFee)',
+  'function withdraw(address to)',
+  'function transferOwnership(address newOwner)',
+  'function initialize(uint256 initialFee, string name, address initialOwner)',
+  'function invited(address who) view returns (bool)',
+])
+
+export const groupChatFactoryAbi = parseAbi([
+  'function implementation() view returns (address)',
+  'function deploy(string name, uint256 initialFee) returns (address group)',
+  'event GroupCreated(address indexed group, address indexed deployer, string name, uint256 fee)',
+])
+
 export const resolveChain = (query?: string): Chain | undefined => {
   if (!query) return undefined
   const q = query.toLowerCase().trim()

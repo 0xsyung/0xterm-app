@@ -92,6 +92,7 @@ describe("isPinnableManifest", () => {
   it("rejects manifests for non-live kinds", () => {
     expect(isPinnableManifest({ kind: "networks" })).toBe(false);
     expect(isPinnableManifest({ kind: "chat" })).toBe(false);
+    expect(isPinnableManifest({ kind: "gchat" })).toBe(false);
     expect(isPinnableManifest({ kind: "billboard" })).toBe(false);
     expect(isPinnableManifest({ kind: "share" })).toBe(false);
     expect(isPinnableManifest({ kind: "feed" })).toBe(false);

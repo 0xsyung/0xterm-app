@@ -8,6 +8,7 @@ import {
   BILLBOARD_CONTRACT,
   CHAT_FACTORY,
   CHAT_PRESETS,
+  GROUP_CHAT_FACTORY,
   DEX_REGISTRY,
   ENS_CONTRACT,
   IMPLEMENTATION_ADDRESSES,
@@ -29,6 +30,7 @@ export type ActionId =
   | "vault"
   | "dig"
   | "chat"
+  | "gchat"
   | "board"
   | "share"
   | "createpool"
@@ -84,6 +86,12 @@ const chatChainIds = (): number[] =>
     ])
   );
 
+const gchatChainIds = (): number[] => {
+  const fromFactory = Object.keys(GROUP_CHAT_FACTORY).map(Number);
+  // Until factory is filled, allow same testnets as chat presets/factory.
+  return Array.from(new Set([...fromFactory, ...chatChainIds()]));
+};
+
 const boardChainIds = (): number[] =>
   Object.keys(BILLBOARD_CONTRACT).map(Number);
 
@@ -134,6 +142,12 @@ export const ACTION_NETWORK_REGISTRY: readonly ActionDef[] = [
     label: "chat",
     kind: "write",
     supportedChainIds: chatChainIds()
+  },
+  {
+    id: "gchat",
+    label: "gchat",
+    kind: "write",
+    supportedChainIds: gchatChainIds()
   },
   {
     id: "board",
