@@ -1,9 +1,11 @@
 /**
  * @file validation.ts
- * @description Tick/lot size validation + price/size string normalization (#190)
+ * @description Tick/lot size validation + price/size + deposit floor (#190/#224)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
+
+import { HL_MIN_DEPOSIT_USDC } from "./config";
 
 /** Strip trailing zeros that Hyperliquid rejects on `p` / `s` strings. */
 export function stripTrailingZeros(raw: string): string {
@@ -22,6 +24,19 @@ export function parsePositiveNumber(raw: string): number | null {
   const n = Number(t);
   if (!Number.isFinite(n) || n <= 0) return null;
   return n;
+}
+
+/**
+ * Hyperliquid bridge floor: deposits under `HL_MIN_DEPOSIT_USDC` are not
+ * credited and are lost. Reject empty/non-positive and sub-minimum amounts.
+ */
+export function validateDepositAmount(raw: string): string | null {
+  const n = parsePositiveNumber(raw);
+  if (n == null) return "Enter a deposit amount.";
+  if (n < HL_MIN_DEPOSIT_USDC) {
+    return `Minimum deposit is ${HL_MIN_DEPOSIT_USDC} USDC (smaller amounts are not credited).`;
+  }
+  return null;
 }
 
 /**

@@ -15,11 +15,13 @@ export const HL_L1_TYPED_DATA_CHAIN_ID = 1337;
 
 /**
  * EIP-712 signatureChainId for user-signed actions (approveAgent / approveBuilderFee).
- * Wallets must be able to switch to this chain. Demo + SDK use Arbitrum Sepolia for
- * testnet and Arbitrum One for mainnet — not HyperEVM itself.
+ * The SDK hardcodes 0x66eee (Arbitrum Sepolia) for BOTH networks — the
+ * signatureChainId field AND the EIP-712 domain chainId. The wallet is switched
+ * there to sign and restored to HyperEVM afterwards. 0xterm uses the same
+ * signing chain for mainnet and testnet (demo README: user-signed always 0x66eee).
  */
 export const HL_TESTNET_SIGNATURE_CHAIN_ID = 0x66eee; // Arbitrum Sepolia
-export const HL_MAINNET_SIGNATURE_CHAIN_ID = 0xa4b1; // Arbitrum One
+export const HL_MAINNET_SIGNATURE_CHAIN_ID = 0x66eee; // Arbitrum Sepolia (SDK constant for both)
 
 export const HL_API_MAINNET = "https://api.hyperliquid.xyz";
 export const HL_API_TESTNET = "https://api.hyperliquid-testnet.xyz";
@@ -107,6 +109,39 @@ export function hlSignatureChainIdHex(network: HlNetwork): `0x${string}` {
 export function hlEvmChainId(network: HlNetwork): number {
   return network === "mainnet" ? HL_MAINNET_CHAIN_ID : HL_TESTNET_CHAIN_ID;
 }
+
+/**
+ * On-chain USDC deposit targets for the Hyperliquid bridge (demo
+ * src/ethereum/bridge.ts). Depositing = sending native USDC from the listed EVM
+ * chain to the bridge; HyperCore credits the *sending* account in under a
+ * minute (`HL_MIN_DEPOSIT_USDC` minimum — smaller amounts are not credited and
+ * are lost). Mainnet uses Arbitrum One (0xa4b1), testnet uses Arbitrum Sepolia
+ * (0x66eee) — the same chain the user-signed signing flow already switches to.
+ */
+/** Hyperliquid bridge minimum — deposits below this are not credited / lost. */
+export const HL_MIN_DEPOSIT_USDC = 5;
+
+export type HlDepositTarget = {
+  /** EIP-1193 hex chain id of the deposit chain. */
+  chainId: number;
+  /** Native USDC (Circle) on the deposit chain. */
+  usdcAddress: `0x${string}`;
+  /** Hyperliquid deposit bridge contract. */
+  bridgeAddress: `0x${string}`;
+};
+
+export const HL_DEPOSIT: Record<HlNetwork, HlDepositTarget> = {
+  mainnet: {
+    chainId: 0xa4b1, // Arbitrum One
+    usdcAddress: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    bridgeAddress: "0x2Df1c51E09aECF9cacB7bc98cB1742757f163dF7"
+  },
+  testnet: {
+    chainId: 0x66eee, // Arbitrum Sepolia
+    usdcAddress: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    bridgeAddress: "0x08cfc1B6b2dCF36A1480b99353A354AA8AC56f89"
+  }
+};
 
 export function networkFromEvmChainId(chainId: number | null | undefined): HlNetwork {
   if (chainId === HL_MAINNET_CHAIN_ID) return "mainnet";

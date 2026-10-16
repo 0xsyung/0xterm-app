@@ -11,6 +11,9 @@ import {
   fetchMaxBuilderFee,
   fetchMeta,
   fetchOpenOrders,
+  fetchSpotClearinghouseState,
+  fetchUserAbstraction,
+  fetchUserFills,
   midPxForCoin
 } from "./info";
 
@@ -75,5 +78,37 @@ describe("hl info client (#190)", () => {
     await expect(fetchMeta("testnet", mockFetch(null, false))).rejects.toThrow(
       /HTTP 500/
     );
+  });
+
+  it("fetchSpotClearinghouseState returns USDC balance", async () => {
+    const spot = await fetchSpotClearinghouseState(
+      "testnet",
+      "0xu",
+      mockFetch({ balances: [{ coin: "USDC", total: "42", hold: "0" }] })
+    );
+    expect(spot.balances?.[0]?.total).toBe("42");
+  });
+
+  it("fetchUserAbstraction normalizes mode", async () => {
+    expect(
+      await fetchUserAbstraction(
+        "testnet",
+        "0xu",
+        mockFetch("unifiedAccount")
+      )
+    ).toBe("unifiedAccount");
+    expect(
+      await fetchUserAbstraction("testnet", "0xu", mockFetch("bogus"))
+    ).toBeNull();
+  });
+
+  it("fetchUserFills returns array (non-array → empty)", async () => {
+    const fills = await fetchUserFills(
+      "testnet",
+      "0xu",
+      mockFetch([{ coin: "BTC", px: "1", sz: "1", side: "B", time: 1, startPosition: "0" }])
+    );
+    expect(fills).toHaveLength(1);
+    expect(await fetchUserFills("testnet", "0xu", mockFetch({ nope: true }))).toEqual([]);
   });
 });

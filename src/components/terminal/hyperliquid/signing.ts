@@ -7,6 +7,7 @@
 import { encode as encodeMsgpack } from "@msgpack/msgpack";
 import {
   keccak256,
+  recoverTypedDataAddress,
   type Hex,
   type PrivateKeyAccount,
   type TypedDataDefinition
@@ -216,6 +217,26 @@ export const ApproveBuilderFeeTypes = {
   ]
 } as const;
 
+export const WithdrawTypes = {
+  EIP712Domain: [...EIP712_DOMAIN_FIELDS],
+  "HyperliquidTransaction:Withdraw": [
+    { name: "hyperliquidChain", type: "string" },
+    { name: "destination", type: "string" },
+    { name: "amount", type: "string" },
+    { name: "time", type: "uint64" }
+  ]
+} as const;
+
+export const UsdClassTransferTypes = {
+  EIP712Domain: [...EIP712_DOMAIN_FIELDS],
+  "HyperliquidTransaction:UsdClassTransfer": [
+    { name: "hyperliquidChain", type: "string" },
+    { name: "amount", type: "string" },
+    { name: "toPerp", type: "bool" },
+    { name: "nonce", type: "uint64" }
+  ]
+} as const;
+
 export function buildApproveAgentAction(args: {
   network: HlNetwork;
   agentAddress: `0x${string}`;
@@ -248,39 +269,131 @@ export function buildApproveBuilderFeeAction(args: {
   };
 }
 
-export async function signUserTypedData(args: {
-  signTypedDataAsync: SignTypedDataFn;
-  network: HlNetwork;
-  types: typeof ApproveAgentTypes | typeof ApproveBuilderFeeTypes;
+export type UserSignedTypedData = {
+  domain: Record<string, unknown>;
+  types: Record<string, { name: string; type: string }[]>;
   primaryType: string;
   message: Record<string, unknown>;
-}): Promise<HlSignature> {
-  const domain = {
-    name: "HyperliquidSignTransaction",
-    version: "1",
-    chainId: parseInt(hlSignatureChainIdHex(args.network), 16),
-    verifyingContract: ZERO_ADDRESS
-  };
-  // Filter message to known type keys (exclude `type` / signatureChainId).
-  const typesMap = args.types as Record<
-    string,
-    readonly { name: string; type: string }[]
-  >;
-  const primaryFields = typesMap[args.primaryType] || [];
-  const known = new Set<string>(primaryFields.map((f) => f.name));
-  const message = Object.fromEntries(
-    Object.entries(args.message).filter(([k]) => known.has(k))
-  );
-  const sig = await args.signTypedDataAsync({
-    domain,
-    types: args.types as unknown as Record<
-      string,
-      { name: string; type: string }[]
-    >,
-    primaryType: args.primaryType,
+};
+
+export type HlUserSignedTypes =
+  | typeof ApproveAgentTypes
+  | typeof ApproveBuilderFeeTypes
+  | typeof WithdrawTypes
+  | typeof UsdClassTransferTypes;
+
+export function userSignedTypedData(
+  network: HlNetwork,
+  types: HlUserSignedTypes,
+  primaryType: string,
+  message: Record<string, unknown>
+): UserSignedTypedData {
+  return {
+    domain: {
+      name: "HyperliquidSignTransaction",
+      version: "1",
+      chainId: parseInt(hlSignatureChainIdHex(network), 16),
+      verifyingContract: ZERO_ADDRESS
+    },
+    types: types as unknown as Record<string, { name: string; type: string }[]>,
+    primaryType,
+    // The FULL action is the EIP-712 message — matches the SDK's
+    // signUserSignedAction (wallets encode only the declared primary fields).
     message
-  });
-  return splitSignature(sig);
+  };
+}
+
+export function buildWithdrawAction(args: {
+  network: HlNetwork;
+  amount: string;
+  destination: `0x${string}`;
+  time: number;
+}): Record<string, unknown> {
+  return {
+    type: "withdraw3",
+    signatureChainId: hlSignatureChainIdHex(args.network),
+    hyperliquidChain: hlHyperliquidChain(args.network),
+    destination: args.destination.toLowerCase(),
+    amount: args.amount,
+    time: args.time
+  };
+}
+
+export function buildUsdClassTransferAction(args: {
+  network: HlNetwork;
+  amount: string;
+  toPerp: boolean;
+  nonce: number;
+}): Record<string, unknown> {
+  return {
+    type: "usdClassTransfer",
+    signatureChainId: hlSignatureChainIdHex(args.network),
+    hyperliquidChain: hlHyperliquidChain(args.network),
+    amount: args.amount,
+    toPerp: args.toPerp,
+    nonce: args.nonce
+  };
+}
+
+export function buildUpdateLeverageAction(args: {
+  asset: number;
+  leverage: number;
+  isCross: boolean;
+}): Record<string, unknown> {
+  return { type: "updateLeverage", asset: args.asset, isCross: args.isCross, leverage: args.leverage };
+}
+
+export type SignAndRecoverResult = {
+  signature: HlSignature;
+  recovered: string | null;
+};
+
+/**
+ * Sign a user-signed action and recover who actually signed it, so callers can
+ * reject a mismatched signature before posting (server error would otherwise be
+ * the misleading "Must deposit before performing actions").
+ */
+export async function signUserTypedDataAndRecover(args: {
+  signTypedDataAsync: SignTypedDataFn;
+  network: HlNetwork;
+  types: HlUserSignedTypes;
+  primaryType: string;
+  message: Record<string, unknown>;
+}): Promise<SignAndRecoverResult> {
+  const typedData = userSignedTypedData(
+    args.network,
+    args.types,
+    args.primaryType,
+    args.message
+  );
+  const hex = await args.signTypedDataAsync(typedData);
+  return {
+    signature: splitSignature(hex),
+    recovered: await recoverTypedDataSigner(typedData, hex)
+  };
+}
+
+/**
+ * Recover the signer of a user-signed typed-data signature (viem EIP-712).
+ * Hyperliquid recovers the address server-side too, so surfacing it lets the UI
+ * diagnose a mismatch ("Must deposit before performing actions") before posting.
+ */
+export async function recoverTypedDataSigner(
+  typedData: UserSignedTypedData,
+  signature: Hex
+): Promise<string | null> {
+  try {
+    const addr = await recoverTypedDataAddress({
+      domain: typedData.domain as never,
+      types: typedData.types as never,
+      primaryType: typedData.primaryType as never,
+      message: typedData.message as never,
+      signature
+    } as Parameters<typeof recoverTypedDataAddress>[0]);
+    return addr.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 export function agentAccount(privateKey: Hex): PrivateKeyAccount {
@@ -296,7 +409,7 @@ export function buildOrderAction(args: {
   reduceOnly?: boolean;
   tif: "Gtc" | "Ioc" | "Alo";
   cloid?: string | null;
-  builder?: { b: `0x${string}`; f: number };
+  builder?: { b: string; f: number };
 }): Record<string, unknown> {
   const order: Record<string, unknown> = {
     a: args.asset,
