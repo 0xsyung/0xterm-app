@@ -377,6 +377,24 @@ import TracePanel, {
   type TraceRunArgs,
   type TraceRunResult
 } from "./sim/TracePanel";
+import KytPanel, {
+  type KytRunArgs,
+  type KytRunResult
+} from "./screen/KytPanel";
+import KyaPanel, {
+  type KyaRunArgs,
+  type KyaRunResult
+} from "./screen/KyaPanel";
+import CheckTokenPanel, {
+  type CheckTokenArgs,
+  type CheckTokenResult
+} from "./screen/CheckTokenPanel";
+import {
+  runKytHeuristic,
+  runKyaHeuristic,
+  KYT_ERROR,
+  KYA_ERROR
+} from "../../lib/chainIntel";
 import InfoPanel, {
   explorerViewLabel,
   type InfoLookupArgs,
@@ -10078,6 +10096,141 @@ export default function TerminalShell({
             frameless
           />
         );
+      case "kyt": {
+        return (
+          <KytPanel
+            theme={theme}
+            onClose={close}
+            onRun={async (args: KytRunArgs): Promise<KytRunResult> => {
+              if (!activeChainId) {
+                return { ok: false, error: KYT_ERROR.no_network };
+              }
+              const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+              if (!targetChain) {
+                return { ok: false, error: KYT_ERROR.no_network };
+              }
+              let client;
+              try {
+                client = getClient(targetChain);
+              } catch (e: unknown) {
+                return {
+                  ok: false,
+                  error: e instanceof Error ? e.message : KYT_ERROR.rpc_fail
+                };
+              }
+              const rpcUrl = resolveRpcUrl(targetChain);
+              const explorerKey = explorerKeys[targetChain.id] || null;
+              const apiUrl = explorerApiUrl(targetChain);
+              const outcome = await runKytHeuristic({
+                txHash: args.txHash,
+                hops: args.hops,
+                chainId: targetChain.id,
+                chainName: targetChain.name,
+                client,
+                hopsSource: { rpcUrl, explorerKey },
+                alchemyRpcUrl: rpcUrl,
+                explorer:
+                  explorerKey && apiUrl
+                    ? { apiUrl, apiKey: explorerKey }
+                    : null
+              });
+              if (!outcome.ok) return { ok: false, error: outcome.error };
+              return { ok: true, data: outcome.result };
+            }}
+            frameless
+          />
+        );
+      }
+      case "kya": {
+        return (
+          <KyaPanel
+            theme={theme}
+            onClose={close}
+            defaultAddress={address ?? ""}
+            onRun={async (args: KyaRunArgs): Promise<KyaRunResult> => {
+              if (!activeChainId) {
+                return { ok: false, error: KYA_ERROR.no_network };
+              }
+              const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+              if (!targetChain) {
+                return { ok: false, error: KYA_ERROR.no_network };
+              }
+              let client;
+              try {
+                client = getClient(targetChain);
+              } catch (e: unknown) {
+                return {
+                  ok: false,
+                  error: e instanceof Error ? e.message : KYA_ERROR.no_source
+                };
+              }
+              const rpcUrl = resolveRpcUrl(targetChain);
+              const explorerKey = explorerKeys[targetChain.id] || null;
+              const apiUrl = explorerApiUrl(targetChain);
+              const outcome = await runKyaHeuristic({
+                address: args.address,
+                hops: args.hops,
+                chainId: targetChain.id,
+                chainName: targetChain.name,
+                client,
+                hopsSource: { rpcUrl, explorerKey },
+                alchemyRpcUrl: rpcUrl,
+                explorer:
+                  explorerKey && apiUrl
+                    ? { apiUrl, apiKey: explorerKey }
+                    : null
+              });
+              if (!outcome.ok) return { ok: false, error: outcome.error };
+              return { ok: true, data: outcome.result };
+            }}
+            frameless
+          />
+        );
+      }
+      case "is": {
+        return (
+          <CheckTokenPanel
+            theme={theme}
+            onClose={close}
+            onCheck={async (args: CheckTokenArgs): Promise<CheckTokenResult> => {
+              if (!activeChainId) {
+                return { ok: false, error: "Select network first." };
+              }
+              const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId);
+              if (!targetChain) {
+                return { ok: false, error: "Select network first." };
+              }
+              const result = await commands.is(
+                ["is", args.address],
+                `is ${args.address}`
+              );
+              if (!result) return { ok: false, error: "No result." };
+              const entry = Array.isArray(result) ? result[0] : result;
+              if (entry?.type === "text" && typeof entry.text === "string") {
+                if (entry.text.startsWith("Usage:")) {
+                  return { ok: false, error: entry.text };
+                }
+                let checksummed = args.address.trim();
+                try {
+                  checksummed = getAddress(args.address.trim());
+                } catch {
+                  /* keep raw */
+                }
+                return {
+                  ok: true,
+                  data: {
+                    address: checksummed,
+                    chainName: targetChain.name,
+                    lines: entry.text.split("\n")
+                  }
+                };
+              }
+              return { ok: false, error: "Check failed." };
+            }}
+            frameless
+          />
+        );
+      }
       case "info":
         return (
           <InfoPanel

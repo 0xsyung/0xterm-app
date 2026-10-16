@@ -84,10 +84,24 @@ describe("WorkspaceStrip", () => {
     );
   });
 
-  it("hides unfinished forensic SCREEN tiles (kyt etc.) (#160)", () => {
-    render(<WorkspaceStrip theme={theme} mode="forensic" onCommand={vi.fn()} />);
-    expect(screen.queryByRole("button", { name: /KYT/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /KYA/i })).toBeNull();
+  it("shows forensic SCREEN tiles KYT · KYA · CHECK TOKEN (#170)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceStrip
+        theme={theme}
+        mode="forensic"
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^KYT/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("kyt");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^KYA/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("kya");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /CHECK TOKEN/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("is");
   });
 
   it("SIM opens panel path (not bare onCommand)", () => {
@@ -259,7 +273,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     ).toBe("true");
   });
 
-  it("FORENSIC keeps SIM/TRACE/READ; hides SCREEN (#171)", () => {
+  it("FORENSIC shows SCREEN · SIM · TRACE · READ (#170)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -272,16 +286,14 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onSubTabChange={onSubTabChange}
       />
     );
-    expect(screen.queryByRole("button", { name: /^SCREEN$/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /^SCREEN$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^READ$/i })).toBeTruthy();
-    // SIM is a lone tab — tool-tabs row hidden, only the sub-tab button remains
-    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(1);
-    expect(screen.getAllByRole("button", { name: /^TRACE$/i }).length).toBeGreaterThanOrEqual(1);
-    // #162 — entering forensic auto-opens the lone SIM tool
-    expect(onOpenPanel).toHaveBeenCalledWith("sim");
-    // READ has two wired tools — no lone auto-open of price (#194)
-    expect(onOpenPanel).not.toHaveBeenCalledWith("price");
-    expect(onOpenPanel).not.toHaveBeenCalledWith("info");
+    // SCREEN first + 3 tools → no lone auto-open (#162/#170)
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /^KYT/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^KYA/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /CHECK TOKEN/i })).toBeTruthy();
+    expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
     expect(onSubTabChange).not.toHaveBeenCalledWith("READ");
   });
 
@@ -483,7 +495,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     );
   });
 
-  it("opens panels via onOpenPanel for panel tool tabs", () => {
+  it("opens panels via onOpenPanel for panel tool tabs (#170)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -494,10 +506,13 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    // Mount auto-opens SIM; re-clicking the SIM sub-tab still opens sim
-    expect(onOpenPanel).toHaveBeenCalledWith("sim");
+    // SCREEN mount: 3 tools → no auto-open; pick KYT
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^KYT/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("kyt");
     onOpenPanel.mockClear();
-    fireEvent.click(screen.getAllByRole("button", { name: /^SIM/i })[0]);
+    // Lone SIM sub-tab still auto-opens when selected
+    fireEvent.click(screen.getAllByRole("button", { name: /^SIM$/i })[0]);
     expect(onOpenPanel).toHaveBeenCalledWith("sim");
   });
 
@@ -565,6 +580,9 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "dig-ver",
         "getpool",
         "info",
+        "is",
+        "kya",
+        "kyt",
         "news",
         "perps",
         "pnl",
@@ -597,13 +615,12 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     }
   });
 
-  it("unfinished actions are excluded from the rendered list", () => {
+  it("unfinished actions are excluded from the rendered list (#170)", () => {
     const unfinished = [
       ...INVEST_ACTIONS,
       ...DEV_ACTIONS,
       ...FORENSIC_ACTIONS
     ].filter((a) => !isReadyWorkspaceAction(a));
-    expect(unfinished.length).toBeGreaterThan(0);
     const rendered = [
       ...readyWorkspaceActions(INVEST_ACTIONS),
       ...readyWorkspaceActions(DEV_ACTIONS),
@@ -612,6 +629,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     for (const u of unfinished) {
       expect(rendered.find((a) => a.cmd === u.cmd && a.tab === u.tab)).toBeUndefined();
     }
+    expect(readyWorkspaceActions(FORENSIC_ACTIONS)).toHaveLength(FORENSIC_ACTIONS.length);
   });
 
   it("empty sub-tabs are omitted from live SUB_TABS filtering", () => {
@@ -626,6 +644,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
       "SHIP"
     ]);
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toEqual([
+      "SCREEN",
       "SIM",
       "TRACE",
       "READ"
@@ -651,9 +670,12 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(trade.map((a) => a.cmd)).toEqual(["dex", "perps"]);
   });
 
-  it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE/BALANCE/PORTFOLIO (#167)", () => {
+  it("ready forensic tools include SCREEN KYT/KYA/CHECK TOKEN (#170/#167)", () => {
     const labels = readyWorkspaceActions(FORENSIC_ACTIONS).map((a) => a.label);
     expect(labels).toEqual([
+      "KYT",
+      "KYA",
+      "CHECK TOKEN",
       "SIM",
       "TRACE",
       "TOKEN INFO",
@@ -661,6 +683,19 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
       "BALANCE",
       "PORTFOLIO"
     ]);
+  });
+
+  it("FORENSIC SCREEN wires three tools — no lone auto-open (#170)", () => {
+    const screenReady = readyWorkspaceActions(FORENSIC_ACTIONS).filter(
+      (a) => a.tab === "SCREEN"
+    );
+    expect(screenReady.map((a) => a.panel)).toEqual(["kyt", "kya", "is"]);
+    expect(screenReady.map((a) => a.hint)).toEqual([
+      "open kyt panel",
+      "open kya panel",
+      "open check token panel"
+    ]);
+    expect(screenReady.length).toBe(3);
   });
 
   it("FORENSIC READ wires four tools — never price-only (#171/#194/#167)", () => {
@@ -765,12 +800,20 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
     expect(screen.getByRole("button", { name: /^PORTFOLIO/i }).textContent).toMatch(
       /open portfolio panel/i
     );
-    expect(screen.queryByRole("button", { name: /^KYT/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /^KYT/i }).textContent).toMatch(
+      /open kyt panel/i
+    );
+    expect(screen.getByRole("button", { name: /^KYA/i }).textContent).toMatch(
+      /open kya panel/i
+    );
+    expect(screen.getByRole("button", { name: /CHECK TOKEN/i }).textContent).toMatch(
+      /open check token panel/i
+    );
   });
 });
 
 describe("lone-tool auto-open (#162)", () => {
-  it("auto-opens Sim on FORENSIC mount (SIM is first live sub-tab)", () => {
+  it("does not auto-open SCREEN on FORENSIC mount (3 tools — #170)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -781,9 +824,10 @@ describe("lone-tool auto-open (#162)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    expect(onOpenPanel).toHaveBeenCalledWith("sim");
-    // Lone-tab row hidden — only the sub-tab SIM button remains (no duplicate)
-    expect(screen.getAllByRole("button", { name: /^SIM$/i }).length).toBe(1);
+    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /^SCREEN$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^KYT/i })).toBeTruthy();
+    expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
   });
 
   it("auto-opens Trace when switching to TRACE", () => {

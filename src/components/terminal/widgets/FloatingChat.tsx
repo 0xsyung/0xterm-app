@@ -75,7 +75,10 @@ const LARGE_PANELS: ReadonlySet<WorkspacePanelId> = new Set([
   "price",
   "swap",
   "sim",
-  "trace"
+  "trace",
+  "kyt",
+  "kya",
+  "is"
 ]);
 
 export default function FloatingChat({

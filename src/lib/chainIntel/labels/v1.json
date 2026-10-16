@@ -1,0 +1,70 @@
+{
+  "version": "v1",
+  "ofacAsOf": "2024-05-16",
+  "labels": [
+    {
+      "address": "0x8589427373D6D84E98730D7795D8f6f8731FDA16",
+      "chainId": "evm",
+      "kind": "ofac",
+      "name": "Tornado Cash",
+      "source": "ofac-sdn-advanced",
+      "sourceAsOf": "2024-05-16"
+    },
+    {
+      "address": "0x722122dF12D4e14e13Ac3b6895a86e84145b6967",
+      "chainId": "evm",
+      "kind": "ofac",
+      "name": "Tornado Cash Router",
+      "source": "ofac-sdn-advanced",
+      "sourceAsOf": "2024-05-16"
+    },
+    {
+      "address": "0xD4B88Df4D29F5CedD6857912842cff7b5ccee4A3",
+      "chainId": "evm",
+      "kind": "ofac",
+      "name": "Tornado Cash 100 ETH",
+      "source": "ofac-sdn-advanced",
+      "sourceAsOf": "2024-05-16"
+    },
+    {
+      "address": "0x12D66f87A04A9E220743712cE6d9bB1B5616B8Fc",
+      "chainId": "evm",
+      "kind": "ofac",
+      "name": "Tornado Cash 0.1 ETH",
+      "source": "ofac-sdn-advanced",
+      "sourceAsOf": "2024-05-16"
+    },
+    {
+      "address": "0x47CE0C6eD5B0Ce3d3A51fdb1C52DC66a7c3c2936",
+      "chainId": "evm",
+      "kind": "ofac",
+      "name": "Tornado Cash 1 ETH",
+      "source": "ofac-sdn-advanced",
+      "sourceAsOf": "2024-05-16"
+    },
+    {
+      "address": "0x910Cbd523D972eb0a6f4cAe4618aD62622b39DbF",
+      "chainId": "evm",
+      "kind": "ofac",
+      "name": "Tornado Cash 10 ETH",
+      "source": "ofac-sdn-advanced",
+      "sourceAsOf": "2024-05-16"
+    },
+    {
+      "address": "0xA0c68C638235ee32657e8f720a23ceC1bFc77C77",
+      "chainId": 1,
+      "kind": "bridge",
+      "name": "Polygon PoS Bridge",
+      "source": "https://docs.polygon.technology/pos/reference/contracts/plasma/",
+      "sourceAsOf": "2024-01-01"
+    },
+    {
+      "address": "0x3154Cf16ccdb4C8d60d20A78fAF085dBe123bB89",
+      "chainId": 1,
+      "kind": "bridge",
+      "name": "Base L1 Standard Bridge",
+      "source": "https://docs.base.org/base-chain/network-information/base-contracts",
+      "sourceAsOf": "2024-01-01"
+    }
+  ]
+}
