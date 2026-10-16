@@ -268,9 +268,12 @@ export default function DigSourcePanel({
           setActiveAction(null);
           return;
         } catch {
-          // Abort / deny — always fall through to <a download> (Soft ACK honesty)
+          // Cancel / AbortError / deny / other picker failures — no <a download>,
+          // no success ack (#228 Soft ACK). Clear via finally.
+          return;
         }
       }
+      // <a download> only when showSaveFilePicker is unavailable (#228)
       const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
