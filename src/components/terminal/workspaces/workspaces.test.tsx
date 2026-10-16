@@ -194,7 +194,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(screen.queryByRole("button", { name: /^TICKER$/i })).toBeNull();
   });
 
-  it("DEX tools are GET POOL · CREATE POOL · ADD LIQ; no lone auto-open (#168)", () => {
+  it("DEX tool is POOL only; lone auto-open on DEX entry (#220)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -208,17 +208,16 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
-    expect(screen.getByRole("button", { name: /^GET POOL$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^CREATE POOL$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^ADD LIQ$/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^ADD LIQUIDITY$/i })).toBeNull();
-    // three wired tools → no lone auto-open (#162)
-    expect(onOpenPanel).not.toHaveBeenCalledWith("getpool");
-    expect(onOpenPanel).not.toHaveBeenCalledWith("createpool");
-    expect(onOpenPanel).not.toHaveBeenCalledWith("addliq");
+    expect(onSubTabChange).toHaveBeenCalledWith("DEX");
+    expect(screen.getByRole("button", { name: /^POOL$/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^GET POOL$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^CREATE POOL$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^ADD LIQ$/i })).toBeNull();
+    // one wired tool → lone auto-open (#162 / #220 Soft ACK)
+    expect(onOpenPanel).toHaveBeenCalledWith("pool");
   });
 
-  it("DEX tool tabs open wired panels (#168)", () => {
+  it("DEX POOL tool tab opens wired pool panel (#220)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -230,12 +229,10 @@ describe("WorkspaceSurface (#148/#160)", () => {
       />
     );
     fireEvent.click(screen.getByRole("button", { name: /^DEX$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^GET POOL$/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("getpool");
-    fireEvent.click(screen.getByRole("button", { name: /^CREATE POOL$/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("createpool");
-    fireEvent.click(screen.getByRole("button", { name: /^ADD LIQ$/i }));
-    expect(onOpenPanel).toHaveBeenCalledWith("addliq");
+    // auto-open already called pool; clicking POOL tab also opens
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^POOL$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("pool");
   });
 
   it("NEWS is the leftmost MARKET tool tab (#152)", () => {
@@ -541,6 +538,7 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "news",
         "perps",
         "pnl",
+        "pool",
         "portfolio",
         "price",
         "sim",
@@ -617,11 +615,11 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(market.map((a) => a.panel)).toEqual(["news", "trade"]);
   });
 
-  it("ready invest DEX tools are GET POOL / CREATE POOL / ADD LIQ (#168)", () => {
+  it("ready invest DEX tool is POOL only (#220)", () => {
     const dex = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "DEX");
-    expect(dex.map((a) => a.label)).toEqual(["GET POOL", "CREATE POOL", "ADD LIQ"]);
-    expect(dex.map((a) => a.panel)).toEqual(["getpool", "createpool", "addliq"]);
-    expect(dex.map((a) => a.cmd)).toEqual(["getpool", "createpool", "addliq"]);
+    expect(dex.map((a) => a.label)).toEqual(["POOL"]);
+    expect(dex.map((a) => a.panel)).toEqual(["pool"]);
+    expect(dex.map((a) => a.cmd)).toEqual(["pool"]);
   });
 
   it("ready forensic tools are SIM/TRACE/TOKEN INFO/PRICE/BALANCE/PORTFOLIO (#167)", () => {
@@ -700,14 +698,8 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
       /open trade panel/i
     );
     expect(screen.getByRole("button", { name: /BALANCE/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /GET POOL/i }).textContent).toMatch(
-      /open get pool panel/i
-    );
-    expect(screen.getByRole("button", { name: /CREATE POOL/i }).textContent).toMatch(
-      /open create pool panel/i
-    );
-    expect(screen.getByRole("button", { name: /ADD LIQ/i }).textContent).toMatch(
-      /open add liquidity panel/i
+    expect(screen.getByRole("button", { name: /^POOL/i }).textContent).toMatch(
+      /open pool panel/i
     );
   });
 

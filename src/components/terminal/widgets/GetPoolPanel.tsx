@@ -22,7 +22,7 @@ export type GetPoolRunArgs = {
 };
 
 export type GetPoolRunResult =
-  | { ok: true; component: ReactNode }
+  | { ok: true; component: ReactNode; missing?: boolean }
   | { ok: false; error: string };
 
 export function buildGetPoolCli(args: {

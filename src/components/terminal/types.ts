@@ -31,6 +31,8 @@ export type LogEntry = {
   // structured render data for component-kind logs (price) so they re-render
   // against the live theme in both the console and the pinned panel.
   componentData?: any
+  /** GET POOL / POOL lookup: factory returned zero address (#220). */
+  poolMissing?: boolean
 }
 
 export type DexProtocol = {
