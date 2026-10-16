@@ -340,12 +340,18 @@ export function marketOrderPx(mid: string, isBuy: boolean, slippage = 0.05): str
   return stripTrailingZeros(Number(px.toPrecision(5)).toFixed(6));
 }
 
+export type AgentApprovalResult =
+  | { ok: true; agentPrivateKey: Hex }
+  | { ok: false; error: string };
+
 /**
  * Ensure the ephemeral agent key is approved for `masterAddress` on `network`.
  * Re-fetches `extraAgents` BEFORE and AFTER `postApproveAgent` and only trusts
  * the key once it is actually listed (the server returns `{status:"ok"}` even
  * when the approval didn't register — demo README bug #7/#10 pattern). Returns
- * the approved key or null (caller aborts the order).
+ * the approved key, or `{ok:false,error}` with the real server message (e.g.
+ * "Must deposit before performing actions." for a zero-balance account) so the
+ * UI can surface it instead of a placeholder.
  */
 export async function ensureAgentApproved(args: {
   network: HlNetwork;
@@ -355,7 +361,7 @@ export async function ensureAgentApproved(args: {
   expectedSigner?: string | null;
   signTypedDataAsync: SignTypedDataFn;
   fetchImpl?: typeof fetch;
-}): Promise<`0x${string}` | null> {
+}): Promise<AgentApprovalResult> {
   const addr = args.agentAddress.toLowerCase();
   try {
     const agents = await fetchExtraAgents(
@@ -363,7 +369,9 @@ export async function ensureAgentApproved(args: {
       args.masterAddress,
       args.fetchImpl
     );
-    if (isAgentInExtraAgents(agents, addr)) return args.agentPrivateKey;
+    if (isAgentInExtraAgents(agents, addr)) {
+      return { ok: true, agentPrivateKey: args.agentPrivateKey };
+    }
     const result = await postApproveAgent({
       network: args.network,
       agentAddress: addr as `0x${string}`,
@@ -371,23 +379,25 @@ export async function ensureAgentApproved(args: {
       signTypedDataAsync: args.signTypedDataAsync,
       fetchImpl: args.fetchImpl
     });
-    if (!result.ok) return null;
+    if (!result.ok) return { ok: false, error: result.error };
     const after = await fetchExtraAgents(
       args.network,
       args.masterAddress,
       args.fetchImpl
     );
     if (!isAgentInExtraAgents(after, addr)) {
-      throw new Error(
-        `Agent approval returned ok but ${addr} is not listed as an approved agent. ` +
+      return {
+        ok: false,
+        error:
+          `Agent approval returned ok but ${addr} is not listed as an approved agent. ` +
           "Your account may use unified account mode, which can restrict API-wallet " +
           "approval. Try again, or approve manually at app.hyperliquid.xyz/API."
-      );
+      };
     }
-    return args.agentPrivateKey;
+    return { ok: true, agentPrivateKey: args.agentPrivateKey };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`Agent approval failed: ${msg}`);
+    return { ok: false, error: `Agent approval failed: ${msg}` };
   }
 }
 

@@ -32,3 +32,16 @@ describe("PerpsPanel deposit floor (#224)", () => {
     expect(src).toMatch(/perps-deposit-min-hint/);
   });
 });
+
+describe("PerpsPanel zero-balance deposit gate (#999)", () => {
+  it("unlocks tabs pre-checklist when spot USDC is zero, with a deposit hint", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+    // Transfer (deposit) tab must be reachable for fundless accounts.
+    expect(src).toMatch(/\(unlocked \|\| depositNeeded\)/);
+    expect(src).toMatch(/const depositNeeded = spotUsdc === "0";/);
+    expect(src).toMatch(/perps-deposit-hint/);
+  });
+});
