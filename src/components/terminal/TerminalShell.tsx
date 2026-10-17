@@ -911,10 +911,13 @@ export default function TerminalShell({
   const [suggestionIdx, setSuggestionIdx] = useState(-1);
 
   // Tool panel open inside the workspace frame (#145) — PRICE / SWAP / NEWS / SIM / TRACE.
-  // #152 — INVEST opens on the NEWS panel by default; other modes rely on null.
-  const [openPanel, setOpenPanel] = useState<WorkspacePanelId | null>(() =>
-    terminalMode === "invest" ? "news" : null
-  );
+  // #152 — INVEST opens on NEWS; #236 Soft ACK — FORENSIC → KYT (SCREEN), DEV → dig-source.
+  const [openPanel, setOpenPanel] = useState<WorkspacePanelId | null>(() => {
+    if (terminalMode === "invest") return "news";
+    if (terminalMode === "forensic") return "kyt";
+    if (terminalMode === "dev") return "dig-source";
+    return null;
+  });
   // Re-clicking the active NEWS tab force-refreshes the panel.
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   // BALANCE + PORTFOLIO re-fetch when PORTFOLIO / READ panels remount (#167).

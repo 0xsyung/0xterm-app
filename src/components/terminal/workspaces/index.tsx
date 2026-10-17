@@ -1,12 +1,12 @@
 /**
  * @file workspaces/index.tsx
- * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148/#160/#162)
+ * @description Framed workspace surface — sub-tab row + persistent tool tabs + panel below (#80/#117/#145/#148/#160/#162/#236)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ThemeConfig } from "../types";
 import type { TerminalMode } from "../mode";
 import { WorkspaceFrame } from "./WorkspaceFrame";
@@ -32,6 +32,20 @@ const MODE_ACTIONS: Record<Exclude<TerminalMode, "console">, WorkspaceAction[]> 
   dev: DEV_ACTIONS,
   forensic: FORENSIC_ACTIONS
 };
+
+/**
+ * Soft ACK #236 — cold-start default = first ready (wired) panel in catalog
+ * order for that sub-tab. FORENSIC SCREEN → KYT (SCREEN body); INVEST TRADE →
+ * DEX/pool; PORTFOLIO → BALANCE; DEV BUILD → COMPILE; etc.
+ */
+export function defaultPanelForTab(
+  mode: Exclude<TerminalMode, "console">,
+  tab: string
+): WorkspacePanelId | null {
+  const ready = readyWorkspaceActions(MODE_ACTIONS[mode]).filter((a) => a.tab === tab);
+  const withPanel = ready.find((a) => a.panel !== undefined);
+  return withPanel?.panel ?? null;
+}
 
 function WorkspaceBody({
   theme,
@@ -82,6 +96,10 @@ function WorkspaceBody({
  * open (`activePanel`) and how to render it (`renderPanel`). The active
  * sub-tab's tool buttons are always visible; a panel, when open, renders
  * below them (#148). Unfinished tools and empty sub-tabs are hidden (#160).
+ *
+ * #236 Soft ACK — every live sub-tab lands with a default tool selected and
+ * its panel body open. ModeEmpty only when the tab truly has zero tools.
+ * Soft-nice: remember last-selected tool per mode+sub-tab within the session.
  */
 export function WorkspaceSurface({
   theme,
@@ -105,15 +123,8 @@ export function WorkspaceSurface({
 
   const subTabs = liveSubTabs(SUB_TABS[mode], MODE_ACTIONS[mode]);
   const [activeSubTab, setActiveSubTab] = useState(subTabs[0]?.id ?? "");
-
-  // Mode with zero live sub-tabs (e.g. DEV): keep header mode chip, show empty state (#160).
-  if (subTabs.length === 0) {
-    return (
-      <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden pt-2 px-0">
-        <ModeEmptyState theme={theme} mode={mode} />
-      </div>
-    );
-  }
+  /** Soft-nice #236 — last tool per `${mode}:${tab}` for this WorkspaceSurface lifetime. */
+  const sessionLastTool = useRef<Map<string, WorkspacePanelId>>(new Map());
 
   const toolActions = readyWorkspaceActions(MODE_ACTIONS[mode]).filter(
     (a) => a.tab === activeSubTab
@@ -123,39 +134,59 @@ export function WorkspaceSurface({
     readyWorkspaceActions(MODE_ACTIONS[mode]).filter((a) => a.tab === tab);
 
   /**
-   * Sub-tab with exactly one wired action: its panel auto-opens on entry
-   * (#162), so the tool-tabs row would only repeat the same lone button
-   * (PERPS tab + PERPS tile → duplicate). Hide the row entirely then.
+   * Sub-tab with exactly one wired action: tool-tabs row would only repeat the
+   * same lone button (PERPS tab + PERPS tile → duplicate). Hide the row then.
    */
   const isLoneReadyTab = (tab: string): boolean => {
     const ready = readyForTab(tab);
     return ready.length === 1 && ready[0].panel !== undefined;
   };
 
-  const loneReadyPanel = (tab: string): WorkspacePanelId | null => {
-    if (!isLoneReadyTab(tab)) return null;
-    return readyForTab(tab)[0].panel!;
+  const sessionKey = (tab: string) => `${mode}:${tab}`;
+
+  /** Soft default, or Soft-nice remembered tool if still wired for this tab. */
+  const resolveDefaultPanel = (tab: string): WorkspacePanelId | null => {
+    const remembered = sessionLastTool.current.get(sessionKey(tab));
+    if (remembered && readyForTab(tab).some((a) => a.panel === remembered)) {
+      return remembered;
+    }
+    return defaultPanelForTab(mode, tab);
+  };
+
+  const openPanel = (panel: WorkspacePanelId, tab: string = activeSubTab) => {
+    sessionLastTool.current.set(sessionKey(tab), panel);
+    onOpenPanel?.(panel);
   };
 
   /**
-   * Auto-open the lone wired tool when a sub-tab becomes active (#162).
+   * #236 — always open Soft default (or session last) on sub-tab enter.
    * Clear (via onSubTabChange → setOpenPanel(null)) then open in the same
    * event tick so React 18 batches and nothing flashes empty.
    */
   const handleSubTabChange = (tab: string) => {
     setActiveSubTab(tab);
     onSubTabChange?.(tab);
-    const panel = loneReadyPanel(tab);
-    if (panel) onOpenPanel?.(panel);
+    const panel = resolveDefaultPanel(tab);
+    if (panel) openPanel(panel, tab);
   };
 
-  // Mode remount (shell keys WorkspaceSurface by mode): open lone tool on entry.
+  // Mount / mode remount / panel cleared with tools present → keep a body open (#236).
   useLayoutEffect(() => {
-    const panel = loneReadyPanel(activeSubTab);
-    if (panel) onOpenPanel?.(panel);
-    // Only on mount / mode identity — do not re-open after user closes the panel.
+    if (subTabs.length === 0) return;
+    if (activePanel != null) return;
+    const panel = resolveDefaultPanel(activeSubTab);
+    if (panel) openPanel(panel, activeSubTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, activeSubTab, activePanel]);
+
+  // Mode with zero live sub-tabs: keep header mode chip, show empty state (#160/#236).
+  if (subTabs.length === 0) {
+    return (
+      <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden pt-2 px-0">
+        <ModeEmptyState theme={theme} mode={mode} />
+      </div>
+    );
+  }
 
   return (
     <WorkspaceFrame
@@ -170,16 +201,15 @@ export function WorkspaceSurface({
           actions={toolActions}
           activeTool={activePanel}
           onCommand={onCommand}
-          onOpenPanel={onOpenPanel}
+          onOpenPanel={(panel) => openPanel(panel)}
         />
       )}
       {activePanel && renderPanel ? (
         renderPanel(activePanel)
-      ) : (
-        // Multi-tool tabs (DEV SOURCE/BUILD/SHIP, INVEST MARKET): Soft ACK
-        // ModeEmpty in the panel slot until the user picks a tool (#166 QA).
+      ) : toolActions.length === 0 ? (
+        // Soft ACK #236 — ModeEmpty only when the category truly has zero tools.
         <ModeEmptyState theme={theme} mode={mode} />
-      )}
+      ) : null}
     </WorkspaceFrame>
   );
 }
