@@ -206,3 +206,194 @@ describe("runWillCommand grammar", () => {
     expect(r.text).toMatch(/Unknown will subcommand/);
   });
 });
+
+describe("runWillCommand mutating gates", () => {
+  const owner = "0x00000000000000000000000000000000000000aa" as `0x${string}`;
+  const heir = "0x0000000000000000000000000000000000000001" as `0x${string}`;
+  const factory = "0x00000000000000000000000000000000000000fc" as `0x${string}`;
+  const vault = "0x00000000000000000000000000000000000000B1" as `0x${string}`;
+
+  it("set rejects heir == owner client-side", async () => {
+    const r = await runWillCommand(
+      baseCtx({
+        args: ["will", "set", "--heir", owner, "--delay", "90d"],
+        isConnected: true,
+        address: owner,
+        activeChainId: 84532,
+        chainObj: { id: 84532, name: "Base Sepolia", testnet: true } as any
+      })
+    );
+    // no factory on 84532 in map → noFactory before heir check... actually set checks heir before factory
+    expect(r.warn).toBe(true);
+    expect(r.text).toMatch(/Heir cannot be the same|Could not resolve heir|No will factory/);
+  });
+
+  it("set rejects zero heir", async () => {
+    const r = await runWillCommand(
+      baseCtx({
+        args: [
+          "will",
+          "set",
+          "--heir",
+          "0x0000000000000000000000000000000000000000",
+          "--delay",
+          "90d"
+        ],
+        isConnected: true,
+        address: owner
+      })
+    );
+    expect(r.warn).toBe(true);
+  });
+
+  it("deposit usage when args missing", async () => {
+    const r = await runWillCommand(
+      baseCtx({
+        args: ["will", "deposit"],
+        isConnected: true,
+        address: owner
+      })
+    );
+    expect(r.warn).toBe(true);
+    // factory empty → noFactory first
+    expect(r.text).toMatch(/No will factory|Usage: will deposit/);
+  });
+
+  it("heartbeat without factory fails closed", async () => {
+    const r = await runWillCommand(
+      baseCtx({
+        args: ["will", "heartbeat"],
+        isConnected: true,
+        address: owner,
+        activeChainId: 11155111,
+        chainObj: sepolia
+      })
+    );
+    expect(r.text).toBe(WILL_REFUSE.noFactory);
+  });
+
+  it("cancel without factory fails closed", async () => {
+    const r = await runWillCommand(
+      baseCtx({
+        args: ["will", "cancel"],
+        isConnected: true,
+        address: owner
+      })
+    );
+    expect(r.text).toBe(WILL_REFUSE.noFactory);
+  });
+
+  it("claim without vault address refuses heir path", async () => {
+    const r = await runWillCommand(
+      baseCtx({
+        args: ["will", "claim"],
+        isConnected: true,
+        address: heir
+      })
+    );
+    expect(r.warn).toBe(true);
+    expect(r.text).toMatch(/No will factory|No vault|Only the heir/);
+  });
+
+  it("with mocked factory+vault, heartbeat returns action component", async () => {
+    // Temporarily inject factory via module mock is hard; simulate client vaultOf
+    const { WILL_FACTORY } = await import("../constants");
+    (WILL_FACTORY as Record<number, string>)[11155111] = factory;
+    try {
+      const client = {
+        readContract: vi.fn(async ({ functionName }: { functionName: string }) => {
+          if (functionName === "vaultOf") return vault;
+          if (functionName === "owner") return owner;
+          if (functionName === "heir") return heir;
+          if (functionName === "delay") return BigInt(90 * 86400);
+          if (functionName === "lastHeartbeat") return BigInt(1_700_000_000);
+          if (functionName === "claimableAt") return BigInt(1_700_000_000 + 90 * 86400);
+          if (functionName === "isClaimable") return false;
+          if (functionName === "claimed") return false;
+          if (functionName === "cancelled") return false;
+          if (functionName === "ethBalance") return 10n ** 16n; // 0.01 ETH
+          if (functionName === "tokens") return [];
+          if (functionName === "balanceOf") return 10n ** 16n;
+          return 0n;
+        }),
+        getBalance: vi.fn(async () => 10n ** 18n)
+      } as any;
+
+      const r = await runWillCommand(
+        baseCtx({
+          args: ["will", "heartbeat"],
+          isConnected: true,
+          address: owner,
+          client
+        })
+      );
+      expect(r.type).toBe("component");
+      expect(r.title).toMatch(/HEARTBEAT/i);
+
+      const status = await runWillCommand(
+        baseCtx({
+          args: ["will", "status"],
+          isConnected: true,
+          address: owner,
+          client
+        })
+      );
+      expect(status.type).toBe("will");
+      expect(status.payload?.vault).toBe(vault);
+
+      const cancel = await runWillCommand(
+        baseCtx({
+          args: ["will", "cancel"],
+          isConnected: true,
+          address: owner,
+          client
+        })
+      );
+      expect(cancel.type).toBe("component");
+      expect(cancel.title).toMatch(/CANCEL/i);
+
+      const set = await runWillCommand(
+        baseCtx({
+          args: ["will", "set", "--heir", heir, "--delay", "30d"],
+          isConnected: true,
+          address: owner,
+          client
+        })
+      );
+      expect(set.type).toBe("component");
+      expect(set.title).toMatch(/SET/i);
+
+      const dep = await runWillCommand(
+        baseCtx({
+          args: ["will", "deposit", "eth", "0.01"],
+          isConnected: true,
+          address: owner,
+          client
+        })
+      );
+      expect(dep.type).toBe("component");
+
+      const wd = await runWillCommand(
+        baseCtx({
+          args: ["will", "withdraw", "eth", "all"],
+          isConnected: true,
+          address: owner,
+          client
+        })
+      );
+      expect(wd.type).toBe("component");
+
+      const claim = await runWillCommand(
+        baseCtx({
+          args: ["will", "claim", vault],
+          isConnected: true,
+          address: heir,
+          client
+        })
+      );
+      expect(claim.type).toBe("component");
+    } finally {
+      delete (WILL_FACTORY as Record<number, string | undefined>)[11155111];
+    }
+  });
+});

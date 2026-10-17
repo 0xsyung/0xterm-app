@@ -63,6 +63,8 @@ export default defineConfig({
         // mixer deposit/withdraw chrome (#111) — wagmi write; logic in mixer/*.ts
         "src/components/terminal/widgets/MixerDepositWidget.tsx",
         "src/components/terminal/widgets/MixerWithdrawWidget.tsx",
+        // will action chrome (#26) — wagmi write/sim; logic in will/*.ts
+        "src/components/terminal/widgets/WillActionWidget.tsx",
         // wagmi provider/app glue + GA4 adapter — thin entry chrome (#6)
         "src/config/wagmi.ts",
         "src/app/layout.tsx",
