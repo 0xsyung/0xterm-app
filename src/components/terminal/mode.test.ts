@@ -387,3 +387,35 @@ describe("gchat affinity + help (#77)", () => {
     expect(create?.description.toLowerCase()).not.toContain("channel");
   });
 });
+
+
+describe("will help rows (#26 Soft ACK console help)", () => {
+  const willCmds = [
+    "will / will status",
+    "will set --heir <addr> --delay 90d",
+    "will heartbeat",
+    "will deposit <token> <amt>",
+    "will withdraw <token> <amt>",
+    "will cancel",
+    "will claim",
+    "will enable --mainnet"
+  ];
+
+  it("lists all will rows on console help (global)", () => {
+    const cmds = helpRowsForMode("console").map((r) => r.command);
+    for (const c of willCmds) {
+      expect(cmds, `console missing ${c}`).toContain(c);
+    }
+  });
+
+  it("lists will rows on invest help too (global ⊂ all modes)", () => {
+    const cmds = helpRowsForMode("invest").map((r) => r.command);
+    for (const c of willCmds) {
+      expect(cmds, `invest missing ${c}`).toContain(c);
+    }
+  });
+
+  it("keeps will command affinity invest (gating unchanged)", () => {
+    expect(commandAffinity("will")).toBe("invest");
+  });
+});

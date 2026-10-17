@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { THEMES } from "../constants";
 import HelpManual from "./HelpManual";
+import { WILL_HELP_FOOTER } from "../will/constants";
 
 const theme = THEMES.matrix;
 
@@ -53,6 +54,28 @@ describe("HelpManual", () => {
       screen.getByText(/Header modes: INVEST · DEV · FORENSIC · SOCIAL/)
     ).toBeTruthy();
     expect(screen.queryByText(/Header TERMINAL \| SOCIAL/)).toBeNull();
+  });
+
+
+  it("console help lists will rows + inactivity warn footer (#26 Soft ACK)", () => {
+    render(<HelpManual theme={theme} mode="console" />);
+    expect(screen.getByText(/SYSTEM COMMAND MANUAL — CONSOLE/)).toBeTruthy();
+    expect(screen.getByText("will / will status")).toBeTruthy();
+    expect(screen.getByText("will set --heir <addr> --delay 90d")).toBeTruthy();
+    expect(screen.getByText("will heartbeat")).toBeTruthy();
+    expect(screen.getByText("will deposit <token> <amt>")).toBeTruthy();
+    expect(screen.getByText("will withdraw <token> <amt>")).toBeTruthy();
+    expect(screen.getByText("will cancel")).toBeTruthy();
+    expect(screen.getByText("will claim")).toBeTruthy();
+    expect(screen.getByText("will enable --mainnet")).toBeTruthy();
+    expect(screen.getByText(WILL_HELP_FOOTER)).toBeTruthy();
+    expect(screen.getByText(/inactivity switch/)).toBeTruthy();
+  });
+
+  it("invest help still lists will rows + footer", () => {
+    render(<HelpManual theme={theme} mode="invest" />);
+    expect(screen.getByText("will / will status")).toBeTruthy();
+    expect(screen.getByText(WILL_HELP_FOOTER)).toBeTruthy();
   });
 
 });
