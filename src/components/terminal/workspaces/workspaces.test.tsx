@@ -12,6 +12,7 @@ import {
   WorkspaceStrip,
   WorkspaceSurface,
   WIRED_WORKSPACE_PANELS,
+  defaultPanelForTab,
   isReadyWorkspaceAction,
   liveSubTabs,
   readyWorkspaceActions
@@ -288,12 +289,12 @@ describe("WorkspaceSurface (#148/#160)", () => {
     );
     expect(screen.getByRole("button", { name: /^SCREEN$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^READ$/i })).toBeTruthy();
-    // SCREEN first + 3 tools → no lone auto-open (#162/#170)
-    expect(onOpenPanel).not.toHaveBeenCalled();
+    // #236 Soft ACK — SCREEN cold-start defaults to KYT body (not ModeEmpty)
+    expect(onOpenPanel).toHaveBeenCalledWith("kyt");
     expect(screen.getByRole("button", { name: /^KYT/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^KYA/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /CHECK TOKEN/i })).toBeTruthy();
-    expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
+    expect(screen.queryByTestId("mode-empty-forensic")).toBeNull();
     expect(onSubTabChange).not.toHaveBeenCalledWith("READ");
   });
 
@@ -315,21 +316,20 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(onOpenPanel).toHaveBeenCalledWith("dig-source");
   });
 
-  it("DEV ModeEmpty shows only before lone auto-open / when panel closed (#198)", () => {
+  it("DEV with tools does not rest on ModeEmpty when panel null (#236)", () => {
+    const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
         theme={theme}
         mode="dev"
         activePanel={null}
         onCommand={vi.fn()}
-        onOpenPanel={vi.fn()}
+        onOpenPanel={onOpenPanel}
       />
     );
-    // With activePanel null (user closed / before open settles), ModeEmpty Soft ACK
-    expect(screen.getByTestId("mode-empty-dev")).toBeTruthy();
-    expect(
-      screen.getByText("Pick a tool above — Source, Build, or Ship.")
-    ).toBeTruthy();
+    // Controlled null still requests Soft default; no pick-a-tool resting shell
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-source");
+    expect(screen.queryByTestId("mode-empty-dev")).toBeNull();
   });
 
   it("DEV ModeEmpty clears when dig-source is open (#198)", () => {
@@ -347,7 +347,7 @@ describe("WorkspaceSurface (#148/#160)", () => {
     expect(screen.getByTestId("panel-dig-source")).toBeTruthy();
   });
 
-  it("DEV BUILD/SHIP stay multi-tool — no auto-open (#198)", () => {
+  it("DEV BUILD/SHIP auto-open first Soft default tool (#236)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -360,9 +360,10 @@ describe("WorkspaceSurface (#148/#160)", () => {
     );
     onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^BUILD$/i }));
-    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-artifact");
+    onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^SHIP$/i }));
-    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(onOpenPanel).toHaveBeenCalledWith("dig-deploy");
   });
 
   it("DEV tool tabs keep ≥8px gap under sticky row (#198)", () => {
@@ -506,10 +507,11 @@ describe("WorkspaceSurface (#148/#160)", () => {
         onOpenPanel={onOpenPanel}
       />
     );
-    // SCREEN mount: 3 tools → no auto-open; pick KYT
-    expect(onOpenPanel).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: /^KYT/i }));
+    // #236 — SCREEN mount auto-opens KYT; tool tab still opens panel on click
     expect(onOpenPanel).toHaveBeenCalledWith("kyt");
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^KYA/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("kya");
     onOpenPanel.mockClear();
     // Lone SIM sub-tab still auto-opens when selected
     fireEvent.click(screen.getAllByRole("button", { name: /^SIM$/i })[0]);
@@ -812,8 +814,8 @@ describe("Tile hints (#140 A4) — ready tiles only (#160)", () => {
   });
 });
 
-describe("lone-tool auto-open (#162)", () => {
-  it("does not auto-open SCREEN on FORENSIC mount (3 tools — #170)", () => {
+describe("default tool auto-open (#162/#236)", () => {
+  it("FORENSIC mount defaults SCREEN → KYT body (#236)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -822,12 +824,52 @@ describe("lone-tool auto-open (#162)", () => {
         activePanel={null}
         onCommand={vi.fn()}
         onOpenPanel={onOpenPanel}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
       />
     );
-    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(onOpenPanel).toHaveBeenCalledWith("kyt");
     expect(screen.getByRole("button", { name: /^SCREEN$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^KYT/i })).toBeTruthy();
-    expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
+    expect(screen.queryByTestId("mode-empty-forensic")).toBeNull();
+  });
+
+  it("shows SCREEN KYT body when activePanel is kyt (#236)", () => {
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel="kyt"
+        onCommand={vi.fn()}
+        onOpenPanel={vi.fn()}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
+      />
+    );
+    expect(screen.getByTestId("panel-kyt")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^KYT/i }).getAttribute("aria-pressed")).toBe(
+      "true"
+    );
+    expect(screen.queryByTestId("mode-empty-forensic")).toBeNull();
+  });
+
+  it("pressing SCREEN sub-tab opens Soft default (or session last) (#236)", () => {
+    const onOpenPanel = vi.fn();
+    const onSubTabChange = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel="kyt"
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        onSubTabChange={onSubTabChange}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
+      />
+    );
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^SCREEN$/i }));
+    expect(onSubTabChange).toHaveBeenCalledWith("SCREEN");
+    expect(onOpenPanel).toHaveBeenCalledWith("kyt");
+    expect(screen.queryByTestId("mode-empty-forensic")).toBeNull();
   });
 
   it("auto-opens Trace when switching to TRACE", () => {
@@ -850,8 +892,7 @@ describe("lone-tool auto-open (#162)", () => {
     expect(onOpenPanel).toHaveBeenCalledWith("trace");
   });
 
-
-  it("does not auto-open READ (four tools — #171/#194/#167)", () => {
+  it("auto-opens READ → TOKEN INFO (info) (#236)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -867,15 +908,15 @@ describe("lone-tool auto-open (#162)", () => {
     onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^READ$/i }));
     expect(onSubTabChange).toHaveBeenCalledWith("READ");
-    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(onOpenPanel).toHaveBeenCalledWith("info");
     expect(screen.getByRole("button", { name: /TOKEN INFO/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PRICE$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^BALANCE$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PORTFOLIO$/i })).toBeTruthy();
-    expect(screen.getByTestId("mode-empty-forensic")).toBeTruthy();
+    expect(screen.queryByTestId("mode-empty-forensic")).toBeNull();
   });
 
-  it("does not auto-open INVEST PORTFOLIO (four tools — #167)", () => {
+  it("auto-opens INVEST PORTFOLIO → BALANCE (#236)", () => {
     const onOpenPanel = vi.fn();
     const onSubTabChange = vi.fn();
     render(
@@ -891,14 +932,14 @@ describe("lone-tool auto-open (#162)", () => {
     onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^PORTFOLIO$/i }));
     expect(onSubTabChange).toHaveBeenCalledWith("PORTFOLIO");
-    expect(onOpenPanel).not.toHaveBeenCalled();
+    expect(onOpenPanel).toHaveBeenCalledWith("balance");
     expect(screen.getByRole("button", { name: /^BALANCE$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^SNAPSHOT$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PNL$/i })).toBeTruthy();
-    expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
+    expect(screen.queryByTestId("mode-empty-invest")).toBeNull();
   });
 
-  it("does not auto-open TRADE (DEX + PERPS — multiple ready tools)", () => {
+  it("auto-opens TRADE → DEX/pool (#236)", () => {
     const onOpenPanel = vi.fn();
     render(
       <WorkspaceSurface
@@ -913,9 +954,45 @@ describe("lone-tool auto-open (#162)", () => {
     expect(onOpenPanel).toHaveBeenCalledWith("news");
     onOpenPanel.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /^TRADE$/i }));
-    expect(onOpenPanel).not.toHaveBeenCalled();
-    // Same panel-slot ModeEmpty pattern as DEV (#166 QA)
-    expect(screen.getByTestId("mode-empty-invest")).toBeTruthy();
+    expect(onOpenPanel).toHaveBeenCalledWith("pool");
+    expect(screen.queryByTestId("mode-empty-invest")).toBeNull();
+  });
+
+  it("Soft-nice remembers last tool in session for the category (#236)", () => {
+    const onOpenPanel = vi.fn();
+    render(
+      <WorkspaceSurface
+        theme={theme}
+        mode="forensic"
+        activePanel="kyt"
+        onCommand={vi.fn()}
+        onOpenPanel={onOpenPanel}
+        renderPanel={(panel) => <div data-testid={`panel-${panel}`}>{panel}</div>}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^KYA/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("kya");
+    onOpenPanel.mockClear();
+    // Leave SCREEN → SIM, then return — Soft-nice restores KYA
+    fireEvent.click(screen.getAllByRole("button", { name: /^SIM$/i })[0]);
+    onOpenPanel.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: /^SCREEN$/i }));
+    expect(onOpenPanel).toHaveBeenCalledWith("kya");
+  });
+});
+
+describe("defaultPanelForTab (#236)", () => {
+  it("maps Soft cold-start defaults", () => {
+    expect(defaultPanelForTab("forensic", "SCREEN")).toBe("kyt");
+    expect(defaultPanelForTab("forensic", "SIM")).toBe("sim");
+    expect(defaultPanelForTab("forensic", "TRACE")).toBe("trace");
+    expect(defaultPanelForTab("forensic", "READ")).toBe("info");
+    expect(defaultPanelForTab("invest", "NEWS")).toBe("news");
+    expect(defaultPanelForTab("invest", "TRADE")).toBe("pool");
+    expect(defaultPanelForTab("invest", "PORTFOLIO")).toBe("balance");
+    expect(defaultPanelForTab("dev", "SOURCE")).toBe("dig-source");
+    expect(defaultPanelForTab("dev", "BUILD")).toBe("dig-artifact");
+    expect(defaultPanelForTab("dev", "SHIP")).toBe("dig-deploy");
   });
 });
 
