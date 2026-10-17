@@ -695,9 +695,9 @@ export const groupChatFactoryAbi = parseAbi([
   'event GroupCreated(address indexed group, address indexed deployer, string name, uint256 fee)',
 ])
 
-/** WillFactory per chain (#26). Fill after DeployWill — empty until Sepolia addresses land. */
+/** WillFactory per chain (#26). Sepolia DeployWill by Syung; impl via factory.implementation(). */
 export const WILL_FACTORY: Partial<Record<number, Address>> = {
-  // filled after Sepolia DeployWill — Eng will follow up when Alex drops addresses
+  11155111: '0x175aB804b7d4bb1Cf84Ff4BE87a0c6cfe297c5d1', // Sepolia — WillVault impl 0x0b62336da9cd8a735DE7377927BEcA6A3bc0788b
 }
 
 export const willFactoryAbi = parseAbi([
