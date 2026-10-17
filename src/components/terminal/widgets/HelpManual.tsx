@@ -12,6 +12,7 @@ import {
   type TerminalMode
 } from "../mode";
 import { WILL_HELP_FOOTER } from "../will/constants";
+import { PLAN_HELP_FOOTER } from "../plan/constants";
 
 export default function HelpManual({
   theme,
@@ -52,6 +53,9 @@ export default function HelpManual({
       <div className={`border-t ${theme.border} pt-2 mt-1 text-[10px] ${theme.muted}`}>
         local wallet is a hot wallet in this browser. hardware via connect is safer.
       </div>
+      {rows.some((r) => r.command.startsWith("plan")) && (
+        <div className={`pt-1 text-[10px] ${theme.warn}`}>{PLAN_HELP_FOOTER}</div>
+      )}
       {rows.some((r) => r.command.startsWith("will")) && (
         <div className={`pt-1 text-[10px] ${theme.warn}`}>{WILL_HELP_FOOTER}</div>
       )}

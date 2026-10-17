@@ -42,6 +42,7 @@ type VaultDepositWidgetProps = {
   previewWei: bigint; // the verb-matching preview shown at build time
   known?: boolean; // false for raw addresses not in VAULT_REGISTRY (#21)
   maxDriftBps?: number; // abort if re-sim preview drifts past this (default 50)
+  onOutcome?: (o: { ok: boolean; txHash?: string; rejected?: boolean; reverted?: boolean }) => void;
 };
 
 const VERB_LABEL: Record<string, string> = {
@@ -63,7 +64,8 @@ export default function VaultDepositWidget({
   amountHuman,
   previewWei,
   known = true,
-  maxDriftBps = 50
+  maxDriftBps = 50,
+  onOutcome
 }: VaultDepositWidgetProps) {
   const [status, setStatus] = useState<
     "checking_approval" | "needs_approval" | "approving" | "waiting_approval_confirmation" | "ready" | "executing" | "waiting_execution_confirmation" | "success" | "error"
@@ -189,13 +191,18 @@ export default function VaultDepositWidget({
         if (receipt.status === "reverted") {
           setStatus("error");
           setErrorMsg(`${VERB_LABEL[verb]} transaction reverted on-chain.`);
+          onOutcome?.({ ok: false, reverted: true, txHash: hash });
           return;
         }
       }
       setStatus("success");
+      onOutcome?.({ ok: true, txHash: hash });
     } catch (err: unknown) {
       setStatus("ready");
-      setErrorMsg(err instanceof Error ? err.message : `${VERB_LABEL[verb]} transaction rejected or failed.`);
+      const em = err instanceof Error ? err.message : `${VERB_LABEL[verb]} transaction rejected or failed.`;
+      setErrorMsg(em);
+      const rejected = /user rejected|denied|cancelled/i.test(em);
+      onOutcome?.({ ok: false, rejected, reverted: !rejected });
     }
   };
 

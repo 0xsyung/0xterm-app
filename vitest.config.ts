@@ -65,6 +65,13 @@ export default defineConfig({
         "src/components/terminal/widgets/MixerWithdrawWidget.tsx",
         // will action chrome (#26) — wagmi write/sim; logic in will/*.ts
         "src/components/terminal/widgets/WillActionWidget.tsx",
+        // plan run chrome (#24) — wagmi confirm widgets; logic in plan/*.ts
+        "src/components/terminal/widgets/PlanRunWidget.tsx",
+        "src/components/terminal/widgets/PlanWidget.tsx",
+        "src/components/terminal/plan/runPlan.ts",
+        // plan intent builder (#24) — live RPC/quote; pure serialize/drift/swapRebuild tested
+        "src/components/terminal/plan/buildIntent.ts",
+        "src/components/terminal/plan/vaultRebuild.ts",
         // wagmi provider/app glue + GA4 adapter — thin entry chrome (#6)
         "src/config/wagmi.ts",
         "src/app/layout.tsx",

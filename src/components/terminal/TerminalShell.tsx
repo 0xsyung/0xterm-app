@@ -220,6 +220,16 @@ import {
 import { runMixerCommand } from "./mixer/runMixer";
 import { runWillCommand } from "./will/runWill";
 import {
+  runPlanCommand,
+  recordStepIfRecording,
+  loadPlansFromPrefs,
+  plansToPrefsValue,
+  DEFAULT_PLAN_SESSION,
+  type Plan,
+  type PlanSession
+} from "./plan";
+import { buildIntentFromTokens, swapStepFromLive } from "./plan/buildIntent";
+import {
   ARB_EXECUTOR,
   ARB_ERROR
 } from "./arb/constants";
@@ -798,6 +808,14 @@ export default function TerminalShell({
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
+
+  // Saved plans (#24) — preferences.plans + recording/run session
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [planSession, setPlanSession] = useState<PlanSession>(DEFAULT_PLAN_SESSION);
+  const plansRef = useRef(plans);
+  plansRef.current = plans;
+  const planSessionRef = useRef(planSession);
+  planSessionRef.current = planSession;
 
   // Pinned widgets (floating right column). `refresh` is a live-data loader
   // re-run every 60s; manifests are what get persisted / exported / imported.
@@ -1728,6 +1746,12 @@ export default function TerminalShell({
 
           if (prefs.hlBuilderFeeBp != null) {
             setHlBuilderFeeBp(parseBuilderFeeBp(prefs.hlBuilderFeeBp));
+          }
+          {
+            const loadedPlans = loadPlansFromPrefs(prefs);
+            setPlans(loadedPlans);
+            if (loadedPlans.length)
+              loadedDetails.push(`Plans: ${loadedPlans.length}`);
           }
 
           if (prefs.mode && isTerminalMode(prefs.mode)) {
@@ -5607,7 +5631,45 @@ export default function TerminalShell({
         />
       );
 
-      return { id: generateId(), type: "component", component: swapWidget, title: `SWAP ${args[1]} ${fromToken.symbol}→${toToken.symbol}` };
+      const swapLog: LogEntry = {
+        id: generateId(),
+        type: "component",
+        component: swapWidget,
+        title: `SWAP ${args[1]} ${fromToken.symbol}→${toToken.symbol}`
+      };
+      // Recording (#24): also snapshot unsigned intent into active plan
+      const rec = recordStepIfRecording(
+        plansRef.current,
+        planSessionRef.current,
+        swapStepFromLive({
+          chainId: runChainId!,
+          dexId: runDexId!,
+          fromToken,
+          toToken,
+          amountInHuman: args[1],
+          amountInWei,
+          slippagePct,
+          feeTier: activeDex.type === "V3" ? feeTier : undefined,
+          expectedOutWei,
+          amountOutMin
+        }),
+        (next) => {
+          setPlans(next);
+          plansRef.current = next;
+          savePreference("plans", plansToPrefsValue(next));
+        }
+      );
+      if (rec) {
+        return [
+          {
+            id: generateId(),
+            type: "text",
+            text: rec.ack
+          } as LogEntry,
+          swapLog
+        ];
+      }
+      return swapLog;
     },
     arb: async (args) => {
       // arb [venues | scan <tA> <tB> | sim | run | help]
@@ -6406,6 +6468,60 @@ export default function TerminalShell({
             },
             "will send"
           )
+      });
+    },
+    plan: async (args) => {
+      const chainObj =
+        SUPPORTED_CHAINS.find((c) => c.id === activeChainId) || null;
+      let client = null as ReturnType<typeof getClient> | null;
+      try {
+        if (chainObj) client = getClient(chainObj);
+      } catch {
+        client = null;
+      }
+      const savePlans = (next: Plan[]) => {
+        setPlans(next);
+        plansRef.current = next;
+        savePreference("plans", plansToPrefsValue(next));
+      };
+      const saveSession = (s: PlanSession) => {
+        setPlanSession(s);
+        planSessionRef.current = s;
+      };
+      return runPlanCommand({
+        args,
+        generateId,
+        theme,
+        address: (effectiveAddress || address) as Address | undefined,
+        isConnected: !!effectiveConnected,
+        activeChainId: activeChainId ?? null,
+        chainObj,
+        client,
+        plans: plansRef.current,
+        session: planSessionRef.current,
+        onPin,
+        savePlans,
+        saveSession,
+        buildIntentStep: async (root, tokens) => {
+          try {
+            return await buildIntentFromTokens(
+              root,
+              tokens,
+              {
+                chainId: activeChainId ?? null,
+                dexId: activeDexId,
+                client,
+                chainObj,
+                resolveTokenDetails: async (raw, chain) =>
+                  resolveTokenDetails(raw, chain)
+              },
+              (effectiveAddress || address) as Address | undefined
+            );
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            return { error: msg.split("\n")[0] };
+          }
+        }
       });
     },
     calldata: async (args) => {

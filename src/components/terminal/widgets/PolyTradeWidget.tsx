@@ -52,6 +52,7 @@ export type PolyTradeProps = {
   usdceBalance: bigint;
   exchangeAllowance: bigint;
   feeRate?: number;
+  onOutcome?: (o: { ok: boolean; txHash?: string; orderId?: string; rejected?: boolean; reverted?: boolean }) => void;
 };
 
 type Step = "wrap" | "approve" | "sign" | "done";
@@ -76,7 +77,8 @@ export default function PolyTradeWidget(props: PolyTradeProps) {
     pusdBalance,
     usdceBalance,
     exchangeAllowance,
-    feeRate = 0
+    feeRate = 0,
+    onOutcome
   } = props;
 
   const exchange = exchangeForNegRisk(negRisk);
@@ -244,6 +246,7 @@ export default function PolyTradeWidget(props: PolyTradeProps) {
             polyErrorLine("POLY_CLOB_REJECT", posted.errorMsg || "")
           );
         setBusy(false);
+        onOutcome?.({ ok: false, reverted: true });
         return;
       }
       const delayed = posted.status === "delayed";
@@ -253,12 +256,19 @@ export default function PolyTradeWidget(props: PolyTradeProps) {
         delayed
       });
       setStep("done");
+      onOutcome?.({ ok: true, orderId: posted.orderId });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "failed";
-      if (/reject|denied/i.test(msg)) setErrorMsg(polyErrorLine("POLY_USER_REJECT"));
-      else if ((e as { code?: string })?.code === "POLY_GEOBLOCK")
+      if (/reject|denied/i.test(msg)) {
+        setErrorMsg(polyErrorLine("POLY_USER_REJECT"));
+        onOutcome?.({ ok: false, rejected: true });
+      } else if ((e as { code?: string })?.code === "POLY_GEOBLOCK") {
         setErrorMsg(polyErrorLine("POLY_GEOBLOCK"));
-      else setErrorMsg(msg.split("\n")[0]?.slice(0, 180) || "failed");
+        onOutcome?.({ ok: false, reverted: true });
+      } else {
+        setErrorMsg(msg.split("\n")[0]?.slice(0, 180) || "failed");
+        onOutcome?.({ ok: false, reverted: true });
+      }
     }
     setBusy(false);
   };
