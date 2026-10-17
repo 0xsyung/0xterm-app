@@ -838,6 +838,47 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["invest"]
   },
 
+  {
+    command: "will / will status",
+    description: "Show vault, heir, delay, last heartbeat, claimable time, deposited balances (testnet)",
+    modes: ["global"]
+  },
+  {
+    command: "will set --heir <addr> --delay 90d",
+    description: "Deploy or update the dead-man vault. Testnet only. Not a legal will",
+    modes: ["global"]
+  },
+  {
+    command: "will heartbeat",
+    description: "Owner-signed on-chain ping; resets the inactivity timer",
+    modes: ["global"]
+  },
+  {
+    command: "will deposit <token> <amt>",
+    description: "Move assets into the vault (only these can be claimed)",
+    modes: ["global"]
+  },
+  {
+    command: "will withdraw <token> <amt>",
+    description: "Owner withdraw; also counts as a heartbeat",
+    modes: ["global"]
+  },
+  {
+    command: "will cancel",
+    description: "Owner: return all assets, disable claim forever",
+    modes: ["global"]
+  },
+  {
+    command: "will claim",
+    description: "Heir: after delay with no heartbeat, receive deposited assets",
+    modes: ["global"]
+  },
+  {
+    command: "will enable --mainnet",
+    description: "Refused until independent audit. Do not use",
+    modes: ["global"]
+  },
+
   // dig (workshop — mode id dev)
   {
     command: "dig",

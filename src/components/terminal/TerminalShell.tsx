@@ -218,6 +218,7 @@ import {
   type VaultVerb
 } from "./vault";
 import { runMixerCommand } from "./mixer/runMixer";
+import { runWillCommand } from "./will/runWill";
 import {
   ARB_EXECUTOR,
   ARB_ERROR
@@ -6355,6 +6356,58 @@ export default function TerminalShell({
         onPin
       });
     },
+    will: async (args) => {
+      const { chainId: willChainId } = beginActionNetwork("will");
+      const chainObj =
+        SUPPORTED_CHAINS.find((c) => c.id === willChainId) || null;
+      const client = chainObj ? getClient(chainObj) : null;
+      const customList =
+        (customTokens[(willChainId ?? activeChainId) || 0] as
+          | import("./types").CustomTokenEntry[]
+          | undefined) || [];
+      return runWillCommand({
+        args,
+        generateId,
+        theme,
+        address: address as Address | undefined,
+        isConnected: !!effectiveConnected,
+        activeChainId: willChainId ?? null,
+        chainObj,
+        client,
+        customTokens: customList,
+        onPin,
+        resolveEnsOrAddress: async (query, chainId) => {
+          try {
+            void chainId;
+            return await resolveChatRecipient(query);
+          } catch {
+            return null;
+          }
+        },
+        writeContract: (wArgs) =>
+          writeContractActive(
+            {
+              chainId: wArgs.chainId,
+              address: wArgs.address,
+              abi: wArgs.abi,
+              functionName: wArgs.functionName,
+              args: wArgs.args,
+              value: wArgs.value
+            },
+            `will ${wArgs.functionName}`
+          ),
+        sendTransaction: (sArgs) =>
+          sendTransactionActive(
+            {
+              chainId: sArgs.chainId,
+              to: sArgs.to,
+              data: sArgs.data,
+              value: sArgs.value
+            },
+            "will send"
+          )
+      });
+    },
     calldata: async (args) => {
       // calldata [help | sim] <to> <fnSig> <arg0...>
       const sub = (args[1] || "").toLowerCase();
@@ -9494,6 +9547,18 @@ export default function TerminalShell({
           candidates = ["100", "500", "3000", "10000"];
 
           // 9. Deploy Command
+        } else if (command === "will" && currentArgIdx === 1) {
+          candidates = [
+            "status",
+            "set",
+            "heartbeat",
+            "deposit",
+            "withdraw",
+            "cancel",
+            "claim",
+            "enable",
+            "help"
+          ];
         } else if (command === "mixer" && currentArgIdx === 1) {
           candidates = ["pools", "deposit", "withdraw", "status", "notes", "help"];
         } else if (command === "dig" && currentArgIdx === 1) {

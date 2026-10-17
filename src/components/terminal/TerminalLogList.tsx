@@ -16,6 +16,7 @@ import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
 import PolyWidget from "./widgets/PolyWidget";
 import MixerWidget from "./widgets/MixerWidget";
+import WillStatusWidget from "./widgets/WillStatusWidget";
 import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import TickerWidget from "./widgets/TickerWidget";
@@ -246,6 +247,15 @@ function renderLog(
         notes={log.payload?.notes}
         statusPayload={log.payload?.mode === "status" ? log.payload : undefined}
         theme={theme}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  if (log.type === "will")
+    return (
+      <WillStatusWidget
+        theme={theme}
+        payload={log.payload}
         onPin={() => onPin(log)}
         pinned={isPinned}
       />

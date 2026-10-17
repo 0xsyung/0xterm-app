@@ -695,6 +695,53 @@ export const groupChatFactoryAbi = parseAbi([
   'event GroupCreated(address indexed group, address indexed deployer, string name, uint256 fee)',
 ])
 
+/** WillFactory per chain (#26). Fill after DeployWill — empty until Sepolia addresses land. */
+export const WILL_FACTORY: Partial<Record<number, Address>> = {
+  // filled after Sepolia DeployWill — Eng will follow up when Alex drops addresses
+}
+
+export const willFactoryAbi = parseAbi([
+  'function create(address heir, uint64 delaySeconds) returns (address vault)',
+  'function vaultOf(address owner) view returns (address)',
+  'function implementation() view returns (address)',
+  'event VaultCreated(address indexed owner, address indexed vault, address indexed heir, uint64 delaySeconds)',
+  'error ZeroAddress()',
+  'error HeirIsOwner()',
+  'error VaultExists()',
+])
+
+export const willVaultAbi = parseAbi([
+  'function heartbeat()',
+  'function setHeir(address newHeir)',
+  'function setDelay(uint64 newDelay)',
+  'function deposit() payable',
+  'function depositToken(address token, uint256 amt)',
+  'function withdraw(address token, uint256 amt)',
+  'function cancel()',
+  'function claim()',
+  'function owner() view returns (address)',
+  'function heir() view returns (address)',
+  'function delay() view returns (uint64)',
+  'function lastHeartbeat() view returns (uint64)',
+  'function claimableAt() view returns (uint64)',
+  'function isClaimable() view returns (bool)',
+  'function tokens() view returns (address[])',
+  'function ethBalance() view returns (uint256)',
+  'function claimed() view returns (bool)',
+  'function cancelled() view returns (bool)',
+  'error NotOwner()',
+  'error NotHeir()',
+  'error ZeroAddress()',
+  'error HeirIsOwner()',
+  'error DelayTooShort()',
+  'error DelayTooLong()',
+  'error TooEarly(uint64 claimableAt)',
+  'error AlreadyClaimed()',
+  'error CancelledVault()',
+  'error TokenListFull()',
+  'error ZeroAmount()',
+])
+
 export const resolveChain = (query?: string): Chain | undefined => {
   if (!query) return undefined
   const q = query.toLowerCase().trim()
