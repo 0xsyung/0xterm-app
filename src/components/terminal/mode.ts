@@ -866,6 +866,22 @@ export const HELP_ROWS: HelpRow[] = [
   },
 
   {
+    command: "when price TOKEN > N [do news|plan run <name>]",
+    description: "Tab-open alert (notify-only default; plan run prompts, never auto-signs)",
+    modes: ["global"]
+  },
+  {
+    command: "when ls / when rm <id>",
+    description: "List or delete watchers (dead when this tab is closed)",
+    modes: ["global"]
+  },
+  {
+    command: "when --onchain",
+    description: "v2 on-chain keepers (Gelato / Chainlink CRE) — not in v1",
+    modes: ["global"]
+  },
+
+  {
     command: "will / will status",
     description: "Show vault, heir, delay, last heartbeat, claimable time, deposited balances (testnet)",
     modes: ["global"]

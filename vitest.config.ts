@@ -68,6 +68,8 @@ export default defineConfig({
         // plan run chrome (#24) — wagmi confirm widgets; logic in plan/*.ts
         "src/components/terminal/widgets/PlanRunWidget.tsx",
         "src/components/terminal/widgets/PlanWidget.tsx",
+        "src/components/terminal/widgets/WhenWidget.tsx",
+        "src/components/terminal/when/runWhen.ts",
         "src/components/terminal/plan/runPlan.ts",
         // plan intent builder (#24) — live RPC/quote; pure serialize/drift/swapRebuild tested
         "src/components/terminal/plan/buildIntent.ts",

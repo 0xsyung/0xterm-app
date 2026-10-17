@@ -18,6 +18,7 @@ import PolyWidget from "./widgets/PolyWidget";
 import MixerWidget from "./widgets/MixerWidget";
 import PlanWidget from "./widgets/PlanWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
+import WhenWidget from "./widgets/WhenWidget";
 import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import TickerWidget from "./widgets/TickerWidget";
@@ -258,6 +259,18 @@ function renderLog(
         theme={theme}
         plan={log.payload?.plan}
         warnBanner={log.payload?.warn}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  if (log.type === "when")
+    return (
+      <WhenWidget
+        theme={theme}
+        rules={log.payload?.rules}
+        warnBanner={log.payload?.warn}
+        tabHidden={!!log.payload?.tabHidden}
+        justFiredId={log.payload?.justFiredId ?? null}
         onPin={() => onPin(log)}
         pinned={isPinned}
       />
