@@ -11,6 +11,7 @@ import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
 import PolyWidget from "./widgets/PolyWidget";
 import MixerWidget from "./widgets/MixerWidget";
+import WillStatusWidget from "./widgets/WillStatusWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import PriceCard from "./widgets/PriceCard";
 import DigArtifactWidget from "./widgets/DigArtifactWidget";
@@ -198,6 +199,14 @@ function renderPinned(p: PinnedManifest, theme: any) {
           notes={payload.notes}
           statusPayload={payload.mode === "status" ? payload : undefined}
           theme={theme}
+          pinned
+        />
+      );
+    case "will":
+      return (
+        <WillStatusWidget
+          theme={theme}
+          payload={payload}
           pinned
         />
       );

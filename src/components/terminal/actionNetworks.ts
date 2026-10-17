@@ -9,6 +9,7 @@ import {
   CHAT_FACTORY,
   CHAT_PRESETS,
   GROUP_CHAT_FACTORY,
+  WILL_FACTORY,
   DEX_REGISTRY,
   ENS_CONTRACT,
   IMPLEMENTATION_ADDRESSES,
@@ -41,7 +42,8 @@ export type ActionId =
   | "kyt"
   | "kya"
   | "perps"
-  | "poly";
+  | "poly"
+  | "will";
 
 export type ActionDef = {
   id: ActionId;
@@ -91,6 +93,14 @@ const gchatChainIds = (): number[] => {
   const fromFactory = Object.keys(GROUP_CHAT_FACTORY).map(Number);
   // Until factory is filled, allow same testnets as chat presets/factory.
   return Array.from(new Set([...fromFactory, ...chatChainIds()]));
+};
+
+const willChainIds = (): number[] => {
+  const fromFactory = Object.keys(WILL_FACTORY).map(Number);
+  // Until DeployWill fills addresses, allow known will testnets (fail-closed on send).
+  return Array.from(
+    new Set([...fromFactory, 11155111, 84532, 421614, 11155420])
+  );
 };
 
 const boardChainIds = (): number[] =>
@@ -155,6 +165,12 @@ export const ACTION_NETWORK_REGISTRY: readonly ActionDef[] = [
     label: "gchat",
     kind: "write",
     supportedChainIds: gchatChainIds()
+  },
+  {
+    id: "will",
+    label: "will",
+    kind: "write",
+    supportedChainIds: willChainIds()
   },
   {
     id: "board",
