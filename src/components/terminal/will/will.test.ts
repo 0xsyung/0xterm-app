@@ -174,10 +174,12 @@ describe("runWillCommand grammar", () => {
       baseCtx({
         args: ["will"],
         isConnected: true,
-        address: "0x00000000000000000000000000000000000000Aa" as `0x${string}`
+        address: "0x00000000000000000000000000000000000000Aa" as `0x${string}`,
+        activeChainId: 80002,
+        chainObj: { id: 80002, name: "Polygon Amoy", testnet: true } as any
       })
     );
-    // WILL_FACTORY empty → no factory
+    // Amoy not in WILL_FACTORY → fail closed
     expect(r.warn).toBe(true);
     expect(r.text).toBe(WILL_REFUSE.noFactory);
   });
@@ -251,11 +253,13 @@ describe("runWillCommand mutating gates", () => {
       baseCtx({
         args: ["will", "deposit"],
         isConnected: true,
-        address: owner
+        address: owner,
+        activeChainId: 80002,
+        chainObj: { id: 80002, name: "Polygon Amoy", testnet: true } as any
       })
     );
     expect(r.warn).toBe(true);
-    // factory empty → noFactory first
+    // Amoy not in WILL_FACTORY → noFactory (or usage if parsed first)
     expect(r.text).toMatch(/No will factory|Usage: will deposit/);
   });
 
@@ -265,8 +269,8 @@ describe("runWillCommand mutating gates", () => {
         args: ["will", "heartbeat"],
         isConnected: true,
         address: owner,
-        activeChainId: 11155111,
-        chainObj: sepolia
+        activeChainId: 84532,
+        chainObj: { id: 84532, name: "Base Sepolia", testnet: true } as any
       })
     );
     expect(r.text).toBe(WILL_REFUSE.noFactory);
@@ -277,7 +281,9 @@ describe("runWillCommand mutating gates", () => {
       baseCtx({
         args: ["will", "cancel"],
         isConnected: true,
-        address: owner
+        address: owner,
+        activeChainId: 80002,
+        chainObj: { id: 80002, name: "Polygon Amoy", testnet: true } as any
       })
     );
     expect(r.text).toBe(WILL_REFUSE.noFactory);
@@ -288,7 +294,9 @@ describe("runWillCommand mutating gates", () => {
       baseCtx({
         args: ["will", "claim"],
         isConnected: true,
-        address: heir
+        address: heir,
+        activeChainId: 80002,
+        chainObj: { id: 80002, name: "Polygon Amoy", testnet: true } as any
       })
     );
     expect(r.warn).toBe(true);
