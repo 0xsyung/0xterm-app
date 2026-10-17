@@ -85,6 +85,7 @@ describe("isPinnableManifest", () => {
     expect(isPinnableManifest({ kind: "dig-debug" })).toBe(true);
     expect(isPinnableManifest({ kind: "plan" })).toBe(true);
     expect(isPinnableManifest({ kind: "will" })).toBe(true);
+    expect(isPinnableManifest({ kind: "when" })).toBe(true);
     expect(
       isPinnableManifest({ kind: "component", componentData: { kind: "kyt" } })
     ).toBe(true);

@@ -230,6 +230,16 @@ import {
 } from "./plan";
 import { buildIntentFromTokens, swapStepFromLive } from "./plan/buildIntent";
 import {
+  runWhenCommand,
+  loadWhensFromPrefs,
+  whensToPrefsValue,
+  WhenEngine,
+  whenErrorLine,
+  type WhenRule,
+  type WhenFireEvent
+} from "./when";
+import WhenWidget from "./widgets/WhenWidget";
+import {
   ARB_EXECUTOR,
   ARB_ERROR
 } from "./arb/constants";
@@ -816,6 +826,25 @@ export default function TerminalShell({
   plansRef.current = plans;
   const planSessionRef = useRef(planSession);
   planSessionRef.current = planSession;
+
+  // when watchers (#25) — preferences.whens; timers only while tab live
+  const [whens, setWhens] = useState<WhenRule[]>([]);
+  const whensRef = useRef(whens);
+  whensRef.current = whens;
+  const [whenTabHidden, setWhenTabHidden] = useState(false);
+  const [whenJustFiredId, setWhenJustFiredId] = useState<string | null>(null);
+  const whenEngineRef = useRef<WhenEngine | null>(null);
+  const whenCommandsRef = useRef<Record<string, (args: string[]) => Promise<LogEntry> | LogEntry> | null>(null);
+  const whenChainIdRef = useRef(activeChainId);
+  whenChainIdRef.current = activeChainId;
+  const whenResolveRef = useRef<
+    | ((queryToken: string, chain: Chain) => Promise<{
+        symbol: string;
+        address: Address;
+        isNative: boolean;
+      }>)
+    | null
+  >(null);
 
   // Pinned widgets (floating right column). `refresh` is a live-data loader
   // re-run every 60s; manifests are what get persisted / exported / imported.
@@ -1753,6 +1782,13 @@ export default function TerminalShell({
             if (loadedPlans.length)
               loadedDetails.push(`Plans: ${loadedPlans.length}`);
           }
+          {
+            const loadedWhens = loadWhensFromPrefs(prefs);
+            setWhens(loadedWhens);
+            whensRef.current = loadedWhens;
+            if (loadedWhens.length)
+              loadedDetails.push(`Whens: ${loadedWhens.length}`);
+          }
 
           if (prefs.mode && isTerminalMode(prefs.mode)) {
             setTerminalMode(prefs.mode);
@@ -2316,6 +2352,7 @@ export default function TerminalShell({
       client: getClient(chain),
       onAmbiguous: openTokenPicker
     });
+  whenResolveRef.current = resolveTokenDetails;
 
   // Pin-refresh resolution: prefer the persisted token address (deterministic,
   // never opens the picker), falling back to symbol resolution for legacy pins.
@@ -3329,6 +3366,184 @@ export default function TerminalShell({
     };
   }, [isConnected, address, activeChainId, rpcProviders, activeRpcProviders]);
 
+  // —— when engine (#25): start on mount; visibility pauses polls; no intervals until start ——
+  useEffect(() => {
+    const saveRules = (next: WhenRule[]) => {
+      setWhens(next);
+      whensRef.current = next;
+      savePreference("whens", whensToPrefsValue(next));
+      whenEngineRef.current?.setRules(next);
+    };
+
+    const fetchPrice = async (rule: WhenRule) => {
+      try {
+        const chainObj =
+          SUPPORTED_CHAINS.find((c) => c.id === whenChainIdRef.current) || null;
+        if (!chainObj) {
+          return { ok: false as const, code: "WHEN_PRICE_FAIL" as const };
+        }
+        let client: ReturnType<typeof getClient>;
+        try {
+          client = getClient(chainObj);
+        } catch {
+          return { ok: false as const, code: "WHEN_PRICE_FAIL" as const };
+        }
+        const resolve = whenResolveRef.current;
+        if (!resolve) {
+          return { ok: false as const, code: "WHEN_PRICE_FAIL" as const };
+        }
+        const details = await resolve(rule.trigger.token, chainObj);
+        const usd = await getTokenPriceUsd(
+          chainObj,
+          details.symbol,
+          details.address as Address,
+          !!details.isNative,
+          client
+        );
+        if (usd == null || !Number.isFinite(usd)) {
+          return { ok: false as const, code: "WHEN_PRICE_FAIL" as const };
+        }
+        let price = usd;
+        let priceLabel = usd.toPrecision(6);
+        if (rule.trigger.quote === "native") {
+          const nativeUsd = await getTokenPriceUsd(
+            chainObj,
+            chainObj.nativeCurrency.symbol,
+            (WRAPPED_NATIVE[chainObj.id] || NATIVE_TOKEN_ADDRESS) as Address,
+            true,
+            client
+          );
+          if (nativeUsd == null || nativeUsd <= 0) {
+            return { ok: false as const, code: "WHEN_PRICE_FAIL" as const };
+          }
+          price = usd / nativeUsd;
+          priceLabel = price.toPrecision(6);
+        }
+        return { ok: true as const, price, priceLabel };
+      } catch (e: unknown) {
+        const msg =
+          e instanceof Error ? e.message.split("\n")[0] : "price fail";
+        return {
+          ok: false as const,
+          code: "WHEN_PRICE_FAIL" as const,
+          detail: msg
+        };
+      }
+    };
+
+    const onFire = async (ev: WhenFireEvent) => {
+      setWhenJustFiredId(ev.rule.id);
+      setTimeout(() => setWhenJustFiredId(null), 2500);
+      const head = `[when ${ev.rule.id} FIRE] ${ev.rule.trigger.token} ${ev.rule.trigger.op} ${ev.rule.trigger.value} @ ${ev.priceLabel}`;
+      const push = (entry: LogEntry) =>
+        setLogs((prev) => [...prev, entry].slice(-MAX_LOGS));
+
+      if (ev.rule.action.kind === "notify") {
+        push({
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: `${head} → notify`
+        });
+        return;
+      }
+      if (ev.rule.action.kind === "read") {
+        push({
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: `${head} → ${ev.rule.action.cmd} ${ev.rule.action.args.join(" ")}`.trim()
+        });
+        const cmds = whenCommandsRef.current;
+        const fn = cmds?.[ev.rule.action.cmd];
+        if (fn) {
+          try {
+            const result = await fn([
+              ev.rule.action.cmd,
+              ...ev.rule.action.args
+            ]);
+            if (result) push(result);
+          } catch {
+            push({
+              id: generateId(),
+              type: "text",
+              warn: true,
+              text: whenErrorLine("WHEN_PRICE_FAIL", "read action failed")
+            });
+          }
+        }
+        return;
+      }
+      if (ev.rule.action.kind === "plan-run") {
+        const name = ev.rule.action.name;
+        const plan = plansRef.current.find((p) => p.name === name);
+        if (!plan) {
+          push({
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: `${head}\n${whenErrorLine("WHEN_PLAN_MISSING", `plan "${name}"`)}`
+          });
+          return;
+        }
+        push({
+          id: generateId(),
+          type: "text",
+          warn: true,
+          text: `${head} → prompting plan run ${name} (never auto-signs)`
+        });
+        // Prompt #24 flow — watcher never sendTransaction/signTypedData
+        const cmds = whenCommandsRef.current;
+        const planFn = cmds?.plan;
+        if (planFn) {
+          try {
+            const result = await planFn(["plan", "run", name]);
+            if (result) push(result);
+          } catch {
+            push({
+              id: generateId(),
+              type: "text",
+              warn: true,
+              text: `[when] plan run prompt failed for ${name}`
+            });
+          }
+        }
+      }
+    };
+
+    const eng = new WhenEngine({
+      fetchPrice,
+      onFire,
+      onRulesPatch: saveRules,
+      getVisibility: () =>
+        typeof document !== "undefined" ? document.visibilityState : "visible"
+    });
+    eng.setRules(whensRef.current);
+    whenEngineRef.current = eng;
+    eng.start();
+    setWhenTabHidden(
+      typeof document !== "undefined" && document.visibilityState === "hidden"
+    );
+
+    const onVis = () => {
+      const hidden =
+        typeof document !== "undefined" && document.visibilityState === "hidden";
+      setWhenTabHidden(hidden);
+      eng.onVisibilityChange();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      eng.stop();
+      whenEngineRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only live session; rules via setRules/refs
+  }, []);
+
+  // Keep engine rule list in sync when prefs/CLI mutate whens
+  useEffect(() => {
+    whenEngineRef.current?.setRules(whens);
+  }, [whens]);
 
   // —— Terminal modes (#54) — purpose lens; Stephy option A chrome (prompt chip only)
   const applyTerminalMode = (next: TerminalMode, opts?: { silent?: boolean }) => {
@@ -6524,6 +6739,32 @@ export default function TerminalShell({
         }
       });
     },
+    when: async (args) => {
+      const saveRules = (next: WhenRule[]) => {
+        setWhens(next);
+        whensRef.current = next;
+        savePreference("whens", whensToPrefsValue(next));
+        whenEngineRef.current?.setRules(next);
+      };
+      return runWhenCommand({
+        args,
+        generateId,
+        theme,
+        rules: whensRef.current,
+        saveRules,
+        hasPlan: (name) => !!plansRef.current.find((p) => p.name === name),
+        onPin,
+        renderWidget: ({ rules, warnBanner, log }) =>
+          React.createElement(WhenWidget, {
+            theme,
+            rules,
+            warnBanner,
+            tabHidden: whenTabHidden,
+            justFiredId: whenJustFiredId,
+            onPin: () => onPin(log)
+          })
+      });
+    },
     calldata: async (args) => {
       // calldata [help | sim] <to> <fnSig> <arg0...>
       const sub = (args[1] || "").toLowerCase();
@@ -9304,6 +9545,10 @@ export default function TerminalShell({
 
     const args = trimmed.split(/\s+/).filter(Boolean);
     const command = args[0].toLowerCase();
+    whenCommandsRef.current = commands as unknown as Record<
+      string,
+      (args: string[]) => Promise<LogEntry> | LogEntry
+    >;
     trackEvent("command_run", { command });
     const handler = commands[command];
 
