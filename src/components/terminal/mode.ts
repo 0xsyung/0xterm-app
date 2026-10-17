@@ -838,6 +838,33 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["invest"]
   },
 
+
+  {
+    command: "plan new <name>",
+    description: "Start a saved plan (recording intents)",
+    modes: ["global"]
+  },
+  {
+    command: "plan add [cmd]",
+    description: "Snapshot a swap/vault/poly intent (unsigned)",
+    modes: ["global"]
+  },
+  {
+    command: "plan show [name]",
+    description: "List steps and last sim",
+    modes: ["global"]
+  },
+  {
+    command: "plan run <name>",
+    description: "Re-sim each step; wallet confirms every send",
+    modes: ["global"]
+  },
+  {
+    command: "plan ls / plan rm <name>",
+    description: "List or delete plans (local prefs JSON)",
+    modes: ["global"]
+  },
+
   {
     command: "will / will status",
     description: "Show vault, heir, delay, last heartbeat, claimable time, deposited balances (testnet)",

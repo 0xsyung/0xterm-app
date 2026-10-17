@@ -31,6 +31,7 @@ type Props = {
   /** Exchange for approve; ignored for wrap/unwrap. */
   spender?: Address;
   isRevoke?: boolean;
+  onOutcome?: (o: { ok: boolean; txHash?: string; rejected?: boolean; reverted?: boolean }) => void;
 };
 
 export default function PolyCollateralWidget({
@@ -40,7 +41,8 @@ export default function PolyCollateralWidget({
   kind,
   amountWei,
   spender,
-  isRevoke
+  isRevoke,
+  onOutcome
 }: Props) {
   const [status, setStatus] = useState<
     "idle" | "step1" | "waiting1" | "step2" | "waiting2" | "success" | "error"
@@ -83,6 +85,7 @@ export default function PolyCollateralWidget({
           if (receipt.status === "reverted") throw new Error("Approval reverted");
         }
         setStatus("success");
+        onOutcome?.({ ok: true, txHash: hash });
         return;
       }
 
@@ -119,6 +122,7 @@ export default function PolyCollateralWidget({
           if (receipt.status === "reverted") throw new Error("Wrap reverted");
         }
         setStatus("success");
+        onOutcome?.({ ok: true, txHash: hash2 });
         return;
       }
 
@@ -155,11 +159,14 @@ export default function PolyCollateralWidget({
         if (receipt.status === "reverted") throw new Error("Unwrap reverted");
       }
       setStatus("success");
+      onOutcome?.({ ok: true, txHash: hash2 });
     } catch (err: unknown) {
       setStatus("error");
       const msg = err instanceof Error ? err.message : "Rejected or failed";
       // never dump stacks
       setErrorMsg(msg.split("\n")[0]?.slice(0, 200) || "Rejected or failed");
+      const rejected = /user rejected|denied|cancelled|Rejected/i.test(msg);
+      onOutcome?.({ ok: false, rejected, reverted: !rejected });
     }
   };
 

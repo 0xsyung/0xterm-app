@@ -16,6 +16,7 @@ import AllowancesWidget from "./widgets/AllowancesWidget";
 import VaultWidget from "./widgets/VaultWidget";
 import PolyWidget from "./widgets/PolyWidget";
 import MixerWidget from "./widgets/MixerWidget";
+import PlanWidget from "./widgets/PlanWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
 import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
@@ -247,6 +248,16 @@ function renderLog(
         notes={log.payload?.notes}
         statusPayload={log.payload?.mode === "status" ? log.payload : undefined}
         theme={theme}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  if (log.type === "plan")
+    return (
+      <PlanWidget
+        theme={theme}
+        plan={log.payload?.plan}
+        warnBanner={log.payload?.warn}
         onPin={() => onPin(log)}
         pinned={isPinned}
       />

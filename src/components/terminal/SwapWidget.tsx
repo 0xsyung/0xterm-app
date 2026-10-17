@@ -55,6 +55,13 @@ type SwapWidgetProps = {
     data?: `0x${string}`;
     value?: bigint;
   }) => Promise<`0x${string}`>;
+  /** Optional outcome hook for plan run (#24). */
+  onOutcome?: (o: {
+    ok: boolean;
+    txHash?: string;
+    rejected?: boolean;
+    reverted?: boolean;
+  }) => void;
 };
 
 export default function SwapWidget({
@@ -72,7 +79,8 @@ export default function SwapWidget({
   estimatedGasUsd,
   theme,
   writeContract: writeContractOverride,
-  sendTransaction: sendTransactionOverride
+  sendTransaction: sendTransactionOverride,
+  onOutcome
 }: SwapWidgetProps) {
   const [status, setStatus] = useState<
     | "idle"
@@ -186,13 +194,18 @@ export default function SwapWidget({
           setErrorMsg(
             "Swap transaction reverted on-chain. Check slippage or pool liquidity."
           );
+          onOutcome?.({ ok: false, reverted: true, txHash: hash });
           return;
         }
       }
       setStatus("success");
+      onOutcome?.({ ok: true, txHash: hash });
     } catch (err: unknown) {
       setStatus("ready");
-      setErrorMsg(getErrorMessage(err, "Swap transaction rejected or failed."));
+      const em = getErrorMessage(err, "Swap transaction rejected or failed.");
+      setErrorMsg(em);
+      const rejected = /user rejected|denied|cancelled/i.test(em);
+      onOutcome?.({ ok: false, rejected, reverted: !rejected });
     }
   };
 

@@ -25,6 +25,7 @@ type VaultApproveWidgetProps = {
   asset: VaultAsset;
   amountWei: bigint;
   isRevoke: boolean;
+  onOutcome?: (o: { ok: boolean; txHash?: string; rejected?: boolean; reverted?: boolean }) => void;
 };
 
 export default function VaultApproveWidget({
@@ -34,7 +35,8 @@ export default function VaultApproveWidget({
   vaultName,
   asset,
   amountWei,
-  isRevoke
+  isRevoke,
+  onOutcome
 }: VaultApproveWidgetProps) {
   const [status, setStatus] = useState<"idle" | "approving" | "waiting" | "success" | "error">("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -65,13 +67,18 @@ export default function VaultApproveWidget({
         if (receipt.status === "reverted") {
           setStatus("error");
           setErrorMsg("Approval transaction reverted on-chain.");
+          onOutcome?.({ ok: false, reverted: true, txHash: hash });
           return;
         }
       }
       setStatus("success");
+      onOutcome?.({ ok: true, txHash: hash });
     } catch (err: unknown) {
       setStatus("idle");
-      setErrorMsg(err instanceof Error ? err.message : "Approval rejected or failed.");
+      const em = err instanceof Error ? err.message : "Approval rejected or failed.";
+      setErrorMsg(em);
+      const rejected = /user rejected|denied|cancelled/i.test(em);
+      onOutcome?.({ ok: false, rejected, reverted: !rejected });
     }
   };
 
