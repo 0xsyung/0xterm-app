@@ -855,8 +855,8 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["global"]
   },
   {
-    command: "plan run <name>",
-    description: "Re-sim each step; wallet confirms every send",
+    command: "plan run <name> [--multicall]",
+    description: "Re-sim each step; optional --multicall = one wallet confirm for N same-chain calls (not a keeper)",
     modes: ["global"]
   },
   {

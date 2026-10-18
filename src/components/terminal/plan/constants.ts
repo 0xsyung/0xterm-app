@@ -10,7 +10,7 @@ export const PLAN_NAME_RE = /^[a-z0-9._-]{1,32}$/;
 export const PLAN_USAGE = `plan new <name>
 plan add [<cmd>…]
 plan show [name]
-plan run <name>
+plan run <name> [--multicall]
 plan skip
 plan abort
 plan rm <name>
@@ -18,7 +18,7 @@ plan ls
 plan rec on|off`;
 
 export const PLAN_HELP_FOOTER =
-  "Plans are unsigned intents in local prefs. Nothing is signed until plan run. A closed tab cannot execute — this is not a keeper.";
+  "Plans are unsigned intents in local prefs. Nothing is signed until plan run. Opt-in `plan run <name> --multicall` packs eligible same-chain steps into one wallet confirm for N same-chain calls (Multicall3) — still not a keeper; a closed tab cannot execute.";
 
 export const PLAN_WARN_BANNER =
   "Intents only. Nothing is signed until plan run. A closed tab cannot execute.";

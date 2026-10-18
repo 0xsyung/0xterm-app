@@ -15,6 +15,7 @@ export * from "./intent";
 export * from "./swapRebuild";
 export * from "./vaultRebuild";
 export * from "./approveEncode";
+export * from "./multicall";
 export * from "./buildIntent";
 export {
   runPlanCommand,

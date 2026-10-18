@@ -10,6 +10,8 @@ import { render, screen } from "@testing-library/react";
 import { THEMES } from "../constants";
 import HelpManual from "./HelpManual";
 import { WILL_HELP_FOOTER } from "../will/constants";
+import { PLAN_HELP_FOOTER } from "../plan/constants";
+import { WHEN_HELP_FOOTER } from "../when/constants";
 
 const theme = THEMES.matrix;
 
@@ -76,6 +78,16 @@ describe("HelpManual", () => {
     render(<HelpManual theme={theme} mode="invest" />);
     expect(screen.getByText("will / will status")).toBeTruthy();
     expect(screen.getByText(WILL_HELP_FOOTER)).toBeTruthy();
+  });
+
+  it("global help lists plan run --multicall + honesty footers (#242)", () => {
+    render(<HelpManual theme={theme} mode="invest" />);
+    expect(screen.getByText("plan run <name> [--multicall]")).toBeTruthy();
+    expect(screen.getByText(PLAN_HELP_FOOTER)).toBeTruthy();
+    expect(PLAN_HELP_FOOTER).toMatch(/one wallet confirm for N same-chain calls/i);
+    expect(PLAN_HELP_FOOTER).toMatch(/not a keeper/i);
+    expect(screen.getByText(WHEN_HELP_FOOTER)).toBeTruthy();
+    expect(WHEN_HELP_FOOTER).toMatch(/not an on-chain keeper/i);
   });
 
 });
