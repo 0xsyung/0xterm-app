@@ -244,7 +244,7 @@ describe("engine visibility + fire stub (#25)", () => {
       }
       scheduled += 1;
       return origSet.call(globalThis, handler as () => void, timeout ?? 0);
-    } as typeof setInterval;
+    } as unknown as typeof setInterval;
     globalThis.clearInterval = function (
       this: unknown,
       id: ReturnType<typeof setInterval>
@@ -253,7 +253,7 @@ describe("engine visibility + fire stub (#25)", () => {
         throw new TypeError("Illegal invocation");
       }
       return origClear.call(globalThis, id);
-    } as typeof clearInterval;
+    } as unknown as typeof clearInterval;
 
     try {
       // Document the bug: unbound extract + call loses `this`.
