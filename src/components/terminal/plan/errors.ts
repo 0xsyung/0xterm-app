@@ -16,7 +16,8 @@ export type PlanErrorCode =
   | "PLAN_USER_REJECT"
   | "PLAN_STEP_REVERT"
   | "PLAN_STALE_DEX"
-  | "PLAN_BAD_NAME";
+  | "PLAN_BAD_NAME"
+  | "PLAN_PACK_REFUSE";
 
 export const PLAN_ERROR_COPY: Record<PlanErrorCode, string> = {
   PLAN_EXISTS: "Pick another name or `plan rm`.",
@@ -29,7 +30,8 @@ export const PLAN_ERROR_COPY: Record<PlanErrorCode, string> = {
   PLAN_USER_REJECT: "Stopped. Later steps still pending.",
   PLAN_STEP_REVERT: "Stopped. No stack dump.",
   PLAN_STALE_DEX: "Abort. Recreate the step.",
-  PLAN_BAD_NAME: "Name must match [a-z0-9._-]{1,32}."
+  PLAN_BAD_NAME: "Name must match [a-z0-9._-]{1,32}.",
+  PLAN_PACK_REFUSE: "Cannot pack into Multicall3 — per-step or refuse. Never silent skip."
 };
 
 export class PlanError extends Error {

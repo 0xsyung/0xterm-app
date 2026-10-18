@@ -306,8 +306,24 @@ export async function runPlanCommand(ctx: PlanRunCtx): Promise<LogEntry | LogEnt
     }
 
     if (sub === "run") {
-      const nameRaw = raw[1];
-      if (!nameRaw) return fail(ctx.generateId(), "Usage: plan run <name>");
+      const flags = new Set(
+        raw.slice(1).filter((t) => t.startsWith("--")).map((t) => t.toLowerCase())
+      );
+      const nameRaw = raw.slice(1).find((t) => !t.startsWith("--"));
+      if (!nameRaw) {
+        return fail(
+          ctx.generateId(),
+          "Usage: plan run <name> [--multicall]"
+        );
+      }
+      const multicall = flags.has("--multicall");
+      const unknown = [...flags].filter((f) => f !== "--multicall");
+      if (unknown.length) {
+        return fail(
+          ctx.generateId(),
+          `Unknown flag ${unknown[0]}. Usage: plan run <name> [--multicall]`
+        );
+      }
       const name = assertPlanName(nameRaw);
       const plan = findPlan(ctx.plans, name);
       if (!plan) {
@@ -330,8 +346,8 @@ export async function runPlanCommand(ctx: PlanRunCtx): Promise<LogEntry | LogEnt
       const log: LogEntry = {
         id,
         type: "plan",
-        title: `PLAN RUN ${name}`,
-        payload: { plan, mode: "run" }
+        title: multicall ? `PLAN RUN ${name} (multicall)` : `PLAN RUN ${name}`,
+        payload: { plan, mode: "run", multicall }
       };
       return {
         ...log,
@@ -342,6 +358,7 @@ export async function runPlanCommand(ctx: PlanRunCtx): Promise<LogEntry | LogEnt
           activeChainId: ctx.activeChainId,
           chainObj: ctx.chainObj,
           client: ctx.client,
+          multicall,
           onPlansUpdate: (nextPlan: Plan) => {
             ctx.savePlans(upsertPlan(ctx.plans, nextPlan));
           },
