@@ -12,6 +12,8 @@ import VaultWidget from "./widgets/VaultWidget";
 import PolyWidget from "./widgets/PolyWidget";
 import MixerWidget from "./widgets/MixerWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
+import WhenWidget from "./widgets/WhenWidget";
+import PlanWidget from "./widgets/PlanWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import PriceCard from "./widgets/PriceCard";
 import DigArtifactWidget from "./widgets/DigArtifactWidget";
@@ -207,6 +209,26 @@ function renderPinned(p: PinnedManifest, theme: any) {
         <WillStatusWidget
           theme={theme}
           payload={payload}
+          pinned
+        />
+      );
+    case "when":
+      return (
+        <WhenWidget
+          theme={theme}
+          rules={payload.rules}
+          warnBanner={payload.warn}
+          tabHidden={!!payload.tabHidden}
+          justFiredId={payload.justFiredId ?? null}
+          pinned
+        />
+      );
+    case "plan":
+      return (
+        <PlanWidget
+          theme={theme}
+          plan={payload.plan}
+          warnBanner={payload.warn}
           pinned
         />
       );

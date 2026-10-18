@@ -13,6 +13,7 @@ import {
 } from "../mode";
 import { WILL_HELP_FOOTER } from "../will/constants";
 import { PLAN_HELP_FOOTER } from "../plan/constants";
+import { WHEN_HELP_FOOTER } from "../when/constants";
 
 export default function HelpManual({
   theme,
@@ -55,6 +56,9 @@ export default function HelpManual({
       </div>
       {rows.some((r) => r.command.startsWith("plan")) && (
         <div className={`pt-1 text-[10px] ${theme.warn}`}>{PLAN_HELP_FOOTER}</div>
+      )}
+      {rows.some((r) => r.command.startsWith("when")) && (
+        <div className={`pt-1 text-[10px] ${theme.warn}`}>{WHEN_HELP_FOOTER}</div>
       )}
       {rows.some((r) => r.command.startsWith("will")) && (
         <div className={`pt-1 text-[10px] ${theme.warn}`}>{WILL_HELP_FOOTER}</div>
