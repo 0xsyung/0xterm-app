@@ -83,8 +83,15 @@ export class WhenEngine {
         deps.getVisibility ??
         (() =>
           typeof document !== "undefined" ? document.visibilityState : "visible"),
-      setIntervalFn: deps.setIntervalFn ?? setInterval,
-      clearIntervalFn: deps.clearIntervalFn ?? clearInterval,
+      // Wrap globals — bare setInterval/clearInterval lose `this` when invoked
+      // via this.deps.* (... ) → Chrome TypeError: Illegal invocation (#244).
+      setIntervalFn:
+        deps.setIntervalFn ??
+        (((handler, timeout, ...args) =>
+          globalThis.setInterval(handler, timeout, ...args)) as typeof setInterval),
+      clearIntervalFn:
+        deps.clearIntervalFn ??
+        (((id) => globalThis.clearInterval(id)) as typeof clearInterval),
       pollSec: poll
     };
   }

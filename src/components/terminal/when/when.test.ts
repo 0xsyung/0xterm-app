@@ -228,6 +228,57 @@ describe("engine visibility + fire stub (#25)", () => {
     expect(setIntervalFn).not.toHaveBeenCalled();
   });
 
+  it("#244 default timer deps: start/ensureTimer without Illegal invocation", () => {
+    // Simulate Chrome host-bound timers: extracted refs throw when `this` is wrong.
+    let scheduled = 0;
+    const origSet = globalThis.setInterval;
+    const origClear = globalThis.clearInterval;
+    globalThis.setInterval = function (
+      this: unknown,
+      handler: TimerHandler,
+      timeout?: number,
+      ..._args: unknown[]
+    ) {
+      if (this !== globalThis) {
+        throw new TypeError("Illegal invocation");
+      }
+      scheduled += 1;
+      return origSet.call(globalThis, handler as () => void, timeout ?? 0);
+    } as typeof setInterval;
+    globalThis.clearInterval = function (
+      this: unknown,
+      id: ReturnType<typeof setInterval>
+    ) {
+      if (this !== globalThis) {
+        throw new TypeError("Illegal invocation");
+      }
+      return origClear.call(globalThis, id);
+    } as typeof clearInterval;
+
+    try {
+      // Document the bug: unbound extract + call loses `this`.
+      const unbound = globalThis.setInterval;
+      expect(() => unbound(() => {}, 1000)).toThrow(/Illegal invocation/);
+
+      const eng = new WhenEngine({
+        fetchPrice: async () => ({ ok: true, price: 1, priceLabel: "1" }),
+        onFire: () => {},
+        onRulesPatch: () => {},
+        getVisibility: () => "visible",
+        pollSec: 60
+        // no setIntervalFn / clearIntervalFn — production default path
+      });
+      expect(() => eng.start()).not.toThrow();
+      expect(eng.isRunning()).toBe(true);
+      expect(scheduled).toBe(1);
+      expect(() => eng.stop()).not.toThrow();
+      expect(eng.isRunning()).toBe(false);
+    } finally {
+      globalThis.setInterval = origSet;
+      globalThis.clearInterval = origClear;
+    }
+  });
+
   it("hidden stops setInterval; visible restarts", () => {
     vi.useFakeTimers();
     let vis: DocumentVisibilityState = "visible";
