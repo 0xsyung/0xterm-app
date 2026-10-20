@@ -148,15 +148,6 @@ export default function InfoPanel({
         >
           TOKEN INFO
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close token info panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="info-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       <div className={`text-[9px] ${theme.muted}`}>

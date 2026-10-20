@@ -342,15 +342,6 @@ export default function TradePanel({
         >
           TRADE
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close trade panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="trade-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       <div

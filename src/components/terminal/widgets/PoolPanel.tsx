@@ -556,15 +556,6 @@ export default function PoolPanel({
         >
           POOL
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close pool panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="pool-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       <div

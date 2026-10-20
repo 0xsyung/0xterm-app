@@ -182,7 +182,7 @@ describe("flattenDig", () => {
 });
 
 describe("DigPanelShell", () => {
-  it("closes on × and Escape", () => {
+  it("has no × close; Escape dismisses (#249)", () => {
     const onClose = vi.fn();
     render(
       <DigPanelShell theme={theme} title="TEST" onClose={onClose} testId="shell">
@@ -190,9 +190,7 @@ describe("DigPanelShell", () => {
         <DigPrimaryButton theme={theme} label="GO" onClick={vi.fn()} />
       </DigPanelShell>
     );
-    fireEvent.click(screen.getByTestId("shell-close"));
-    expect(onClose).toHaveBeenCalled();
-    onClose.mockClear();
+    expect(screen.queryByTestId("shell-close")).toBeNull();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
   });

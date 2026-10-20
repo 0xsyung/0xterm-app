@@ -786,14 +786,6 @@ export default function PerpsPanel({
             {network === "testnet" ? "Testnet 998" : "Mainnet 999"}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className={`border ${theme.border} ${theme.muted} w-8 h-8 max-md:w-11 max-md:h-11 flex items-center justify-center text-[14px] cursor-pointer`}
-        >
-          ×
-        </button>
       </div>
 
       {!isConnected && (

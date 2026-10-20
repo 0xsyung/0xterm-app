@@ -263,15 +263,6 @@ export default function KyaPanel({
           >
             KYA
           </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close kya panel"
-            className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-            data-testid="kya-panel-close"
-          >
-            ×
-          </button>
         </div>
       )}
 

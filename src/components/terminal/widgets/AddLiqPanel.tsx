@@ -272,15 +272,6 @@ export default function AddLiqPanel({
         >
           ADD LIQ
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close add liquidity panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="addliq-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       <p className={`text-[9px] ${theme.muted} m-0`}>
