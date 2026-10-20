@@ -478,6 +478,7 @@ import type { InboxGroupSummary } from "./inbox/InboxViews";
 import FloatingChat from "./widgets/FloatingChat";
 import ChannelSwitchToast from "./widgets/ChannelSwitchToast";
 import SettingsPanel from "./widgets/SettingsPanel";
+import ConsoleOverlay from "./widgets/ConsoleOverlay";
 import {
   ACTION_NETWORKS_PREF_KEY,
   formatActionNetworkLine,
@@ -980,6 +981,9 @@ export default function TerminalShell({
   const [terminalMode, setTerminalMode] = useState<TerminalMode>(() =>
     typeof window !== "undefined" ? loadMode(window.localStorage) : DEFAULT_MODE
   );
+  // Soft ACK #253 E — console is an overlay, not a full-screen workspace mode.
+  const [consoleOverlayOpen, setConsoleOverlayOpen] = useState(false);
+  const consoleOverlayLogRef = useRef<HTMLDivElement | null>(null);
   const [suggestionIdx, setSuggestionIdx] = useState(-1);
 
   // Tool panel open inside the workspace frame (#145) — PRICE / SWAP / NEWS / SIM / TRACE.
@@ -3589,7 +3593,54 @@ export default function TerminalShell({
   }, [whens]);
 
   // —— Terminal modes (#54) — purpose lens; Stephy option A chrome (prompt chip only)
+  const closeConsoleOverlay = useCallback(() => {
+    setConsoleOverlayOpen(false);
+    // Soft ACK #253 E — do not stick on headless console mode; workspace mode
+    // underneath was never switched to console for overlay opens.
+    setTimeout(() => inputRef.current?.blur(), 0);
+  }, []);
+
+  const openConsoleOverlay = useCallback(
+    (opts?: { silent?: boolean }) => {
+      setConsoleOverlayOpen(true);
+      // Clear CHOICES / pending token picks when entering overlay
+      if (pendingTokenPick) {
+        pendingTokenPick.resolve(null);
+        setPendingTokenPick(null);
+      }
+      setSuggestions([]);
+      setSuggestionIdx(-1);
+      if (!opts?.silent) {
+        const ack = {
+          id: generateId(),
+          type: "text",
+          text: modeSwitchAck("console")
+        } as LogEntry;
+        // Wipe visible scrollback on open (parity with #140 B2 enter).
+        setLogs(scrollbackOnConsoleEnter(ack));
+      }
+      // Focus prompt after paint
+      setTimeout(() => inputRef.current?.focus(), 0);
+    },
+    // pendingTokenPick read at call time
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pendingTokenPick]
+  );
+
   const applyTerminalMode = (next: TerminalMode, opts?: { silent?: boolean }) => {
+    // #253 E — console is overlay-only (not a boot/default workspace mode).
+    if (next === "console") {
+      if (opts?.silent) {
+        // Prefs/import: coerce to invest; do not auto-open overlay.
+        next = DEFAULT_MODE;
+      } else {
+        openConsoleOverlay(opts);
+        return;
+      }
+    }
+    if (consoleOverlayOpen) {
+      setConsoleOverlayOpen(false);
+    }
     setTerminalMode(next);
     saveMode(typeof window !== "undefined" ? window.localStorage : null, next);
     savePreference("mode", next);
@@ -3608,17 +3659,7 @@ export default function TerminalShell({
         type: "text",
         text: modeSwitchAck(next)
       } as LogEntry;
-      // #140 B2 — entering CONSOLE wipes visible scrollback only (banner +
-      // hint live on the prompt). History is not cleared. Profile restore
-      // on wallet connect is unchanged and is not replayed here.
-      const enteringConsole =
-        next === "console" &&
-        (terminalMode !== "console" || primaryTab !== "terminal");
-      if (enteringConsole) {
-        setLogs(scrollbackOnConsoleEnter(ack));
-      } else {
-        setLogs((prev) => [...prev, ack].slice(-MAX_LOGS));
-      }
+      setLogs((prev) => [...prev, ack].slice(-MAX_LOGS));
     }
   };
 
@@ -4109,7 +4150,18 @@ export default function TerminalShell({
           text: `[!] Unknown mode "${args[1]}". Use invest | dev | forensic | console (aliases: trade/i, workshop/d, dig/trace/f, shell/c).`
         };
       }
-      if (next === terminalMode) {
+      if (next === "console") {
+        if (consoleOverlayOpen) {
+          return {
+            id: generateId(),
+            type: "text",
+            text: modeStatusText("console")
+          };
+        }
+        applyTerminalMode("console");
+        return null;
+      }
+      if (next === terminalMode && !consoleOverlayOpen) {
         return {
           id: generateId(),
           type: "text",
@@ -9208,6 +9260,13 @@ export default function TerminalShell({
 
   commands.provideliq = commands.addliq;
   commands.pf = commands.portfolio; // #22 — alias, same data model
+  // Soft ACK #253 E — bare console / shell / c open the overlay (same as mode console).
+  commands.console = () => {
+    openConsoleOverlay();
+    return null;
+  };
+  commands.shell = commands.console;
+  commands.c = commands.console;
   commands.bal = commands.balance;
   commands.liquidity = commands.pool;
   commands.reg = commands.register;
@@ -9679,8 +9738,12 @@ export default function TerminalShell({
       return;
     }
 
-    // Mode gate (#54) — fail closed before dispatch; offer CHOICES to switch
-    if (!isCommandAllowed(terminalMode, command)) {
+    // Mode gate (#54) — fail closed before dispatch; offer CHOICES to switch.
+    // Soft ACK #253 E — overlay open → ungated console affinity.
+    const affinityMode: TerminalMode = consoleOverlayOpen
+      ? "console"
+      : terminalMode;
+    if (!isCommandAllowed(affinityMode, command)) {
       const home = homeModeForCommand(command);
       setLogs((prev) =>
         [
@@ -9867,7 +9930,7 @@ export default function TerminalShell({
 
       if (isTypingCommand) {
         const val = input.trim().toLowerCase();
-        const matches = filterCommandsForMode(terminalMode, availableCommands)
+        const matches = filterCommandsForMode(consoleOverlayOpen ? "console" : terminalMode, availableCommands)
           .filter((c) => c.startsWith(val))
           .sort();
 
@@ -11631,13 +11694,14 @@ export default function TerminalShell({
             void open({ view: "Connect" });
           }
         }}
+        consoleOverlayOpen={consoleOverlayOpen}
       />
 
-      {/* Single global F1–F12 listener (#28) */}
+      {/* Single global F1–F12 listener (#28) — Soft ACK #253 E: while overlay open */}
       <FkeyListener
         bindings={bindings}
         availableCommands={availableCommands}
-        enabled={primaryTab === "terminal" && terminalMode === "console"}
+        enabled={consoleOverlayOpen}
         onCommand={(cmd) => void handleCommand(cmd)}
         setPendingConfirm={setPendingConfirm}
         onLogText={(t, w) =>
@@ -11661,8 +11725,8 @@ export default function TerminalShell({
           ) {
             return;
           }
-          // #117 — no prompt outside CONSOLE; skip steal-focus.
-          if (primaryTab !== "terminal" || terminalMode !== "console") return;
+          // #253 E — prompt lives in console overlay only; skip steal-focus otherwise.
+          if (!consoleOverlayOpen) return;
           inputRef.current?.focus();
         }}
       >
@@ -11727,6 +11791,7 @@ export default function TerminalShell({
               onThemeChange={handleThemeSwitch}
               mode={terminalMode}
               onModeChange={(m) => applyTerminalMode(m)}
+              onOpenConsole={() => openConsoleOverlay()}
               rpcProviders={rpcProviders}
               activeRpcProviders={activeRpcProviders}
               onRpcChange={handleSettingsRpcChange}
@@ -11828,7 +11893,8 @@ export default function TerminalShell({
              Workspace modes: bottom pin strip reserves auto row (#209) — not a sibling flex-1 overlay. */
           <>
             {/* #117 — prompt + log are CONSOLE-only; workspace modes keep tiles/panels (+ pins). */}
-            {terminalMode === "console" ? (
+            {/* #253 E — full-screen console removed; workspace always; overlay below. */}
+            {false ? (
             <div className={pinGridClass(band, pinned.length > 0)}>
             <div
               ref={logContainerRef}
@@ -11953,40 +12019,86 @@ export default function TerminalShell({
           </>
         )}
 
-        {/* TWO-LINE PROMPT LAYOUT — CONSOLE-only (#117) */}
-        {primaryTab === "terminal" && terminalMode === "console" && (
-        <div ref={promptWrapRef}>
-          <TerminalPrompt
+        {/* Soft ACK #253 E — console command overlay (Settings / CLI). */}
+        {consoleOverlayOpen && (
+          <ConsoleOverlay
             theme={theme}
-            input={input}
-            setInput={(val: string) => {
-              setInput(val);
-              if (suggestions.length > 0) {
-                setSuggestions([]);
-                setSuggestionIdx(-1);
-              }
-              if (pendingTokenPick) {
-                setPendingTokenPick(null);
-              }
-            }}
-            handleKeyDown={handleKeyDown}
-            inputRef={inputRef}
-            suggestions={suggestions}
-            suggestionIdx={suggestionIdx}
-            onSelectSuggestion={selectSuggestion}
-            activeChainId={activeChainId}
-            activeDexId={activeDexId}
-            isConnected={isConnected}
-            address={address}
-            walletChip={walletChip}
-            mounted={mounted}
-            isNarrow={narrow}
-            chatChannelLabel={chatChipLabel}
-            mode={terminalMode}
-            onModeChipTap={openModeChoices}
-            fkeyFooter={footerLabel(bindings, currentThemeKey)}
+            onClose={closeConsoleOverlay}
+            logRef={consoleOverlayLogRef}
+            log={
+<div className="min-h-full flex flex-col justify-end space-y-2.5 pb-2">
+              <TerminalLogList
+                logs={logs}
+                theme={theme}
+                activeChainId={activeChainId}
+                onPin={onPin}
+                pinnedIds={new Set(pinned.map((p) => p.id))}
+                mode={"console"}
+                narrow={narrow || band === "stack"}
+                hasActiveChannel={!!activeChatChannel}
+                onFocusPrompt={() => {
+                  inputRef.current?.focus();
+                }}
+                onFillPrompt={(text) => {
+                  setInput(text);
+                  inputRef.current?.focus();
+                }}
+                onRunCommand={(cmd) => {
+                  void handleCommand(cmd);
+                }}
+                onLogText={(text, warn) => {
+                  setLogs((prev) =>
+                    [
+                      ...prev,
+                      {
+                        id: generateId(),
+                        type: "text",
+                        warn: !!warn,
+                        text
+                      } as LogEntry
+                    ].slice(-MAX_LOGS)
+                  );
+                }}
+                onPnlRefresh={onPnlRefreshLog}
+                onSubmitFeedback={submitFeedback}
+              />
+            </div>
+            }
+            footer={
+<div ref={promptWrapRef} className="shrink-0 sticky bottom-0">
+              <TerminalPrompt
+                theme={theme}
+                input={input}
+                setInput={(val: string) => {
+                  setInput(val);
+                  if (suggestions.length > 0) {
+                    setSuggestions([]);
+                    setSuggestionIdx(-1);
+                  }
+                  if (pendingTokenPick) {
+                    setPendingTokenPick(null);
+                  }
+                }}
+                handleKeyDown={handleKeyDown}
+                inputRef={inputRef}
+                suggestions={suggestions}
+                suggestionIdx={suggestionIdx}
+                onSelectSuggestion={selectSuggestion}
+                activeChainId={activeChainId}
+                activeDexId={activeDexId}
+                isConnected={isConnected}
+                address={address}
+                walletChip={walletChip}
+                mounted={mounted}
+                isNarrow={narrow}
+                chatChannelLabel={chatChipLabel}
+                mode={"console"}
+                onModeChipTap={openModeChoices}
+                fkeyFooter={footerLabel(bindings, currentThemeKey)}
+              />
+            </div>
+            }
           />
-        </div>
         )}
       </div>
 

@@ -94,7 +94,8 @@ function PhosphorChip({
   onClick,
   disabled,
   warn,
-  title
+  title,
+  "data-testid": dataTestId
 }: {
   theme: ThemeConfig;
   label: string;
@@ -102,12 +103,14 @@ function PhosphorChip({
   disabled?: boolean;
   warn?: boolean;
   title?: string;
+  "data-testid"?: string;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       title={title}
+      data-testid={dataTestId}
       onClick={onClick}
       className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] rounded-none font-bold disabled:opacity-40 disabled:cursor-not-allowed border ${
         warn ? theme.warn : "border-transparent"
@@ -228,6 +231,8 @@ export type SettingsPanelProps = {
   } | null;
   onLocalVaultTimeout?: (minutes: number) => void;
   onLocalVaultRequirePasswordPerTx?: (value: boolean) => void;
+  /** Soft ACK #253 E — open console command overlay (Settings is primary path). */
+  onOpenConsole?: () => void;
 };
 
 export default function SettingsPanel(props: SettingsPanelProps) {
@@ -252,6 +257,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     isConnected,
     existingPreferences,
     onApplyImport,
+    onOpenConsole,
     defaultChainId = null,
     onDefaultChainChange,
     actionNetworks = {},
@@ -1548,7 +1554,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           role="tablist"
           aria-label="Default mode"
         >
-          {MODE_ORDER.map((m) => {
+          {MODE_ORDER.filter((m) => m !== "console").map((m) => {
             const active = mode === m;
             return (
               <button
@@ -1625,6 +1631,20 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </>
           )}
         </div>
+      </section>
+
+      {/* Soft ACK #253 E — CONSOLE at true bottom of Settings */}
+      <section className="space-y-1.5 pb-4" data-testid="settings-console-section">
+        <SectionLabel theme={theme}>Console</SectionLabel>
+        <PhosphorChip
+          theme={theme}
+          label="CONSOLE"
+          onClick={() => onOpenConsole?.()}
+          data-testid="settings-open-console"
+        />
+        <p className={`text-[10px] leading-snug ${theme.muted}`}>
+          Open the command overlay (aliases: console · shell · c · mode console). Escape or × closes.
+        </p>
       </section>
       </div>
 

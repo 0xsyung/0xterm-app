@@ -52,7 +52,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(screen.queryByTestId("brand-clock-network")).toBeNull();
   });
 
-  it("wallet cluster is CONSOLE · SETTINGS · NETWORK · CONNECT with ml-auto (#134/#140)", () => {
+  it("wallet cluster is SETTINGS · NETWORK · CONNECT with ml-auto (#253 E)", () => {
     render(
       <TerminalHeader {...baseProps} activeChainId={8453} onOpenNetworkSettings={vi.fn()} />
     );
@@ -60,19 +60,14 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(cluster.className).toMatch(/ml-auto/);
     expect(cluster.className).toMatch(/gap-2/);
     const kids = Array.from(cluster.children);
-    expect(within(cluster).getByRole("tab", { name: "CONSOLE" })).toBeTruthy();
+    expect(within(cluster).queryByRole("tab", { name: "CONSOLE" })).toBeNull();
     expect(within(cluster).getByRole("tab", { name: "SETTINGS" })).toBeTruthy();
     expect(within(cluster).getByTestId("header-network")).toBeTruthy();
     expect(within(cluster).getByTestId("header-connect")).toBeTruthy();
-    const consoleEl = within(cluster).getByRole("tab", { name: "CONSOLE" });
     const settingsEl = within(cluster).getByRole("tab", { name: "SETTINGS" });
     const networkEl = within(cluster).getByTestId("header-network");
     const connectEl = within(cluster).getByTestId("header-connect");
-    // CONSOLE precedes SETTINGS precedes NETWORK precedes CONNECT in DOM order
-    expect(
-      consoleEl.compareDocumentPosition(settingsEl) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
+    // SETTINGS precedes NETWORK precedes CONNECT in DOM order
     expect(
       settingsEl.compareDocumentPosition(networkEl) &
         Node.DOCUMENT_POSITION_FOLLOWING
@@ -81,7 +76,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
       networkEl.compareDocumentPosition(connectEl) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(kids.length).toBe(4);
+    expect(kids.length).toBe(3);
   });
 
   it("read-only NETWORK chip shows short name; click opens Settings (#156)", () => {
@@ -238,7 +233,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(truncateAddress("0x1234")).toBe("0x1234");
   });
 
-  it("renders nav strip modes + SOCIAL; CONSOLE + SETTINGS sit in wallet cluster (#140)", () => {
+  it("renders nav strip modes + SOCIAL; SETTINGS in wallet cluster, no CONSOLE (#253 E)", () => {
     render(<TerminalHeader {...baseProps} />);
     const strip = screen.getByTestId("nav-strip");
     expect(within(strip).getByRole("tab", { name: "INVEST" })).toBeTruthy();
@@ -246,20 +241,18 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(within(strip).getByRole("tab", { name: "FORENSIC" })).toBeTruthy();
     expect(within(strip).getByRole("tab", { name: "SOCIAL" })).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "TERMINAL" })).toBeNull();
-    // CONSOLE + SETTINGS are not in the nav strip — they sit in the wallet cluster.
     expect(within(strip).queryByRole("tab", { name: "CONSOLE" })).toBeNull();
     expect(within(strip).queryByRole("tab", { name: "SETTINGS" })).toBeNull();
     expect(
-      within(screen.getByTestId("wallet-cluster")).getByRole("tab", {
+      within(screen.getByTestId("wallet-cluster")).queryByRole("tab", {
         name: "CONSOLE"
       })
-    ).toBeTruthy();
+    ).toBeNull();
     expect(
       within(screen.getByTestId("wallet-cluster")).getByRole("tab", {
         name: "SETTINGS"
       })
     ).toBeTruthy();
-    // No separator anywhere: SOCIAL sticks directly to the mode chips.
     expect(screen.queryByTestId("nav-separator")).toBeNull();
   });
 
@@ -287,7 +280,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     ).toBe("false");
   });
 
-  it("mode chip sets mode and returns to terminal surface", () => {
+  it("INVEST mode chip sets mode and returns to terminal surface", () => {
     const onModeChange = vi.fn();
     const onPrimaryTabChange = vi.fn();
     render(
@@ -298,8 +291,8 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
         onPrimaryTabChange={onPrimaryTabChange}
       />
     );
-    fireEvent.click(screen.getByRole("tab", { name: "CONSOLE" }));
-    expect(onModeChange).toHaveBeenCalledWith("console");
+    fireEvent.click(screen.getByRole("tab", { name: "INVEST" }));
+    expect(onModeChange).toHaveBeenCalledWith("invest");
     expect(onPrimaryTabChange).toHaveBeenCalledWith("terminal");
   });
 
@@ -335,12 +328,13 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(cluster.className).toMatch(/max-md:overflow-x-auto/);
   });
 
-  it("shows F1–F5 only on CONSOLE surface", () => {
+  it("shows F1–F5 only while console overlay is open (#253 E)", () => {
     const { rerender } = render(
       <TerminalHeader
         {...baseProps}
         onCommand={vi.fn()}
-        mode="console"
+        mode="invest"
+        consoleOverlayOpen
       />
     );
     expect(screen.getByTestId("fkey-row")).toBeTruthy();
@@ -352,31 +346,34 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
         {...baseProps}
         onCommand={vi.fn()}
         mode="invest"
+        consoleOverlayOpen={false}
       />
     );
     expect(screen.queryByTestId("fkey-row")).toBeNull();
     expect(screen.queryByText("F1 HELP")).toBeNull();
   });
 
-  it("hides F-row on SOCIAL even if mode is console", () => {
+  it("hides F-row when overlay closed even if mode prop is console", () => {
     render(
       <TerminalHeader
         {...baseProps}
         onCommand={vi.fn()}
         mode="console"
         primaryTab="social"
+        consoleOverlayOpen={false}
       />
     );
     expect(screen.queryByTestId("fkey-row")).toBeNull();
   });
 
-  it("fires the bound command from a custom binding via onCommand on CONSOLE", () => {
+  it("fires the bound command from a custom binding via onCommand while overlay open", () => {
     const onCommand = vi.fn();
     render(
       <TerminalHeader
         {...baseProps}
         onCommand={onCommand}
-        mode="console"
+        mode="invest"
+        consoleOverlayOpen
         bindings={{ version: 1, footer: true, map: { F2: "balance" } }}
       />
     );
@@ -384,12 +381,13 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(onCommand).toHaveBeenCalledWith("balance");
   });
 
-  it("shows an em-dash for a cleared binding on CONSOLE", () => {
+  it("shows an em-dash for a cleared binding while overlay open", () => {
     render(
       <TerminalHeader
         {...baseProps}
         onCommand={vi.fn()}
-        mode="console"
+        mode="invest"
+        consoleOverlayOpen
         bindings={{ version: 1, footer: true, map: { F3: "" } }}
       />
     );
