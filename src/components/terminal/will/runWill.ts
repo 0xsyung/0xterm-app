@@ -222,6 +222,82 @@ function truncate(a: string): string {
   return a.length > 10 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a;
 }
 
+export type FetchWillStatusResult =
+  | { ok: true; data: WillStatusPayload }
+  | { ok: false; error: string };
+
+/**
+ * Shared status payload for CLI + INVEST WillPanel (#247).
+ * NO VAULT path always returns ok with usageHint (legal banner via widget).
+ */
+export async function fetchWillStatusPayload(args: {
+  client: PublicClient | null;
+  chain: Chain | null;
+  address: Address | undefined;
+}): Promise<FetchWillStatusResult> {
+  const { client, chain, address } = args;
+  if (!chain) {
+    return {
+      ok: false,
+      error: "[!] Set a network first (network <name|id>)."
+    };
+  }
+  const empty = (
+    owner: Address | null,
+    usageHint: boolean
+  ): WillStatusPayload => ({
+    chainName: chain.name,
+    chainId: chain.id,
+    vault: null,
+    owner,
+    heir: null,
+    delaySec: null,
+    lastHeartbeat: null,
+    claimableAt: null,
+    isClaimable: false,
+    cancelled: false,
+    claimed: false,
+    balances: [],
+    usageHint
+  });
+  if (!address) {
+    return { ok: true, data: empty(null, true) };
+  }
+  const factory = WILL_FACTORY[chain.id];
+  if (!factory) {
+    return { ok: false, error: WILL_REFUSE.noFactory };
+  }
+  if (!client) {
+    return { ok: false, error: "[!] No RPC client for this network." };
+  }
+  try {
+    const vault = (await client.readContract({
+      address: factory,
+      abi: willFactoryAbi,
+      functionName: "vaultOf",
+      args: [address]
+    })) as Address;
+    if (!vault || vault === zeroAddress) {
+      return { ok: true, data: empty(address, true) };
+    }
+    const st = await readVaultStatus(client, vault, chain);
+    return {
+      ok: true,
+      data: {
+        chainName: chain.name,
+        chainId: chain.id,
+        ...st
+      }
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      error: msg || "[!] On-chain read failed — try again or check RPC."
+    };
+  }
+}
+
 function statusLog(
   ctx: WillRunCtx,
   payload: WillStatusPayload

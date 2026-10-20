@@ -75,6 +75,14 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     panel: "pnl",
     tab: "PORTFOLIO"
   },
+  // #247 Soft ACK: WILL under PORTFOLIO (sibling tile; not dedicated WILL sub-tab)
+  {
+    cmd: "will",
+    label: "WILL",
+    hint: "open will panel",
+    panel: "will",
+    tab: "PORTFOLIO"
+  },
   // #220 Soft ACK: GET/CREATE/ADD LIQ unified into POOL; CONSOLE cmds unchanged
   // #? Reorg: POOL now also holds QUOTE+SWAP; surfaced via the DEX tile above.
 ];

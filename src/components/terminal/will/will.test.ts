@@ -7,9 +7,10 @@ import { describe, expect, it, vi } from "vitest";
 import { parseDelay, formatDelayHuman, formatCountdown } from "./delay";
 import { mapWillError, extractWillError } from "./errors";
 import { WILL_MAINNET_IDS, WILL_REFUSE } from "./constants";
-import { runWillCommand, type WillRunCtx } from "./runWill";
+import { runWillCommand, fetchWillStatusPayload, type WillRunCtx } from "./runWill";
 import { THEMES } from "../constants";
 import type { ThemeConfig } from "../types";
+import type { Chain } from "viem";
 import { sepolia } from "viem/chains";
 
 vi.mock("../widgets/WillStatusWidget", () => ({
@@ -400,6 +401,67 @@ describe("runWillCommand mutating gates", () => {
         })
       );
       expect(claim.type).toBe("component");
+    } finally {
+      delete (WILL_FACTORY as Record<number, string | undefined>)[11155111];
+    }
+  });
+});
+
+
+describe("fetchWillStatusPayload (#247)", () => {
+  it("NO VAULT shell when address missing", async () => {
+    const res = await fetchWillStatusPayload({
+      client: null,
+      chain: sepolia,
+      address: undefined
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.data.vault).toBeNull();
+      expect(res.data.usageHint).toBe(true);
+      expect(res.data.chainId).toBe(11155111);
+    }
+  });
+
+  it("errors without chain", async () => {
+    const res = await fetchWillStatusPayload({
+      client: null,
+      chain: null,
+      address: undefined
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/network/i);
+  });
+
+  it("refuses when no factory on chain", async () => {
+    const res = await fetchWillStatusPayload({
+      client: {} as never,
+      chain: { ...sepolia, id: 999999 } as unknown as Chain,
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/factory/i);
+  });
+
+  it("NO VAULT when vaultOf is zero", async () => {
+    const { WILL_FACTORY } = await import("../constants");
+    const { zeroAddress } = await import("viem");
+    const factory = "0x1111111111111111111111111111111111111111";
+    (WILL_FACTORY as Record<number, string>)[11155111] = factory;
+    try {
+      const client = {
+        readContract: vi.fn(async () => zeroAddress)
+      } as never;
+      const res = await fetchWillStatusPayload({
+        client,
+        chain: sepolia,
+        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      });
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.data.vault).toBeNull();
+        expect(res.data.usageHint).toBe(true);
+      }
     } finally {
       delete (WILL_FACTORY as Record<number, string | undefined>)[11155111];
     }

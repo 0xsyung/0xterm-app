@@ -38,7 +38,9 @@ export type WorkspacePanelId =
   | "dig-attach"
   | "dig-debug"
   | "dig-session"
-  | "dig-check";
+  | "dig-check"
+  // INVEST Will panel (#247 Soft ACK)
+  | "will";
 
 /** Sub-tab ids per workspace mode (#145). */
 export type InvestSubTab = "NEWS" | "TRADE" | "PORTFOLIO";
