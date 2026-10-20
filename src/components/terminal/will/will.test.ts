@@ -10,6 +10,7 @@ import { WILL_MAINNET_IDS, WILL_REFUSE } from "./constants";
 import { runWillCommand, fetchWillStatusPayload, type WillRunCtx } from "./runWill";
 import { THEMES } from "../constants";
 import type { ThemeConfig } from "../types";
+import type { Chain } from "viem";
 import { sepolia } from "viem/chains";
 
 vi.mock("../widgets/WillStatusWidget", () => ({
@@ -435,7 +436,7 @@ describe("fetchWillStatusPayload (#247)", () => {
   it("refuses when no factory on chain", async () => {
     const res = await fetchWillStatusPayload({
       client: {} as never,
-      chain: { ...sepolia, id: 999999 } as typeof sepolia,
+      chain: { ...sepolia, id: 999999 } as unknown as Chain,
       address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
     });
     expect(res.ok).toBe(false);
