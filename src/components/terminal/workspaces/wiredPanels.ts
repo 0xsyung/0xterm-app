@@ -25,8 +25,7 @@ export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
   "perps",
   "balance",
   "portfolio",
-  "snapshot",
-  "pnl",
+  // #253 Soft ACK: snapshot/pnl folded into portfolio (CLI aliases stay)
   "pool",
   "getpool",
   "createpool",
