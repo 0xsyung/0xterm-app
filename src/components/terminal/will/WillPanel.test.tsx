@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * @file WillPanel.test.tsx
- * @description INVEST WILL panel shell (#247/#249 Soft ACK)
+ * @description INVEST WILL panel shell (#247/#249/#251 Soft ACK)
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -148,7 +148,7 @@ describe("WillPanel", () => {
     );
   });
 
-  it("has no × close; Escape dismisses (#249)", async () => {
+  it("has no × close and no REFRESH; Escape dismisses (#249/#251)", async () => {
     const onClose = vi.fn();
     const onFetch = vi.fn(async () => ({ ok: true as const, data: samplePayload }));
     render(
@@ -161,66 +161,109 @@ describe("WillPanel", () => {
     );
     await waitFor(() => expect(onFetch).toHaveBeenCalled());
     expect(screen.queryByTestId("will-panel-close")).toBeNull();
+    expect(screen.queryByTestId("will-panel-refresh")).toBeNull();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("silent 10s poll does not flip REFRESH to …; manual does (#249)", async () => {
+  it("silent 10s poll skips Loading… flash; refreshKey refetches; single-flight (#249/#251)", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const onFetch = vi.fn(async () => {
       await new Promise((r) => setTimeout(r, 50));
       return { ok: true as const, data: samplePayload };
     });
-    render(
+    const { rerender } = render(
       <WillPanel
         theme={theme}
         onClose={vi.fn()}
         onFetch={onFetch}
         onCommand={vi.fn()}
+        refreshKey={0}
       />
     );
-    // Mount busy load
-    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("…");
+    expect(screen.queryByTestId("will-panel-refresh")).toBeNull();
+    // Mount busy load — no payload yet → Loading…
+    expect(screen.getByText("Loading…")).toBeTruthy();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60);
     });
+    await waitFor(() => expect(screen.queryByText("Loading…")).toBeNull());
     await waitFor(() =>
-      expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH")
+      expect(screen.getByTestId("will-panel-status")).toBeTruthy()
     );
     const afterMount = onFetch.mock.calls.length;
     expect(afterMount).toBeGreaterThanOrEqual(1);
 
-    // Background tick — silent
+    // Background tick — silent (no Loading…; prior status stays)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(WILL_STATUS_POLL_MS);
     });
-    // While silent in flight, label stays REFRESH
-    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH");
+    expect(screen.queryByText("Loading…")).toBeNull();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60);
     });
     expect(onFetch.mock.calls.length).toBeGreaterThan(afterMount);
-    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH");
+    expect(screen.queryByText("Loading…")).toBeNull();
+    expect(screen.queryByTestId("will-panel-refresh")).toBeNull();
 
-    // Manual REFRESH → busy
-    fireEvent.click(screen.getByTestId("will-panel-refresh"));
-    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("…");
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(60);
-    });
-    await waitFor(() =>
-      expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH")
+    // refreshKey bump → another fetch (status retained; no REFRESH chrome)
+    const beforeKey = onFetch.mock.calls.length;
+    rerender(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={onFetch}
+        onCommand={vi.fn()}
+        refreshKey={1}
+      />
     );
-
-    // Debounce: click while in flight does not stack
-    const before = onFetch.mock.calls.length;
-    fireEvent.click(screen.getByTestId("will-panel-refresh"));
-    fireEvent.click(screen.getByTestId("will-panel-refresh"));
-    fireEvent.click(screen.getByTestId("will-panel-refresh"));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60);
     });
-    expect(onFetch.mock.calls.length).toBe(before + 1);
+    expect(onFetch.mock.calls.length).toBe(beforeKey + 1);
+    expect(screen.queryByTestId("will-panel-refresh")).toBeNull();
+
+    // Single-flight: refreshKey bumps while in-flight do not stack fetches
+    const slow = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 200));
+      return { ok: true as const, data: samplePayload };
+    });
+    const { rerender: rr } = render(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={slow}
+        onCommand={vi.fn()}
+        refreshKey={10}
+      />
+    );
+    expect(slow.mock.calls.length).toBe(1);
+    rr(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={slow}
+        onCommand={vi.fn()}
+        refreshKey={11}
+      />
+    );
+    rr(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={slow}
+        onCommand={vi.fn()}
+        refreshKey={12}
+      />
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20);
+    });
+    expect(slow.mock.calls.length).toBe(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250);
+    });
+    expect(slow.mock.calls.length).toBe(1);
 
     vi.useRealTimers();
   });
