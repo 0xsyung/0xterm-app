@@ -587,12 +587,10 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "kyt",
         "news",
         "perps",
-        "pnl",
         "pool",
         "portfolio",
         "price",
         "sim",
-        "snapshot",
         "swap",
         "trace",
         "trade",
@@ -715,22 +713,22 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     );
   });
 
-  it("INVEST PORTFOLIO wires BALANCE·PORTFOLIO·SNAPSHOT·PNL·WILL (#167/#247)", () => {
+  it("INVEST PORTFOLIO wires BALANCE·PORTFOLIO·WILL (#253 merge)", () => {
     const pf = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "PORTFOLIO");
     expect(pf.map((a) => a.label)).toEqual([
       "BALANCE",
       "PORTFOLIO",
-      "SNAPSHOT",
-      "PNL",
       "WILL"
     ]);
     expect(pf.map((a) => a.panel)).toEqual([
       "balance",
       "portfolio",
-      "snapshot",
-      "pnl",
       "will"
     ]);
+    expect(pf.map((a) => a.label)).not.toContain("SNAPSHOT");
+    expect(pf.map((a) => a.label)).not.toContain("PNL");
+    expect(WIRED_WORKSPACE_PANELS).not.toContain("snapshot");
+    expect(WIRED_WORKSPACE_PANELS).not.toContain("pnl");
   });
 
 
@@ -947,8 +945,9 @@ describe("default tool auto-open (#162/#236)", () => {
     expect(onSubTabChange).toHaveBeenCalledWith("PORTFOLIO");
     expect(onOpenPanel).toHaveBeenCalledWith("balance");
     expect(screen.getByRole("button", { name: /^BALANCE$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^SNAPSHOT$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^PNL$/i })).toBeTruthy();
+    // #253 Soft ACK: SNAPSHOT+PNL tiles removed — merged into PORTFOLIO panel
+    expect(screen.queryByRole("button", { name: /^SNAPSHOT$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^PNL$/i })).toBeNull();
     expect(screen.getByRole("button", { name: /^WILL$/i })).toBeTruthy();
     expect(screen.queryByTestId("mode-empty-invest")).toBeNull();
   });

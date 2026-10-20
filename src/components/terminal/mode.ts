@@ -686,7 +686,7 @@ export const HELP_ROWS: HelpRow[] = [
   {
     command: "portfolio [native|erc20]",
     description:
-      "Wallet balances + USD value across all chains (P/L vs snapshot)",
+      "Wallet balances + USD value across all chains (P/L vs snapshot; INVEST opens merged PORTFOLIO panel)",
     modes: ["invest", "forensic"]
   },
   {
@@ -711,12 +711,12 @@ export const HELP_ROWS: HelpRow[] = [
   },
   {
     command: "snapshot [label]",
-    description: "Record current portfolio baseline for P/L tracking",
+    description: "Record current portfolio baseline for P/L tracking (INVEST: merged PORTFOLIO panel)",
     modes: ["invest"]
   },
   {
     command: "pnl",
-    description: "Live mark-to-quote P/L vs last snapshot (estimate)",
+    description: "Live mark-to-quote P/L vs last snapshot (estimate; INVEST opens merged PORTFOLIO)",
     modes: ["invest"]
   },
   {

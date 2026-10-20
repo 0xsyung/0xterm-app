@@ -458,13 +458,11 @@ import BalancePanel, {
   type BalanceLookupResult
 } from "./portfolio/BalancePanel";
 import PortfolioPanel, {
-  type PortfolioFetchResult
-} from "./portfolio/PortfolioPanel";
-import SnapshotPanel, {
+  type PortfolioFetchResult,
   type SnapshotRecordArgs,
-  type SnapshotRecordResult
-} from "./portfolio/SnapshotPanel";
-import PnlPanel, { type PnlFetchResult } from "./portfolio/PnlPanel";
+  type SnapshotRecordResult,
+  type BaselineResetResult
+} from "./portfolio/PortfolioPanel";
 import { simulateTx } from "./sim/simulate";
 import { traceTx, isTxHash } from "./sim/trace";
 import { simErrorText } from "./sim/errors";
@@ -7398,6 +7396,11 @@ export default function TerminalShell({
         }
       }
 
+      // Soft ACK #253: portfolio in INVEST opens merged panel; CONSOLE stays log-only.
+      if (terminalMode === "invest") {
+        setOpenPanel("portfolio");
+        setPortfolioRefreshKey((n) => n + 1);
+      }
       return {
         id: generateId(),
         type: "portfolio",
@@ -7431,6 +7434,11 @@ export default function TerminalShell({
       });
 
       const count = Object.keys(holdings).length;
+      // Soft ACK #253: snapshot still writes prefs; INVEST may focus merged panel.
+      if (terminalMode === "invest") {
+        setOpenPanel("portfolio");
+        setPortfolioRefreshKey((n) => n + 1);
+      }
       return {
         id: generateId(),
         type: "text",
@@ -7461,6 +7469,11 @@ export default function TerminalShell({
       const id = generateId();
       const view = await loadPnlView({ forceBalances: true, id });
       if ("type" in view && view.type === "text") return view;
+      // Soft ACK #253: pnl in INVEST opens merged panel; CONSOLE log widget unchanged.
+      if (terminalMode === "invest") {
+        setOpenPanel("portfolio");
+        setPortfolioRefreshKey((n) => n + 1);
+      }
       return {
         id,
         type: "pnl",
@@ -11328,8 +11341,39 @@ export default function TerminalShell({
             }}
           />
         );
+      case "snapshot":
+      case "pnl":
+      // #253 Soft ACK: alias former SNAPSHOT/PNL shells → merged PORTFOLIO
       case "portfolio": {
         const surface = terminalMode === "forensic" ? "forensic" : "invest";
+        const writeBaseline = async (
+          args: SnapshotRecordArgs
+        ): Promise<SnapshotRecordResult> => {
+          if (!isConnected || !address) {
+            return { ok: false, error: "Wallet not connected." };
+          }
+          try {
+            const label = args.label.trim() || "now";
+            const holdings = await fetchPortfolioSnapshot(address as Address);
+            const time = new Date().toLocaleString();
+            savePreference("portfolioSnapshot", {
+              label,
+              timestamp: Date.now(),
+              holdings
+            });
+            return {
+              ok: true,
+              label,
+              count: Object.keys(holdings).length,
+              time
+            };
+          } catch {
+            return {
+              ok: false,
+              error: "[!] On-chain read failed — try again or check RPC."
+            };
+          }
+        };
         return (
           <PortfolioPanel
             theme={theme}
@@ -11339,10 +11383,12 @@ export default function TerminalShell({
             refreshKey={portfolioRefreshKey}
             frameless
             onRecordSnapshot={
+              surface === "invest" ? writeBaseline : undefined
+            }
+            onResetBaseline={
               surface === "invest"
-                ? () => {
-                    setOpenPanel("snapshot");
-                  }
+                ? async (args): Promise<BaselineResetResult> =>
+                    writeBaseline(args)
                 : undefined
             }
             onFetch={async (): Promise<PortfolioFetchResult> => {
@@ -11354,7 +11400,10 @@ export default function TerminalShell({
                 // Soft-parse snapshot blob — corrupt prefs must not hard-fail
                 // the holdings view (#206).
                 let snapshot: {
-                  holdings?: Record<string, { price: number | null; balance: string }>;
+                  holdings?: Record<
+                    string,
+                    { price: number | null; balance: string }
+                  >;
                   label?: string;
                   timestamp?: number;
                 } | null = null;
@@ -11376,7 +11425,10 @@ export default function TerminalShell({
                 > = {};
                 if (snapshot?.holdings) {
                   for (const [key, val] of Object.entries(snapshot.holdings)) {
-                    const v = val as { price: number | null; balance: string };
+                    const v = val as {
+                      price: number | null;
+                      balance: string;
+                    };
                     snapMap[key] = {
                       price: v.price ?? null,
                       balance: v.balance ?? "0"
@@ -11404,120 +11456,6 @@ export default function TerminalShell({
           />
         );
       }
-      case "snapshot":
-        return (
-          <SnapshotPanel
-            theme={theme}
-            onClose={close}
-            isConnected={!!isConnected && !!address}
-            frameless
-            onRecord={async (
-              args: SnapshotRecordArgs
-            ): Promise<SnapshotRecordResult> => {
-              if (!isConnected || !address) {
-                return { ok: false, error: "Wallet not connected." };
-              }
-              try {
-                const label = args.label.trim() || "now";
-                const holdings = await fetchPortfolioSnapshot(address as Address);
-                const time = new Date().toLocaleString();
-                savePreference("portfolioSnapshot", {
-                  label,
-                  timestamp: Date.now(),
-                  holdings
-                });
-                return {
-                  ok: true,
-                  label,
-                  count: Object.keys(holdings).length,
-                  time
-                };
-              } catch {
-                return {
-                  ok: false,
-                  error: "[!] On-chain read failed — try again or check RPC."
-                };
-              }
-            }}
-          />
-        );
-      case "pnl":
-        return (
-          <PnlPanel
-            theme={theme}
-            onClose={close}
-            isConnected={!!isConnected && !!address}
-            refreshKey={portfolioRefreshKey}
-            frameless
-            onFetch={async (): Promise<PnlFetchResult> => {
-              if (!isConnected || !address) {
-                return { ok: false, error: "Wallet not connected." };
-              }
-              const gate = buildPnlGate(
-                { isConnected, address, activeChainId },
-                {
-                  generateId,
-                  readPreference: (addr) =>
-                    JSON.parse(
-                      localStorage.getItem(`0xterm_user_${addr.toLowerCase()}`) ||
-                        "{}"
-                    )
-                }
-              );
-              if (gate && gate.type === "text") {
-                const t = typeof gate.text === "string" ? gate.text : "";
-                if (/No snapshot/i.test(t)) {
-                  return {
-                    ok: false,
-                    empty: true,
-                    error:
-                      "No snapshot found. Run SNAPSHOT first to establish a P/L baseline."
-                  };
-                }
-                return { ok: false, error: t || "Wallet not connected." };
-              }
-              const view = await loadPnlView({ forceBalances: true });
-              if ("type" in view && view.type === "text") {
-                const t = typeof (view as { text?: string }).text === "string"
-                  ? (view as { text: string }).text
-                  : "PNL failed.";
-                if (/No snapshot/i.test(t)) {
-                  return {
-                    ok: false,
-                    empty: true,
-                    error:
-                      "No snapshot found. Run SNAPSHOT first to establish a P/L baseline."
-                  };
-                }
-                return { ok: false, error: t };
-              }
-              return { ok: true, data: view as PnlView };
-            }}
-            onResetBaseline={async (): Promise<PnlFetchResult> => {
-              if (!isConnected || !address) {
-                return { ok: false, error: "Wallet not connected." };
-              }
-              const label = "now";
-              const holdings = await fetchPortfolioSnapshot(address as Address);
-              savePreference("portfolioSnapshot", {
-                label,
-                timestamp: Date.now(),
-                holdings
-              });
-              const view = await loadPnlView({ forceBalances: true });
-              if ("type" in view && view.type === "text") {
-                return {
-                  ok: false,
-                  error:
-                    typeof (view as { text?: string }).text === "string"
-                      ? (view as { text: string }).text
-                      : "PNL failed."
-                };
-              }
-              return { ok: true, data: view as PnlView };
-            }}
-          />
-        );
       case "will": {
         // Resolve quietly — do not beginActionNetwork (logs) during render (#247).
         const resolved = resolveActionChain(
@@ -11967,17 +11905,21 @@ export default function TerminalShell({
                       } else if (panel === openPanel && panel === "will") {
                         setWillRefreshKey((n) => n + 1);
                       } else {
+                        // #253: snapshot/pnl tiles removed — alias any leftover id → portfolio
+                        const resolved =
+                          panel === "snapshot" || panel === "pnl"
+                            ? "portfolio"
+                            : panel;
                         if (
-                          panel === "balance" ||
-                          panel === "portfolio" ||
-                          panel === "pnl"
+                          resolved === "balance" ||
+                          resolved === "portfolio"
                         ) {
                           setPortfolioRefreshKey((n) => n + 1);
                         }
-                        if (panel === "will") {
+                        if (resolved === "will") {
                           setWillRefreshKey((n) => n + 1);
                         }
-                        setOpenPanel(panel);
+                        setOpenPanel(resolved);
                       }
                     }}
                     onSubTabChange={(tab) => {

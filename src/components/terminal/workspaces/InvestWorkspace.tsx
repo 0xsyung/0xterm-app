@@ -61,20 +61,7 @@ export const INVEST_ACTIONS: WorkspaceAction[] = [
     panel: "portfolio",
     tab: "PORTFOLIO"
   },
-  {
-    cmd: "snapshot",
-    label: "SNAPSHOT",
-    hint: "record snapshot baseline",
-    panel: "snapshot",
-    tab: "PORTFOLIO"
-  },
-  {
-    cmd: "pnl",
-    label: "PNL",
-    hint: "open pnl panel",
-    panel: "pnl",
-    tab: "PORTFOLIO"
-  },
+  // #253 Soft ACK: SNAPSHOT+PNL folded into merged PORTFOLIO panel; CLI aliases stay
   // #247 Soft ACK: WILL under PORTFOLIO (sibling tile; not dedicated WILL sub-tab)
   {
     cmd: "will",
