@@ -13,6 +13,7 @@ import PolyWidget from "./widgets/PolyWidget";
 import MixerWidget from "./widgets/MixerWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
 import WhenWidget from "./widgets/WhenWidget";
+import IpfsCatWidget from "./widgets/IpfsCatWidget";
 import PlanWidget from "./widgets/PlanWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import PriceCard from "./widgets/PriceCard";
@@ -223,6 +224,29 @@ function renderPinned(p: PinnedManifest, theme: any) {
           pinned
         />
       );
+
+    case "ipfs": {
+      const kind = payload?.kind;
+      if (kind === "ipfs-cat") {
+        return (
+          <IpfsCatWidget
+            theme={theme}
+            cid={payload?.cid || ""}
+            gatewayUrl={payload?.gatewayUrl || ""}
+            pinned
+          />
+        );
+      }
+      return (
+        <div className={`text-xs ${theme.muted}`}>
+          IPFS pin — content-addressed (no live refresh)
+          {payload?.cid ? (
+            <div className={`mt-1 break-all ${theme.primary}`}>{payload.cid}</div>
+          ) : null}
+        </div>
+      );
+    }
+
     case "plan":
       return (
         <PlanWidget

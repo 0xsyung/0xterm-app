@@ -69,8 +69,11 @@ export default defineConfig({
         "src/components/terminal/widgets/PlanRunWidget.tsx",
         "src/components/terminal/widgets/PlanWidget.tsx",
         "src/components/terminal/widgets/WhenWidget.tsx",
+        "src/components/terminal/widgets/IpfsAddWidget.tsx",
+        "src/components/terminal/widgets/IpfsCatWidget.tsx",
         "src/components/terminal/when/runWhen.ts",
         "src/components/terminal/plan/runPlan.ts",
+        "src/components/terminal/ipfs/runIpfs.ts",
         // plan intent builder (#24) — live RPC/quote; pure serialize/drift/swapRebuild tested
         "src/components/terminal/plan/buildIntent.ts",
         "src/components/terminal/plan/vaultRebuild.ts",

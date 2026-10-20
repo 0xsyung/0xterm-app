@@ -240,6 +240,16 @@ import {
 } from "./when";
 import WhenWidget from "./widgets/WhenWidget";
 import {
+  runIpfsCommand,
+  loadIpfsFromPrefs,
+  shareMeansIpfsAdd,
+  redactIpfsHistory,
+  stripIpfsTokenFromExport,
+  IPFS_TOKEN_OMITTED_FOOTER,
+  type IpfsPrefs,
+  type IpfsPinRow
+} from "./ipfs";
+import {
   ARB_EXECUTOR,
   ARB_ERROR
 } from "./arb/constants";
@@ -632,11 +642,13 @@ function CopyableAddress({
 function ExportWidget({
   exportData,
   theme,
-  address
+  address,
+  ipfsTokenOmitted
 }: {
   exportData: any;
   theme: any;
   address: string;
+  ipfsTokenOmitted?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const jsonString = JSON.stringify(exportData, null, 2);
@@ -693,6 +705,9 @@ function ExportWidget({
       >
         {jsonString}
       </pre>
+      {ipfsTokenOmitted ? (
+        <div className={`text-[10px] ${theme.muted}`}>{IPFS_TOKEN_OMITTED_FOOTER}</div>
+      ) : null}
     </div>
   );
 }
@@ -831,6 +846,14 @@ export default function TerminalShell({
   const [whens, setWhens] = useState<WhenRule[]>([]);
   const whensRef = useRef(whens);
   whensRef.current = whens;
+
+  // IPFS share (#13) — preferences.ipfs + ipfsPins (wallet-scoped)
+  const [ipfsPrefs, setIpfsPrefs] = useState<IpfsPrefs>({ provider: "pinata" });
+  const [ipfsPins, setIpfsPins] = useState<IpfsPinRow[]>([]);
+  const ipfsPrefsRef = useRef(ipfsPrefs);
+  ipfsPrefsRef.current = ipfsPrefs;
+  const ipfsPinsRef = useRef(ipfsPins);
+  ipfsPinsRef.current = ipfsPins;
   const [whenTabHidden, setWhenTabHidden] = useState(false);
   const [whenJustFiredId, setWhenJustFiredId] = useState<string | null>(null);
   const whenEngineRef = useRef<WhenEngine | null>(null);
@@ -1396,6 +1419,13 @@ export default function TerminalShell({
       } else {
         base.title = log.title || "DEBUG";
       }
+    } else if (log.type === "ipfs") {
+      // Content-addressed — refresh is a no-op; do not re-upload on the 60s tick.
+      const cid = (p.cid as string) || (p.widgetId as string) || "";
+      base.title = p.kind === "ipfs-cat" ? "IPFS CAT" : "IPFS ADD";
+      base.pairOrSymbols = cid;
+      base.widgetId = (p.widgetId as string) || `ipfs:${cid || log.id}`;
+      // no registerPinRefresh
     } else if (log.type === "balance") {
       base.title = `BALANCE${p.symbol ? ` ${p.symbol}` : ""}`;
       base.chainId = activeChainId || undefined;
@@ -1788,6 +1818,16 @@ export default function TerminalShell({
             whensRef.current = loadedWhens;
             if (loadedWhens.length)
               loadedDetails.push(`Whens: ${loadedWhens.length}`);
+          }
+
+          {
+            const loadedIpfs = loadIpfsFromPrefs(prefs);
+            setIpfsPrefs(loadedIpfs.ipfs);
+            ipfsPrefsRef.current = loadedIpfs.ipfs;
+            setIpfsPins(loadedIpfs.pins);
+            ipfsPinsRef.current = loadedIpfs.pins;
+            if (loadedIpfs.pins.length)
+              loadedDetails.push(`IPFS pins: ${loadedIpfs.pins.length}`);
           }
 
           if (prefs.mode && isTerminalMode(prefs.mode)) {
@@ -4844,10 +4884,11 @@ export default function TerminalShell({
         ? JSON.parse(localStorage.getItem(tokensKey)!)
         : {};
 
+      const stripped = stripIpfsTokenFromExport(prefs);
       const base = {
         version: "1.0",
         wallet: addr,
-        preferences: prefs,
+        preferences: stripped.preferences,
         customTokens: tokens,
         pinned: pinned.map(({ payload, component, ...rest }) => rest),
         chatChannels: exportChannelsPayload(channelStore)
@@ -4865,7 +4906,7 @@ export default function TerminalShell({
       }
 
       const exportWidget = (
-        <ExportWidget exportData={exportData} theme={theme} address={addr} />
+        <ExportWidget exportData={exportData} theme={theme} address={addr} ipfsTokenOmitted={stripped.omitted} />
       );
       return { id: generateId(), type: "component", component: exportWidget, title: "EXPORT" };
     },
@@ -4933,6 +4974,13 @@ export default function TerminalShell({
                 data.preferences[ACTION_NETWORKS_PREF_KEY]
               )
             );
+          }
+          {
+            const loadedIpfs = loadIpfsFromPrefs(data.preferences);
+            setIpfsPrefs(loadedIpfs.ipfs);
+            ipfsPrefsRef.current = loadedIpfs.ipfs;
+            setIpfsPins(loadedIpfs.pins);
+            ipfsPinsRef.current = loadedIpfs.pins;
           }
         }
 
@@ -8361,7 +8409,36 @@ export default function TerminalShell({
         muted: true
       };
     },
+    ipfs: async (args) => {
+      const saveIpfs = (next: IpfsPrefs) => {
+        setIpfsPrefs(next);
+        ipfsPrefsRef.current = next;
+        savePreference("ipfs", next);
+      };
+      const savePins = (next: IpfsPinRow[]) => {
+        setIpfsPins(next);
+        ipfsPinsRef.current = next;
+        savePreference("ipfsPins", next);
+      };
+      return runIpfsCommand({
+        args,
+        generateId,
+        theme,
+        address: (effectiveAddress || address) as string | undefined,
+        isConnected: !!effectiveConnected,
+        getIpfs: () => ipfsPrefsRef.current,
+        getPins: () => ipfsPinsRef.current,
+        saveIpfs,
+        savePins,
+        onPin
+      });
+    },
     share: async (args) => {
+      // Soft ACK #13: bare `share` / `share --name` → IpfsAddWidget.
+      // Keep on-chain share-card for portfolio|pnl|status|off|unshare.
+      if (shareMeansIpfsAdd(args)) {
+        return commands.ipfs(["share", ...args.slice(1)], "share");
+      }
       const { chainId: activeChainId } = beginActionNetwork("share");
       const sub = (args[1] || "status").toLowerCase();
       if (
@@ -9523,12 +9600,15 @@ export default function TerminalShell({
     // #19 — a seed/key typed after `feedback ` must never persist in the input
     // log or history. Echo and store the redacted line instead of the raw one.
     const walletRedact = redactWalletCommand(trimmed);
+    const ipfsRedact = redactIpfsHistory(trimmed);
     const echoLine =
       cmd0 === "feedback" || cmd0 === "fb"
         ? redactSecrets(trimmed).text
         : walletRedact.redacted
           ? walletRedact.logLine
-          : trimmed;
+          : ipfsRedact.redacted
+            ? ipfsRedact.logLine
+            : trimmed;
 
     const userLog: LogEntry = {
       id: generateId(),
@@ -9539,7 +9619,11 @@ export default function TerminalShell({
     setLogs((prev) => [...prev, userLog].slice(-MAX_LOGS));
     setHistory((prev) => [
       ...prev,
-      walletRedact.redacted ? walletRedact.historyLine : echoLine
+      walletRedact.redacted
+        ? walletRedact.historyLine
+        : ipfsRedact.redacted
+          ? ipfsRedact.historyLine
+          : echoLine
     ]);
     setHistoryIdx(-1);
 
