@@ -1,13 +1,14 @@
 /**
  * @file WillPanel.tsx
- * @description INVEST WorkspaceFrame WILL panel — Soft ACK #247
+ * @description INVEST WorkspaceFrame WILL panel — Soft ACK #247/#249
  * Thin shell: embeds WillStatusWidget; writes via CLI → WillActionWidget.
+ * #249: silent ≤1/10s status poll; no header × (Escape + tile switch).
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ThemeConfig } from "../types";
 import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "../widgets/floatingChatLayout";
 import WillStatusWidget, {
@@ -17,6 +18,9 @@ import type { FetchWillStatusResult } from "./runWill";
 
 const TOUCH =
   "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+
+/** Background status poll while panel mounted + document visible (#249). */
+export const WILL_STATUS_POLL_MS = 10_000;
 
 export type WillPanelFetchResult = FetchWillStatusResult;
 
@@ -79,13 +83,25 @@ export default function WillPanel({
   const [wdToken, setWdToken] = useState("eth");
   const [wdAmount, setWdAmount] = useState("");
 
-  const load = useCallback(async () => {
-    setRunning(true);
-    setError(null);
+  // Stabilize onFetch — TerminalShell often passes an inline lambda; keying load
+  // on that identity re-fired mount-style busy loads (REFRESH flash) (#249).
+  const onFetchRef = useRef(onFetch);
+  onFetchRef.current = onFetch;
+  const inFlightRef = useRef(false);
+
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    if (!silent) {
+      setRunning(true);
+      setError(null);
+    }
     try {
-      const res = await onFetch();
+      const res = await onFetchRef.current();
       if (res.ok) {
         setPayload(res.data);
+        setError(null);
       } else {
         setPayload(null);
         setError(res.error);
@@ -94,13 +110,27 @@ export default function WillPanel({
       setPayload(null);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setRunning(false);
+      inFlightRef.current = false;
+      if (!silent) setRunning(false);
     }
-  }, [onFetch]);
+  }, []);
 
+  // Mount + intentional refreshKey bumps (CLI / WILL tile re-click) → busy.
   useEffect(() => {
-    void load();
+    void load({ silent: false });
   }, [load, refreshKey]);
+
+  // Silent background poll ≤1/10s while visible; pause when document.hidden.
+  useEffect(() => {
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void load({ silent: true });
+    };
+    const id = window.setInterval(tick, WILL_STATUS_POLL_MS);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [load]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -147,26 +177,15 @@ export default function WillPanel({
             INVEST · inactivity vault
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={running}
-            className={btn()}
-            data-testid="will-panel-refresh"
-          >
-            {running ? "…" : "REFRESH"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close Will panel"
-            className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${TOUCH}`}
-            data-testid="will-panel-close"
-          >
-            ×
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => void load({ silent: false })}
+          disabled={running}
+          className={btn()}
+          data-testid="will-panel-refresh"
+        >
+          {running ? "…" : "REFRESH"}
+        </button>
       </div>
 
       {error ? (

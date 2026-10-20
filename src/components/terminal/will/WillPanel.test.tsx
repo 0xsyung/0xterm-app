@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 /**
  * @file WillPanel.test.tsx
- * @description INVEST WILL panel shell (#247 Soft ACK)
+ * @description INVEST WILL panel shell (#247/#249 Soft ACK)
  */
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { THEMES } from "../constants";
 import WillPanel, {
+  WILL_STATUS_POLL_MS,
   willCancelCmd,
   willClaimCmd,
   willDepositCmd,
@@ -53,6 +54,14 @@ describe("WillPanel command helpers", () => {
 });
 
 describe("WillPanel", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => false
+    });
+  });
+
   it("renders chrome, fetches status, embeds legal banner", async () => {
     const onFetch = vi.fn(async () => ({ ok: true as const, data: samplePayload }));
     render(
@@ -138,4 +147,154 @@ describe("WillPanel", () => {
       )
     );
   });
+
+  it("has no × close; Escape dismisses (#249)", async () => {
+    const onClose = vi.fn();
+    const onFetch = vi.fn(async () => ({ ok: true as const, data: samplePayload }));
+    render(
+      <WillPanel
+        theme={theme}
+        onClose={onClose}
+        onFetch={onFetch}
+        onCommand={vi.fn()}
+      />
+    );
+    await waitFor(() => expect(onFetch).toHaveBeenCalled());
+    expect(screen.queryByTestId("will-panel-close")).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("silent 10s poll does not flip REFRESH to …; manual does (#249)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const onFetch = vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      return { ok: true as const, data: samplePayload };
+    });
+    render(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={onFetch}
+        onCommand={vi.fn()}
+      />
+    );
+    // Mount busy load
+    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("…");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH")
+    );
+    const afterMount = onFetch.mock.calls.length;
+    expect(afterMount).toBeGreaterThanOrEqual(1);
+
+    // Background tick — silent
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(WILL_STATUS_POLL_MS);
+    });
+    // While silent in flight, label stays REFRESH
+    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+    });
+    expect(onFetch.mock.calls.length).toBeGreaterThan(afterMount);
+    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH");
+
+    // Manual REFRESH → busy
+    fireEvent.click(screen.getByTestId("will-panel-refresh"));
+    expect(screen.getByTestId("will-panel-refresh").textContent).toBe("…");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("will-panel-refresh").textContent).toBe("REFRESH")
+    );
+
+    // Debounce: click while in flight does not stack
+    const before = onFetch.mock.calls.length;
+    fireEvent.click(screen.getByTestId("will-panel-refresh"));
+    fireEvent.click(screen.getByTestId("will-panel-refresh"));
+    fireEvent.click(screen.getByTestId("will-panel-refresh"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+    });
+    expect(onFetch.mock.calls.length).toBe(before + 1);
+
+    vi.useRealTimers();
+  });
+
+  it("pauses silent poll when document.hidden (#249)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const onFetch = vi.fn(async () => ({ ok: true as const, data: samplePayload }));
+    render(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={onFetch}
+        onCommand={vi.fn()}
+      />
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    await waitFor(() => expect(onFetch).toHaveBeenCalled());
+    const afterMount = onFetch.mock.calls.length;
+
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(WILL_STATUS_POLL_MS * 3);
+    });
+    expect(onFetch.mock.calls.length).toBe(afterMount);
+
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => false
+    });
+    vi.useRealTimers();
+  });
+
+  it("stable onFetch identity does not remount-spam load (#249)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let fetches = 0;
+    const { rerender } = render(
+      <WillPanel
+        theme={theme}
+        onClose={vi.fn()}
+        onFetch={async () => {
+          fetches += 1;
+          return { ok: true as const, data: samplePayload };
+        }}
+        onCommand={vi.fn()}
+      />
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    await waitFor(() => expect(fetches).toBe(1));
+    // New inline onFetch each render — must not re-trigger busy mount load
+    for (let i = 0; i < 5; i++) {
+      rerender(
+        <WillPanel
+          theme={theme}
+          onClose={vi.fn()}
+          onFetch={async () => {
+            fetches += 1;
+            return { ok: true as const, data: samplePayload };
+          }}
+          onCommand={vi.fn()}
+        />
+      );
+    }
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(fetches).toBe(1);
+    vi.useRealTimers();
+  });
+
 });

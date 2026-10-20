@@ -291,15 +291,6 @@ export default function PricePanel({
         >
           PRICE
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close price panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="price-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       {isPriceActionTestnet(activeChainId) ? (

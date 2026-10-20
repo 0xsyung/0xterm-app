@@ -231,15 +231,6 @@ export default function SwapPanel({
         >
           SWAP
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close swap panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="swap-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       <label className="flex flex-col gap-1">

@@ -56,15 +56,6 @@ export function DigPanelShell({
             <span className={`text-[10px] ${theme.muted} truncate`}>{subtitle}</span>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={`Close ${title} panel`}
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${TOUCH}`}
-          data-testid={`${testId || "dig-panel"}-close`}
-        >
-          ×
-        </button>
       </div>
       {children}
     </div>

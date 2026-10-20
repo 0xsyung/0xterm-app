@@ -227,13 +227,12 @@ describe("SwapPanel", () => {
     );
   });
 
-  it("Esc and × close the panel", () => {
+  it("has no × close; Escape dismisses (#249)", () => {
     const onClose = vi.fn();
     render(<SwapPanel theme={theme} onClose={onClose} onRun={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("swap-panel-close"));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("swap-panel-close")).toBeNull();
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("surfaces inline error without Usage dump", async () => {

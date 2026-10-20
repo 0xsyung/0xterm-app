@@ -198,15 +198,6 @@ export default function GetPoolPanel({
         >
           GET POOL
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close get pool panel"
-          className={`cursor-pointer bg-transparent border-0 p-0 text-[14px] leading-none ${theme.muted} ${touch}`}
-          data-testid="getpool-panel-close"
-        >
-          ×
-        </button>
       </div>
 
       <p className={`text-[9px] ${theme.muted} m-0`}>
