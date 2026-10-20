@@ -213,6 +213,10 @@ export const THEME_ALIASES: Record<string, ThemeMode> = {
 // HEADER_H min stays 120 — pad clears live height; header itself must not force empty.
 export const HEADER_PAD = 'max-md:pt-[calc(var(--terminal-header-pad,144px)_+_env(safe-area-inset-top))] md:pt-[calc(48px_+_env(safe-area-inset-top))]'
 
+// Soft ACK #256 — absolute overlay/chrome top offset matching HEADER_PAD
+// (absolute inset ignores parent padding; use top so × clears header z-30).
+export const HEADER_TOP_OFFSET = 'max-md:top-[calc(var(--terminal-header-pad,144px)_+_env(safe-area-inset-top))] md:top-[calc(48px_+_env(safe-area-inset-top))]'
+
 export const HEADER_H = 'max-md:h-auto max-md:min-h-[calc(120px_+_env(safe-area-inset-top))] md:h-[calc(48px_+_env(safe-area-inset-top))]'
 
 /** Short label for header NETWORK chrome (#121). */

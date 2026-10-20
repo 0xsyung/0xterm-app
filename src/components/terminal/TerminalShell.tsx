@@ -11656,7 +11656,9 @@ export default function TerminalShell({
       style={{
         ["--phosphor" as string]: theme.phosphor,
         ["--scanline-alpha" as string]: theme.scanlineAlpha,
-        ["--grid-color" as string]: theme.gridColor
+        ["--grid-color" as string]: theme.gridColor,
+        // Soft ACK #256 — shell-level pad so ConsoleOverlay HEADER_TOP_OFFSET resolves
+        ["--terminal-header-pad" as string]: `${headerContentPadPx}px`
       }}
     >
       {theme.hasScanlines && <div className="crt-scanlines" />}
@@ -12019,9 +12021,11 @@ export default function TerminalShell({
           </>
         )}
 
-        {/* Soft ACK #253 E — console command overlay (Settings / CLI). */}
-        {consoleOverlayOpen && (
-          <ConsoleOverlay
+      </div>
+
+      {/* Soft ACK #253 E / #256 — console overlay at shell root (z-40 above header z-30). */}
+      {consoleOverlayOpen && (
+        <ConsoleOverlay
             theme={theme}
             onClose={closeConsoleOverlay}
             logRef={consoleOverlayLogRef}
@@ -12098,9 +12102,8 @@ export default function TerminalShell({
               />
             </div>
             }
-          />
-        )}
-      </div>
+        />
+      )}
 
       {/* #180 — out-of-CONSOLE channel-switch toast (under chat panel z-25). */}
       {channelSwitchToast && (

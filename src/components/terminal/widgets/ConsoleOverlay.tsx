@@ -1,6 +1,6 @@
 /**
  * @file ConsoleOverlay.tsx
- * @description Settings/CLI console command overlay — bg alpha 0.8 + × (#253 E)
+ * @description Settings/CLI console command overlay — bg alpha 0.8 + × (#253 E / #256)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -8,10 +8,15 @@
 
 import { useEffect, type ReactNode, type RefObject } from "react";
 import type { ThemeConfig } from "../types";
+import { HEADER_TOP_OFFSET } from "../constants";
 
 /**
  * Soft ACK #253 E — Syung “20% transparent” → panel background alpha 0.8
  * (20% see-through). Optional scrim `bg-black/20`. Theme tokens only.
+ *
+ * Soft ACK #256 — mount at shell root with z-40 (above header z-30) and
+ * HEADER_TOP_OFFSET so the × clears `data-terminal-header` hit geometry
+ * (absolute inset previously sat under the header stacking context).
  */
 export default function ConsoleOverlay({
   theme,
@@ -45,7 +50,7 @@ export default function ConsoleOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-40 flex flex-col"
+      className={`absolute inset-x-0 bottom-0 z-40 flex flex-col ${HEADER_TOP_OFFSET}`}
       data-testid="console-overlay"
       role="dialog"
       aria-modal="true"
