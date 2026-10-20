@@ -120,6 +120,7 @@ describe("isCommandAllowed — classification table", () => {
     "channel",
     "channels",
     "share",
+    "ipfs",
     "unshare",
     "look",
     "feed",

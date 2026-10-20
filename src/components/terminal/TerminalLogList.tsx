@@ -19,6 +19,8 @@ import MixerWidget from "./widgets/MixerWidget";
 import PlanWidget from "./widgets/PlanWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
 import WhenWidget from "./widgets/WhenWidget";
+import IpfsAddWidget from "./widgets/IpfsAddWidget";
+import IpfsCatWidget from "./widgets/IpfsCatWidget";
 import WalletWidget from "./widgets/WalletWidget";
 import PnlWidget from "./widgets/PnlWidget";
 import TickerWidget from "./widgets/TickerWidget";
@@ -275,6 +277,33 @@ function renderLog(
         pinned={isPinned}
       />
     );
+
+  if (log.type === "ipfs") {
+    const kind = log.payload?.kind;
+    if (kind === "ipfs-cat") {
+      return (
+        <IpfsCatWidget
+          theme={theme}
+          cid={log.payload?.cid || ""}
+          gatewayUrl={log.payload?.gatewayUrl || ""}
+          onPin={() => onPin(log)}
+          pinned={isPinned}
+        />
+      );
+    }
+    // add / default — prefer live component from log when present
+    if (log.component) return <>{log.component}</>;
+    return (
+      <IpfsAddWidget
+        theme={theme}
+        jwt=""
+        prefs={{ provider: "pinata" }}
+        onPin={() => onPin(log)}
+        pinned={isPinned}
+      />
+    );
+  }
+
   if (log.type === "will")
     return (
       <WillStatusWidget

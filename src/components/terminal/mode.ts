@@ -535,8 +535,33 @@ export const HELP_ROWS: HelpRow[] = [
     modes: ["global"]
   },
   {
-    command: "share / share status",
-    description: "Show your share status",
+    command: "share status",
+    description: "Show your on-chain share-card status",
+    modes: ["global"]
+  },
+  {
+    command: "ipfs / ipfs ls",
+    description: "Status + this profile's pinned CIDs (Pinata BYOK)",
+    modes: ["global"]
+  },
+  {
+    command: "ipfs add / share",
+    description: "Pick a file and pin to IPFS (Pinata JWT)",
+    modes: ["global"]
+  },
+  {
+    command: "ipfs cat <cid>",
+    description: "Fetch + preview (text/image)",
+    modes: ["global"]
+  },
+  {
+    command: "ipfs pin <cid> / ipfs rm <cid>",
+    description: "Remember / forget a CID locally",
+    modes: ["global"]
+  },
+  {
+    command: "ipfs set pinata <jwt>",
+    description: "Store Pinata token in prefs (never logged)",
     modes: ["global"]
   },
   {

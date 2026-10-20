@@ -74,6 +74,15 @@ describe("HelpManual", () => {
     expect(screen.getByText(/inactivity switch/)).toBeTruthy();
   });
 
+
+  it("lists ipfs / share rows globally (#13)", () => {
+    render(<HelpManual theme={theme} mode="invest" />);
+    expect(screen.getByText("ipfs / ipfs ls")).toBeTruthy();
+    expect(screen.getByText("ipfs add / share")).toBeTruthy();
+    expect(screen.getByText("ipfs cat <cid>")).toBeTruthy();
+    expect(screen.getByText("ipfs set pinata <jwt>")).toBeTruthy();
+  });
+
   it("invest help still lists will rows + footer", () => {
     render(<HelpManual theme={theme} mode="invest" />);
     expect(screen.getByText("will / will status")).toBeTruthy();
