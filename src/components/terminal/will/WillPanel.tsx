@@ -1,8 +1,9 @@
 /**
  * @file WillPanel.tsx
- * @description INVEST WorkspaceFrame WILL panel — Soft ACK #247/#249
+ * @description INVEST WorkspaceFrame WILL panel — Soft ACK #247/#249/#251
  * Thin shell: embeds WillStatusWidget; writes via CLI → WillActionWidget.
  * #249: silent ≤1/10s status poll; no header × (Escape + tile switch).
+ * #251: strip header REFRESH (silent poll covers refresh).
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -166,7 +167,7 @@ export default function WillPanel({
       role="dialog"
       aria-label="Will"
     >
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-baseline gap-2 flex-wrap min-w-0">
           <span
             className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
@@ -177,15 +178,6 @@ export default function WillPanel({
             INVEST · inactivity vault
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => void load({ silent: false })}
-          disabled={running}
-          className={btn()}
-          data-testid="will-panel-refresh"
-        >
-          {running ? "…" : "REFRESH"}
-        </button>
       </div>
 
       {error ? (
