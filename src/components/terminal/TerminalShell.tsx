@@ -218,7 +218,10 @@ import {
   type VaultVerb
 } from "./vault";
 import { runMixerCommand } from "./mixer/runMixer";
-import { runWillCommand } from "./will/runWill";
+import { runWillCommand, fetchWillStatusPayload } from "./will/runWill";
+import WillPanel from "./will/WillPanel";
+import type { WillStatusPayload } from "./widgets/WillStatusWidget";
+import WillStatusWidget from "./widgets/WillStatusWidget";
 import {
   runPlanCommand,
   recordStepIfRecording,
@@ -993,6 +996,8 @@ export default function TerminalShell({
   const [newsRefreshKey, setNewsRefreshKey] = useState(0);
   // BALANCE + PORTFOLIO re-fetch when PORTFOLIO / READ panels remount (#167).
   const [portfolioRefreshKey, setPortfolioRefreshKey] = useState(0);
+  // WILL panel re-fetch (#247 Soft-nice: will / will status in INVEST).
+  const [willRefreshKey, setWillRefreshKey] = useState(0);
   const [hlBuilderFeeBp, setHlBuilderFeeBp] = useState<number>(HL_DEFAULT_BUILDER_FEE_BP);
   const [hlAgentAddress, setHlAgentAddress] = useState<string | null>(null);
   const [hlBuilderMaxFeeLabel, setHlBuilderMaxFeeLabel] = useState<string | null>(null);
@@ -6690,7 +6695,7 @@ export default function TerminalShell({
         (customTokens[(willChainId ?? activeChainId) || 0] as
           | import("./types").CustomTokenEntry[]
           | undefined) || [];
-      return runWillCommand({
+      const result = await runWillCommand({
         args,
         generateId,
         theme,
@@ -6732,6 +6737,17 @@ export default function TerminalShell({
             "will send"
           )
       });
+      // Soft-nice #247: will / will status in INVEST opens/refreshes panel;
+      // CONSOLE stays log-only (no setOpenPanel).
+      const sub = (args[1] || "").toLowerCase();
+      if (
+        terminalMode === "invest" &&
+        (!sub || sub === "status")
+      ) {
+        setOpenPanel("will");
+        setWillRefreshKey((n) => n + 1);
+      }
+      return result;
     },
     plan: async (args) => {
       const chainObj =
@@ -11502,6 +11518,57 @@ export default function TerminalShell({
             }}
           />
         );
+      case "will": {
+        // Resolve quietly — do not beginActionNetwork (logs) during render (#247).
+        const resolved = resolveActionChain(
+          "will",
+          activeChainId,
+          actionNetworks
+        );
+        const chainObj =
+          SUPPORTED_CHAINS.find((c) => c.id === resolved.chainId) || null;
+        let client = null as ReturnType<typeof getClient> | null;
+        try {
+          if (chainObj) client = getClient(chainObj);
+        } catch {
+          client = null;
+        }
+        return (
+          <WillPanel
+            theme={theme}
+            onClose={close}
+            frameless
+            refreshKey={willRefreshKey}
+            onCommand={(cmd) => void handleCommand(cmd)}
+            onFetch={async () =>
+              fetchWillStatusPayload({
+                client,
+                chain: chainObj,
+                address: (address as Address | undefined) || undefined
+              })
+            }
+            onPin={(payload: WillStatusPayload) => {
+              const id = generateId();
+              const log = {
+                id,
+                type: "will" as const,
+                title: "WILL STATUS",
+                payload
+              };
+              onPin({
+                ...log,
+                component: (
+                  <WillStatusWidget
+                    theme={theme}
+                    payload={payload}
+                    pinned
+                  />
+                )
+              });
+            }}
+          />
+        );
+      }
       case "dig-source":
         return <DigSourcePanel theme={theme} onClose={close} />;
       case "dig-artifact":
@@ -11897,6 +11964,8 @@ export default function TerminalShell({
                       if (panel === openPanel && panel === "news") {
                         // Re-click on the active NEWS tab → force-refresh.
                         setNewsRefreshKey((n) => n + 1);
+                      } else if (panel === openPanel && panel === "will") {
+                        setWillRefreshKey((n) => n + 1);
                       } else {
                         if (
                           panel === "balance" ||
@@ -11904,6 +11973,9 @@ export default function TerminalShell({
                           panel === "pnl"
                         ) {
                           setPortfolioRefreshKey((n) => n + 1);
+                        }
+                        if (panel === "will") {
+                          setWillRefreshKey((n) => n + 1);
                         }
                         setOpenPanel(panel);
                       }

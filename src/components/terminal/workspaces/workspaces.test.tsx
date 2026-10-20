@@ -595,7 +595,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "snapshot",
         "swap",
         "trace",
-        "trade"
+        "trade",
+        "will"
       ].sort()
     );
   });
@@ -714,20 +715,32 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     );
   });
 
-  it("INVEST PORTFOLIO wires BALANCE·PORTFOLIO·SNAPSHOT·PNL (#167)", () => {
+  it("INVEST PORTFOLIO wires BALANCE·PORTFOLIO·SNAPSHOT·PNL·WILL (#167/#247)", () => {
     const pf = readyWorkspaceActions(INVEST_ACTIONS).filter((a) => a.tab === "PORTFOLIO");
     expect(pf.map((a) => a.label)).toEqual([
       "BALANCE",
       "PORTFOLIO",
       "SNAPSHOT",
-      "PNL"
+      "PNL",
+      "WILL"
     ]);
     expect(pf.map((a) => a.panel)).toEqual([
       "balance",
       "portfolio",
       "snapshot",
-      "pnl"
+      "pnl",
+      "will"
     ]);
+  });
+
+
+  it("INVEST WILL tile opens will panel (#247 Soft ACK)", () => {
+    const will = readyWorkspaceActions(INVEST_ACTIONS).find((a) => a.panel === "will");
+    expect(will).toBeDefined();
+    expect(will?.label).toBe("WILL");
+    expect(will?.tab).toBe("PORTFOLIO");
+    expect(will?.cmd).toBe("will");
+    expect(WIRED_WORKSPACE_PANELS).toContain("will");
   });
 
   it("FORENSIC catalog has no SNAPSHOT/PNL (#167)", () => {
@@ -936,6 +949,7 @@ describe("default tool auto-open (#162/#236)", () => {
     expect(screen.getByRole("button", { name: /^BALANCE$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^SNAPSHOT$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^PNL$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^WILL$/i })).toBeTruthy();
     expect(screen.queryByTestId("mode-empty-invest")).toBeNull();
   });
 

@@ -8,3 +8,13 @@ export * from "./constants";
 export * from "./delay";
 export * from "./errors";
 export { runWillCommand, type WillRunCtx } from "./runWill";
+export { default as WillPanel } from "./WillPanel";
+export {
+  willHeartbeatCmd,
+  willCancelCmd,
+  willClaimCmd,
+  willSetCmd,
+  willDepositCmd,
+  willWithdrawCmd
+} from "./WillPanel";
+export { fetchWillStatusPayload } from "./runWill";
