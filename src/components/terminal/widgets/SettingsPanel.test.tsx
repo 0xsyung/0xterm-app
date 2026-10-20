@@ -76,7 +76,8 @@ describe("SettingsPanel groups (#140 B4 / #156)", () => {
       "TERMINAL",
       "Theme",
       "Default mode",
-      "Export / Import"
+      "Export / Import",
+      "Console"
     ];
     let at = -1;
     for (const label of order) {
@@ -369,4 +370,23 @@ describe("SettingsPanel Local vault (#193)", () => {
     ).toBe(true);
     expect(screen.queryByTestId("settings-local-vault-empty")).toBeNull();
   });
+
+  it("Default mode chips exclude CONSOLE (#253 E)", () => {
+    render(<SettingsPanel {...baseProps} />);
+    const list = screen.getByRole("tablist", { name: "Default mode" });
+    expect(within(list).queryByRole("tab", { name: "CONSOLE" })).toBeNull();
+    expect(within(list).getByRole("tab", { name: "INVEST" })).toBeTruthy();
+    expect(within(list).getByRole("tab", { name: "DEV" })).toBeTruthy();
+    expect(within(list).getByRole("tab", { name: "FORENSIC" })).toBeTruthy();
+  });
+
+  it("bottom CONSOLE control opens overlay via onOpenConsole (#253 E)", () => {
+    const onOpenConsole = vi.fn();
+    render(<SettingsPanel {...baseProps} onOpenConsole={onOpenConsole} />);
+    const btn = screen.getByTestId("settings-open-console");
+    expect(btn.textContent).toMatch(/CONSOLE/i);
+    fireEvent.click(btn);
+    expect(onOpenConsole).toHaveBeenCalledTimes(1);
+  });
+
 });

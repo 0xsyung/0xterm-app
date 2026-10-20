@@ -34,7 +34,7 @@ const TOUCH =
 
 /**
  * Left strip: INVEST · DEV · FORENSIC · SOCIAL (no separator between the
- * mode chips and SOCIAL). CONSOLE · SETTINGS sit far-right with NETWORK ·
+ * mode chips and SOCIAL). SETTINGS sit far-right with NETWORK ·
  * CONNECT (#140). Only one chip active across the whole strip (mode OR
  * social OR settings). Mode chips clear primary-tab "terminal" surface;
  * SOCIAL/SETTINGS are peers.
@@ -144,36 +144,6 @@ function SocialTab({
           {badge}
         </span>
       )}
-    </button>
-  );
-}
-
-/** CONSOLE mode chip (#140) — moved to the right, sticks to SETTINGS. */
-function ConsoleTab({
-  theme,
-  radius,
-  active,
-  onClick
-}: {
-  theme: ThemeConfig;
-  radius: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
-        active
-          ? "border border-transparent font-bold"
-          : `border ${theme.border} ${theme.muted} bg-transparent`
-      }`}
-      style={active ? { background: theme.phosphor, color: FILL_FG } : undefined}
-    >
-      CONSOLE
     </button>
   );
 }
@@ -303,7 +273,8 @@ export default function TerminalHeader({
   networkFlash = false,
   walletAddress = null,
   isWalletConnected = false,
-  onWalletOpen
+  onWalletOpen,
+  consoleOverlayOpen = false
 }: {
   theme: ThemeConfig;
   onCommand?: (cmd: string) => void;
@@ -326,6 +297,8 @@ export default function TerminalHeader({
   isWalletConnected?: boolean;
   /** Opens AppKit Connect / Account view — same path as CLI connect (#134). */
   onWalletOpen?: () => void;
+  /** Soft ACK #253 E — F-row while console overlay is open. */
+  consoleOverlayOpen?: boolean;
 }) {
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
@@ -355,9 +328,9 @@ export default function TerminalHeader({
     };
   });
 
-  // F-row is CONSOLE-only (slice 1 chrome floor §2).
+  // F-row while console overlay open (#253 E) — was full-screen CONSOLE-only.
   const showFRow =
-    primaryTab === "terminal" && mode === "console" && !!onCommand;
+    consoleOverlayOpen && !!onCommand;
 
   return (
     <div
@@ -402,20 +375,11 @@ export default function TerminalHeader({
         />
       )}
 
-      {/* Far-right wallet cluster: CONSOLE · SETTINGS · NETWORK · CONNECT (#134/#140). */}
+      {/* Far-right wallet cluster: SETTINGS · NETWORK · CONNECT (#253 E — CONSOLE → Settings). */}
       <div
         className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end max-md:min-w-0 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden"
         data-testid="wallet-cluster"
       >
-        <ConsoleTab
-          theme={theme}
-          radius="rounded-none"
-          active={primaryTab === "terminal" && mode === "console"}
-          onClick={() => {
-            onModeChange?.("console");
-            onPrimaryTabChange?.("terminal");
-          }}
-        />
         <SettingsTab
           theme={theme}
           radius="rounded-none"

@@ -85,6 +85,14 @@ describe("default + persistence", () => {
     expect(loadMode(storage)).toBe("dev");
   });
 
+  it("loadMode coerces saved console → invest (#253 E overlay)", () => {
+    const storage = {
+      getItem: () => "console",
+      setItem: () => {}
+    };
+    expect(loadMode(storage)).toBe("invest");
+  });
+
   it("isTerminalMode guards", () => {
     expect(isTerminalMode("invest")).toBe(true);
     expect(isTerminalMode("dev")).toBe(true);

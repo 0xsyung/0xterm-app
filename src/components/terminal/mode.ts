@@ -232,7 +232,9 @@ export function loadMode(
   try {
     const raw = storage?.getItem(MODE_STORAGE_KEY);
     const resolved = resolveModeId(raw);
-    return resolved ?? DEFAULT_MODE;
+    // #253 E — console is an overlay, not a boot/default workspace mode.
+    if (!resolved || resolved === "console") return DEFAULT_MODE;
+    return resolved;
   } catch {
     return DEFAULT_MODE;
   }
@@ -364,7 +366,7 @@ export const HELP_ROWS: HelpRow[] = [
   {
     command: "console",
     description:
-      "Switch to console mode — raw terminal, every command, no gating (aliases: shell, c)",
+      "Open console command overlay — every command, no gating (aliases: shell, c · Settings → CONSOLE)",
     modes: ["global"]
   },
   {
