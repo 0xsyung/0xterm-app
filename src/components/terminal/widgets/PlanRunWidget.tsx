@@ -47,6 +47,7 @@ import { fetchVaultAsset } from "../vault";
 import { SUPPORTED_CHAINS } from "../constants";
 import { POLY_CTF_EXCHANGE, fetchBook, midpointFromBook } from "../poly";
 import PinButton from "./PinButton";
+import { proGateOrError } from "../pro/preflight";
 
 type Phase =
   | "idle"
@@ -623,6 +624,15 @@ export default function PlanRunWidget({
         return;
       }
       const tx = buildMulticallTx(packBuilt.chainId, fresh);
+      const gateErr = await proGateOrError({
+        client,
+        chainId: packBuilt.chainId,
+        account: userAddress
+      });
+      if (gateErr) {
+        abortRest(packBuilt.indices[0]!, gateErr, "PLAN_DRIFT");
+        return;
+      }
       setPhase("waiting");
       setMsg("Waiting for wallet confirm (one tx for pack)…");
       const hash = await sendTransactionAsync({

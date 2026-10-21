@@ -220,6 +220,11 @@ import {
 import { runMixerCommand } from "./mixer/runMixer";
 import { runWillCommand, fetchWillStatusPayload } from "./will/runWill";
 import WillPanel from "./will/WillPanel";
+import { runProCommand } from "./pro/runPro";
+import {
+  requireProForExternalWrite,
+  commandNeedsProPreflight
+} from "./pro/preflight";
 import type { WillStatusPayload } from "./widgets/WillStatusWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
 import {
@@ -5472,6 +5477,17 @@ export default function TerminalShell({
           text: "Usage: createpool <tokenA> <tokenB> [fee]"
         };
 
+      {
+        const gate = await requireProForExternalWrite({
+          client: getClient(targetChain),
+          chainId: runChainId,
+          account: (effectiveAddress || address) as Address | undefined
+        });
+        if (!gate.ok) {
+          return { id: generateId(), type: "text", warn: true, text: gate.error };
+        }
+      }
+
       const [tokenA, tokenB] = await Promise.all([
         resolveTokenDetails(args[1], targetChain),
         resolveTokenDetails(args[2], targetChain)
@@ -5505,6 +5521,16 @@ export default function TerminalShell({
         };
 
       const targetChain = SUPPORTED_CHAINS.find((c) => c.id === activeChainId)!;
+      {
+        const gate = await requireProForExternalWrite({
+          client: getClient(targetChain),
+          chainId: activeChainId,
+          account: (effectiveAddress || address) as Address | undefined
+        });
+        if (!gate.ok) {
+          return { id: generateId(), type: "text", warn: true, text: gate.error };
+        }
+      }
       const activeDex = DEX_REGISTRY[activeChainId]?.find(
         (d) => d.id === activeDexId
       );
@@ -5635,6 +5661,16 @@ export default function TerminalShell({
         };
 
       const targetChain = SUPPORTED_CHAINS.find((c) => c.id === runChainId)!;
+      {
+        const gate = await requireProForExternalWrite({
+          client: getClient(targetChain),
+          chainId: runChainId,
+          account: (effectiveAddress || address) as Address | undefined
+        });
+        if (!gate.ok) {
+          return { id: generateId(), type: "text", warn: true, text: gate.error };
+        }
+      }
       const activeDex = DEX_REGISTRY[runChainId]?.find(
         (d) => d.id === runDexId
       );
@@ -5760,6 +5796,22 @@ export default function TerminalShell({
           type: "text",
           text: "Tokens must be different."
         };
+      }
+
+      {
+        const gate = await requireProForExternalWrite({
+          client: getClient(targetChain),
+          chainId: runChainId,
+          account: (effectiveAddress || address) as Address | undefined
+        });
+        if (!gate.ok) {
+          return {
+            id: generateId(),
+            type: "text",
+            warn: true,
+            text: gate.error
+          };
+        }
       }
 
       // Compute a real minimum-output from an on-chain quote, then apply the
@@ -6183,6 +6235,25 @@ export default function TerminalShell({
             flashSource={flashLabel}
             onConfirm={async () => {
               try {
+                const gate = await requireProForExternalWrite({
+                  client,
+                  chainId,
+                  account: (effectiveAddress || address) as Address | undefined
+                });
+                if (!gate.ok) {
+                  setLogs((prev) =>
+                    [
+                      ...prev,
+                      {
+                        id: generateId(),
+                        type: "text",
+                        warn: true,
+                        text: gate.error
+                      } as LogEntry
+                    ].slice(-MAX_LOGS)
+                  );
+                  return;
+                }
                 const hash = await sendTransactionAsync({
                   chainId,
                   to: executor,
@@ -6542,6 +6613,14 @@ export default function TerminalShell({
       const VERBS = ["deposit", "mint", "withdraw", "redeem"] as const;
       const verb = VERBS.find((v) => v === sub);
       const amountArg = args[3];
+      if (commandNeedsProPreflight("vault", sub)) {
+        const gate = await requireProForExternalWrite({
+          client,
+          chainId: activeChainId,
+          account: address as Address | undefined
+        });
+        if (!gate.ok) return vaultFail(gate.error);
+      }
       if ((verb || sub === "approve") && !vaultArg) {
         return vaultFail(
           `Usage: vault ${sub} <vault> <amount|max>` +
@@ -6798,6 +6877,33 @@ export default function TerminalShell({
         setWillRefreshKey((n) => n + 1);
       }
       return result;
+    },
+    pro: async (args) => {
+      const chainObj =
+        SUPPORTED_CHAINS.find((c) => c.id === activeChainId) || null;
+      const client = chainObj ? getClient(chainObj) : null;
+      return runProCommand({
+        args,
+        generateId,
+        theme,
+        address: address as Address | undefined,
+        isConnected: !!effectiveConnected,
+        activeChainId: activeChainId ?? null,
+        chainObj,
+        client,
+        writeContract: (wArgs) =>
+          writeContractActive(
+            {
+              chainId: wArgs.chainId,
+              address: wArgs.address,
+              abi: wArgs.abi,
+              functionName: wArgs.functionName,
+              args: wArgs.args,
+              value: wArgs.value
+            },
+            `pro ${wArgs.functionName}`
+          )
+      });
     },
     plan: async (args) => {
       const chainObj =
@@ -10096,6 +10202,8 @@ export default function TerminalShell({
             "enable",
             "help"
           ];
+        } else if (command === "pro" && currentArgIdx === 1) {
+          candidates = ["status", "buy", "help"];
         } else if (command === "mixer" && currentArgIdx === 1) {
           candidates = ["pools", "deposit", "withdraw", "status", "notes", "help"];
         } else if (command === "dig" && currentArgIdx === 1) {

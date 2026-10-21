@@ -699,6 +699,26 @@ export const groupChatFactoryAbi = parseAbi([
   'event GroupCreated(address indexed group, address indexed deployer, string name, uint256 fee)',
 ])
 
+/** ProPass (Soft ACK #139). Callers use the UUPS **proxy**. Sepolia live 2026-10-21; other chains empty until Soft ACK mainnet/#112. */
+export const PRO_PASS_CONTRACT: Partial<Record<number, Address>> = {
+  11155111: '0x509473decdd7F9Aa84fbd884cB05D5Ebd35cFC6e', // Sepolia proxy — impl 0x4FB39Ce261692955DC0eFF94cba79f6e552Bf170
+}
+
+/** Soft ACK lock: max periods per purchase tx. */
+export const PRO_PASS_MAX_PERIODS = 24
+
+export const proPassAbi = parseAbi([
+  'function purchase(uint256 periods) payable returns (uint256 tokenId)',
+  'function expiresAt(uint256 tokenId) view returns (uint64)',
+  'function isPro(address account) view returns (bool)',
+  'function pricePerPeriod() view returns (uint256)',
+  'function periodSeconds() view returns (uint64)',
+  'function balanceOf(address owner) view returns (uint256)',
+  'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
+  'function MAX_PERIODS() view returns (uint256)',
+  'event Purchased(address indexed buyer, uint256 indexed tokenId, uint256 periods, uint256 paid, uint64 expiresAt)',
+])
+
 /** WillFactory per chain (#26). Sepolia DeployWill by Syung; impl via factory.implementation(). */
 export const WILL_FACTORY: Partial<Record<number, Address>> = {
   11155111: '0x175aB804b7d4bb1Cf84Ff4BE87a0c6cfe297c5d1', // Sepolia — WillVault impl 0x0b62336da9cd8a735DE7377927BEcA6A3bc0788b

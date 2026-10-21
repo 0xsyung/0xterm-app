@@ -10,6 +10,7 @@ import React, { useState, useEffect } from "react";
 import { usePublicClient, useSendTransaction, useWriteContract } from "wagmi";
 import { encodeFunctionData, formatUnits, parseAbi, type Address, type Chain } from "viem";
 import type { ThemeConfig } from "../types";
+import { proGateOrError } from "../pro/preflight";
 
 const erc20Abi = parseAbi([
   "function allowance(address owner, address spender) view returns (uint256)",
@@ -105,6 +106,19 @@ export default function VaultDepositWidget({
   const handleApprove = async () => {
     setStatus("approving");
     setErrorMsg(null);
+
+    {
+      const gateErr = await proGateOrError({
+        client: publicClient,
+        chainId: targetChain.id,
+        account: userAddress
+      });
+      if (gateErr) {
+        setStatus("error");
+        setErrorMsg(gateErr);
+        return;
+      }
+    }
     try {
       const hash = await writeContractAsync({
         chainId: targetChain.id,
@@ -132,6 +146,19 @@ export default function VaultDepositWidget({
   const handleExecute = async () => {
     setStatus("executing");
     setErrorMsg(null);
+
+    {
+      const gateErr = await proGateOrError({
+        client: publicClient,
+        chainId: targetChain.id,
+        account: userAddress
+      });
+      if (gateErr) {
+        setStatus("error");
+        setErrorMsg(gateErr);
+        return;
+      }
+    }
     const fnName =
       verb === "deposit" ? "deposit" : verb === "mint" ? "mint" : verb === "withdraw" ? "withdraw" : "redeem";
     const fnArgs =
