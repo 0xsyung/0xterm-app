@@ -18,6 +18,7 @@ import {
   NATIVE_TOKEN_ADDRESS
 } from "../constants";
 import PinButton from "./PinButton";
+import { proGateOrError } from "../pro/preflight";
 
 export default function AddLiquidityWidget({
   userAddress,
@@ -54,6 +55,16 @@ export default function AddLiquidityWidget({
         chain: targetChain,
         transport: http()
       });
+      const gateErr = await proGateOrError({
+        client,
+        chainId: targetChain.id,
+        account: userAddress
+      });
+      if (gateErr) {
+        setStep("error");
+        setErrorMsg(gateErr);
+        return;
+      }
 
       if (!tokenA.isNative) {
         setStep("approving_a");

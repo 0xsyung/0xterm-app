@@ -149,6 +149,7 @@ const COMMAND_AFFINITY: Record<string, CommandAffinity> = {
   plan: "invest",
   when: "invest",
   will: "invest",
+  pro: "invest",
   arb: "invest",
   allowances: "invest",
   mixer: "invest",
@@ -947,6 +948,17 @@ export const HELP_ROWS: HelpRow[] = [
     command: "will enable --mainnet",
     description: "Refused until independent audit. Do not use",
     modes: ["global"]
+  },
+
+  {
+    command: "pro / pro status",
+    description: "List active ProPass NFTs + expired count (Soft ACK #139)",
+    modes: ["invest"]
+  },
+  {
+    command: "pro buy <periods>",
+    description: "Mint a NEW ProPass (1–24 periods · Sepolia 0.01 ETH/30d). Never extends",
+    modes: ["invest"]
   },
 
   // dig (workshop — mode id dev)

@@ -10,6 +10,7 @@ import React, { useState, useEffect } from "react";
 import { useSendTransaction, useWriteContract, usePublicClient } from "wagmi";
 import { formatUnits, parseAbi, type Address, type Chain } from "viem";
 import type { ThemeConfig } from "./types";
+import { proGateOrError } from "./pro/preflight";
 
 const erc20Abi = parseAbi([
   "function allowance(address owner, address spender) view returns (uint256)",
@@ -136,6 +137,19 @@ export default function SwapWidget({
     setStatus("approving");
     setErrorMsg(null);
 
+    if (publicClient) {
+      const gateErr = await proGateOrError({
+        client: publicClient,
+        chainId: targetChain.id,
+        account: userAddress
+      });
+      if (gateErr) {
+        setStatus("error");
+        setErrorMsg(gateErr);
+        return;
+      }
+    }
+
     try {
       const approveArgs = {
         chainId: targetChain.id,
@@ -173,6 +187,19 @@ export default function SwapWidget({
   const handleExecuteSwap = async () => {
     setStatus("swapping");
     setErrorMsg(null);
+
+    if (publicClient) {
+      const gateErr = await proGateOrError({
+        client: publicClient,
+        chainId: targetChain.id,
+        account: userAddress
+      });
+      if (gateErr) {
+        setStatus("error");
+        setErrorMsg(gateErr);
+        return;
+      }
+    }
 
     try {
       const sendArgs = {

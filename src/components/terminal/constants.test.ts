@@ -17,7 +17,10 @@ import {
   resolveChain,
   resolveThemeKey,
   HEADER_H,
-  HEADER_PAD
+  HEADER_PAD,
+  PRO_PASS_CONTRACT,
+  PRO_PASS_MAX_PERIODS,
+  proPassAbi
 } from "./constants";
 
 describe("resolveThemeKey", () => {
@@ -194,5 +197,18 @@ describe("chainFullName", () => {
   it("falls through to the viem chain name for others", () => {
     expect(chainFullName({ id: 1, name: "Ethereum" })).toBe("Ethereum");
     expect(chainFullName({ id: 8453, name: "Base" })).toBe("Base");
+  });
+});
+
+
+describe("PRO_PASS_CONTRACT Soft ACK #139", () => {
+  it("maps Sepolia to the live proxy", () => {
+    expect(PRO_PASS_CONTRACT[11155111]).toBe(
+      "0x509473decdd7F9Aa84fbd884cB05D5Ebd35cFC6e"
+    );
+    expect(PRO_PASS_MAX_PERIODS).toBe(24);
+    expect(proPassAbi.some((e) => "name" in e && e.name === "purchase")).toBe(
+      true
+    );
   });
 });
