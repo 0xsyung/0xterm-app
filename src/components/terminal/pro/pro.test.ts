@@ -17,9 +17,11 @@ import {
   commandNeedsProPreflight,
   isProGateActive,
   requireProForExternalWrite,
-  shouldBlockExternalWrite
+  shouldBlockExternalWrite,
+  proGateOrError
 } from "./preflight";
-import { formatProStatusText, type ProStatus } from "./status";
+import { fetchProStatus, formatProStatusText, type ProStatus } from "./status";
+import { runProCommand } from "./runPro";
 import { PRO_REFUSE } from "./constants";
 
 describe("PRO_PASS_CONTRACT (Soft ACK #139 wire)", () => {
@@ -193,5 +195,201 @@ describe("formatProStatusText", () => {
     expect(text).toContain("expired (still owned): 2");
     expect(text).toContain("#1");
     expect(text).toContain("NEW token");
+  });
+});
+
+
+describe("fetchProStatus", () => {
+  const account = "0x1111111111111111111111111111111111111111" as const;
+  const now = 1_700_000_000n;
+
+  function mockClient(map: Record<string, unknown>) {
+    return {
+      readContract: vi.fn(async (args: { functionName: string; args?: unknown[] }) => {
+        const key = args.functionName;
+        if (key === "tokenOfOwnerByIndex") {
+          const idx = Number(args.args?.[1] ?? 0);
+          return (map.tokens as bigint[])[idx];
+        }
+        if (key === "expiresAt") {
+          const id = args.args?.[0] as bigint;
+          return (map.expires as Record<string, bigint>)[String(id)];
+        }
+        return map[key];
+      })
+    };
+  }
+
+  it("fails closed when ProPass unwired", async () => {
+    const r = await fetchProStatus(mockClient({}) as never, 1, account, now);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe(PRO_REFUSE.noContract);
+  });
+
+  it("splits active vs expired owned tokens", async () => {
+    const client = mockClient({
+      balanceOf: 3n,
+      isPro: true,
+      pricePerPeriod: 10n ** 16n,
+      periodSeconds: 2592000n,
+      tokens: [1n, 2n, 3n],
+      expires: {
+        "1": now + 1000n,
+        "2": now - 10n,
+        "3": now + 5000n
+      }
+    });
+    const r = await fetchProStatus(client as never, 11155111, account, now);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.isPro).toBe(true);
+    expect(r.active.map((a) => a.tokenId)).toEqual([1n, 3n]);
+    expect(r.expiredCount).toBe(1);
+    expect(r.pricePerPeriod).toBe(10n ** 16n);
+  });
+
+  it("formatProStatusText empty wallet copy", () => {
+    const text = formatProStatusText({
+      ok: true,
+      chainId: 11155111,
+      contract: PRO_PASS_CONTRACT[11155111]!,
+      account,
+      isPro: false,
+      active: [],
+      expiredCount: 0,
+      pricePerPeriod: 10n ** 16n + 123456n,
+      periodSeconds: 2592000n,
+      now
+    });
+    expect(text).toContain("inactive");
+    expect(text).toContain("pro buy");
+    expect(text).toContain("0.010000");
+  });
+});
+
+describe("runProCommand", () => {
+  const theme = {} as never;
+  const sepolia = { id: 11155111, name: "Sepolia" } as never;
+  const account = "0x1111111111111111111111111111111111111111" as const;
+
+  function baseCtx(over: Partial<Parameters<typeof runProCommand>[0]> = {}) {
+    return {
+      args: ["pro"],
+      generateId: () => "id1",
+      theme,
+      address: account,
+      isConnected: true,
+      activeChainId: 11155111,
+      chainObj: sepolia,
+      client: {
+        readContract: vi.fn(async (args: { functionName: string; args?: unknown[] }) => {
+          if (args.functionName === "balanceOf") return 0n;
+          if (args.functionName === "isPro") return false;
+          if (args.functionName === "pricePerPeriod") return 10n ** 16n;
+          if (args.functionName === "periodSeconds") return 2592000n;
+          return 0n;
+        })
+      } as never,
+      writeContract: vi.fn(async () => "0xabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabca" as `0x${string}`),
+      ...over
+    };
+  }
+
+  it("prints usage on bare / help", async () => {
+    const a = await runProCommand(baseCtx({ args: ["pro"] }));
+    expect(a.warn).toBeUndefined();
+    expect(String((a as { text?: string }).text)).toContain("pro buy");
+    const b = await runProCommand(baseCtx({ args: ["pro", "help"] }));
+    expect(String((b as { text?: string }).text)).toContain("NEW");
+  });
+
+  it("unknown subcommand warns", async () => {
+    const r = await runProCommand(baseCtx({ args: ["pro", "nope"] }));
+    expect(r.warn).toBe(true);
+    expect((r as { text: string }).text).toBe(PRO_REFUSE.unknown);
+  });
+
+  it("status requires wallet + network", async () => {
+    const nw = await runProCommand(
+      baseCtx({ args: ["pro", "status"], isConnected: false, address: undefined })
+    );
+    expect(nw.warn).toBe(true);
+    expect((nw as { text: string }).text).toBe(PRO_REFUSE.noWallet);
+    const nn = await runProCommand(
+      baseCtx({
+        args: ["pro", "status"],
+        activeChainId: null,
+        chainObj: null,
+        client: null
+      })
+    );
+    expect((nn as { text: string }).text).toMatch(/network/i);
+  });
+
+  it("status on unwired chain fails closed", async () => {
+    const r = await runProCommand(
+      baseCtx({
+        args: ["pro", "status"],
+        activeChainId: 1,
+        chainObj: { id: 1, name: "Ethereum" } as never
+      })
+    );
+    expect((r as { text: string }).text).toBe(PRO_REFUSE.noContract);
+  });
+
+  it("status lists empty pass set", async () => {
+    const r = await runProCommand(baseCtx({ args: ["pro", "status"] }));
+    expect(r.warn).toBeUndefined();
+    expect(String((r as { text?: string }).text)).toContain("inactive");
+  });
+
+  it("buy clamps periods and submits purchase", async () => {
+    const bad = await runProCommand(baseCtx({ args: ["pro", "buy", "0"] }));
+    expect((bad as { text: string }).text).toBe(PRO_REFUSE.badPeriods);
+    const ctx = baseCtx({ args: ["pro", "buy", "2"] });
+    const ok = await runProCommand(ctx);
+    expect(ok.warn).toBeUndefined();
+    expect(String((ok as { text?: string }).text)).toMatch(/ProPass purchase submitted/);
+    expect(ctx.writeContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "purchase",
+        args: [2n],
+        value: 2n * 10n ** 16n
+      })
+    );
+  });
+
+  it("buy surfaces write failures", async () => {
+    const r = await runProCommand(
+      baseCtx({
+        args: ["pro", "buy", "1"],
+        writeContract: vi.fn(async () => {
+          throw new Error("user rejected");
+        })
+      })
+    );
+    expect(r.warn).toBe(true);
+    expect((r as { text: string }).text).toMatch(/pro buy failed/);
+  });
+});
+
+describe("proGateOrError", () => {
+  it("returns null when gate inactive", async () => {
+    expect(
+      await proGateOrError({
+        client: { readContract: vi.fn() },
+        chainId: 8453,
+        account: "0x1111111111111111111111111111111111111111"
+      })
+    ).toBeNull();
+  });
+
+  it("returns notPro copy when gated and false", async () => {
+    const err = await proGateOrError({
+      client: { readContract: vi.fn().mockResolvedValue(false) },
+      chainId: 11155111,
+      account: "0x1111111111111111111111111111111111111111"
+    });
+    expect(err).toBe(PRO_REFUSE.notPro);
   });
 });
