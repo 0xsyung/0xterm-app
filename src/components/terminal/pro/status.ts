@@ -135,3 +135,28 @@ export function formatProStatusText(s: Extract<ProStatus, { ok: true }>): string
   lines.push("Each buy mints a NEW token; expiry never extends an existing pass.");
   return lines.join("\n");
 }
+
+/** Days remaining on the furthest-active pass (ceil); null when none. Soft-nice chip. */
+export function daysLeftFromStatus(
+  s: Extract<ProStatus, { ok: true }>
+): number | null {
+  let maxLeft = 0n;
+  for (const row of s.active) {
+    const left = row.expiresAt > s.now ? row.expiresAt - s.now : 0n;
+    if (left > maxLeft) maxLeft = left;
+  }
+  if (maxLeft === 0n) return null;
+  return Math.max(1, Math.ceil(Number(maxLeft) / 86400));
+}
+
+/** Human remaining for a single pass row. */
+export function formatRemaining(expiresAt: bigint, now: bigint): string {
+  const left = expiresAt > now ? expiresAt - now : 0n;
+  if (left === 0n) return "expired";
+  const days = Number(left) / 86400;
+  if (days >= 1) return `~${days.toFixed(1)}d left`;
+  const hours = Number(left) / 3600;
+  if (hours >= 1) return `~${hours.toFixed(1)}h left`;
+  const mins = Math.max(1, Math.ceil(Number(left) / 60));
+  return `~${mins}m left`;
+}

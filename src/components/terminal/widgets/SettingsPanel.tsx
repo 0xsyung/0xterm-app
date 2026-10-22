@@ -233,6 +233,10 @@ export type SettingsPanelProps = {
   onLocalVaultRequirePasswordPerTx?: (value: boolean) => void;
   /** Soft ACK #253 E — open console command overlay (Settings is primary path). */
   onOpenConsole?: () => void;
+  /** Soft ACK #139 Soft-nice — Pro buy/status when header stays quiet. */
+  onOpenProStatus?: () => void;
+  onOpenProBuy?: () => void;
+  proIsPro?: boolean;
 };
 
 export default function SettingsPanel(props: SettingsPanelProps) {
@@ -258,6 +262,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     existingPreferences,
     onApplyImport,
     onOpenConsole,
+    onOpenProStatus,
+    onOpenProBuy,
+    proIsPro = false,
     defaultChainId = null,
     onDefaultChainChange,
     actionNetworks = {},
@@ -1631,6 +1638,30 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </>
           )}
         </div>
+      </section>
+
+      {/* Soft ACK #139 Soft-nice — Pro when header chip stays quiet (non-Pro hide). */}
+      <section className="space-y-1.5" data-testid="settings-pro-section">
+        <SectionLabel theme={theme}>Pro</SectionLabel>
+        <div className="flex items-center gap-2 flex-wrap">
+          <PhosphorChip
+            theme={theme}
+            label={proIsPro ? "STATUS" : "STATUS"}
+            onClick={() => onOpenProStatus?.()}
+            data-testid="settings-pro-status"
+          />
+          <GhostChip
+            theme={theme}
+            label="BUY PRO"
+            onClick={() => onOpenProBuy?.()}
+            data-testid="settings-pro-buy"
+          />
+        </div>
+        <p className={`text-[10px] leading-snug ${theme.muted}`}>
+          {proIsPro
+            ? "Pro active — STATUS lists passes; BUY always mints a new NFT (never extends)."
+            : "Pro gates on-chain writes. BUY mints a new pass; Sepolia live at 0.01 ETH / 30d."}
+        </p>
       </section>
 
       {/* Soft ACK #253 E — CONSOLE at true bottom of Settings */}

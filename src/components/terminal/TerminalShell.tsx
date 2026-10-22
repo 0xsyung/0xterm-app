@@ -80,7 +80,9 @@ import {
   SHARE_CONTRACT,
   shareAbi,
   VAULT_REGISTRY,
-  erc4626Abi
+  erc4626Abi,
+  PRO_PASS_CONTRACT,
+  proPassAbi
 } from "./constants";
 import { encodeV3ExactInputSingle } from "./swapEncode";
 import { formatViemError } from "../../lib/viemError";
@@ -223,8 +225,16 @@ import WillPanel from "./will/WillPanel";
 import { runProCommand } from "./pro/runPro";
 import {
   requireProForExternalWrite,
-  commandNeedsProPreflight
+  commandNeedsProPreflight,
+  isProGateActive
 } from "./pro/preflight";
+import {
+  fetchProStatus,
+  daysLeftFromStatus,
+  type ProStatus
+} from "./pro/status";
+import { buildPurchasePlan } from "./pro/buy";
+import ProSurface, { type ProSurfaceMode } from "./pro/ProSurface";
 import type { WillStatusPayload } from "./widgets/WillStatusWidget";
 import WillStatusWidget from "./widgets/WillStatusWidget";
 import {
@@ -1005,6 +1015,22 @@ export default function TerminalShell({
   const [portfolioRefreshKey, setPortfolioRefreshKey] = useState(0);
   // WILL panel re-fetch (#247 Soft-nice: will / will status in INVEST).
   const [willRefreshKey, setWillRefreshKey] = useState(0);
+  // Soft ACK #139 Design G–H — header PRO chip + buy/status chrome
+  const [proSurface, setProSurface] = useState<ProSurfaceMode | null>(null);
+  const [proIsPro, setProIsPro] = useState(false);
+  const [proDaysLeft, setProDaysLeft] = useState<number | null>(null);
+  const [proStatus, setProStatus] = useState<Extract<
+    ProStatus,
+    { ok: true }
+  > | null>(null);
+  const [proStatusLoading, setProStatusLoading] = useState(false);
+  const [proStatusError, setProStatusError] = useState<string | null>(null);
+  const [proPricePerPeriod, setProPricePerPeriod] = useState<bigint | null>(
+    null
+  );
+  const [proPriceLoading, setProPriceLoading] = useState(false);
+  const [proPriceError, setProPriceError] = useState<string | null>(null);
+  const [proBuyBusy, setProBuyBusy] = useState(false);
   const [hlBuilderFeeBp, setHlBuilderFeeBp] = useState<number>(HL_DEFAULT_BUILDER_FEE_BP);
   const [hlAgentAddress, setHlAgentAddress] = useState<string | null>(null);
   const [hlBuilderMaxFeeLabel, setHlBuilderMaxFeeLabel] = useState<string | null>(null);
@@ -1931,6 +1957,196 @@ export default function TerminalShell({
       transport: http(activeUrl)
     });
   };
+
+  // Soft ACK #139 Design G — poll isPro for header chip (quiet; fail closed).
+  const refreshProChrome = useCallback(async () => {
+    const acct = (effectiveAddress || address) as Address | undefined;
+    const chainId = activeChainId;
+    if (
+      !effectiveConnected ||
+      !acct ||
+      chainId == null ||
+      !isProGateActive(chainId)
+    ) {
+      setProIsPro(false);
+      setProDaysLeft(null);
+      return;
+    }
+    const chainObj = SUPPORTED_CHAINS.find((c) => c.id === chainId);
+    if (!chainObj) {
+      setProIsPro(false);
+      setProDaysLeft(null);
+      return;
+    }
+    try {
+      const client = getClient(chainObj);
+      const status = await fetchProStatus(client, chainId, acct);
+      if (!status.ok) {
+        setProIsPro(false);
+        setProDaysLeft(null);
+        return;
+      }
+      setProIsPro(status.isPro);
+      setProDaysLeft(daysLeftFromStatus(status));
+      setProStatus(status);
+    } catch {
+      // Quiet — chip stays hidden / prior; RPC may be unset.
+    }
+  }, [
+    effectiveAddress,
+    address,
+    effectiveConnected,
+    activeChainId,
+    rpcProviders,
+    activeRpcProviders
+  ]);
+
+  useEffect(() => {
+    void refreshProChrome();
+    const id = window.setInterval(() => void refreshProChrome(), 30_000);
+    return () => window.clearInterval(id);
+  }, [refreshProChrome]);
+
+  const openProStatus = useCallback(() => {
+    setProSurface("status");
+    setProStatusError(null);
+    setProStatusLoading(true);
+    void (async () => {
+      const acct = (effectiveAddress || address) as Address | undefined;
+      const chainId = activeChainId;
+      if (!acct || chainId == null || !isProGateActive(chainId)) {
+        setProStatus(null);
+        setProStatusError(
+          chainId != null && !isProGateActive(chainId)
+            ? "No ProPass on this network yet. Sepolia is live — network sepolia."
+            : "Connect a wallet to check Pro status."
+        );
+        setProStatusLoading(false);
+        return;
+      }
+      const chainObj = SUPPORTED_CHAINS.find((c) => c.id === chainId);
+      if (!chainObj) {
+        setProStatusError("Set a network first.");
+        setProStatusLoading(false);
+        return;
+      }
+      try {
+        const client = getClient(chainObj);
+        const status = await fetchProStatus(client, chainId, acct);
+        if (!status.ok) {
+          setProStatus(null);
+          setProStatusError(status.error);
+        } else {
+          setProStatus(status);
+          setProIsPro(status.isPro);
+          setProDaysLeft(daysLeftFromStatus(status));
+          setProStatusError(null);
+        }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setProStatusError(msg.slice(0, 140));
+      } finally {
+        setProStatusLoading(false);
+      }
+    })();
+  }, [
+    effectiveAddress,
+    address,
+    activeChainId,
+    rpcProviders,
+    activeRpcProviders
+  ]);
+
+  const openProBuy = useCallback(() => {
+    setProSurface("buy");
+    setProPriceError(null);
+    setProPriceLoading(true);
+    setProPricePerPeriod(null);
+    void (async () => {
+      const chainId = activeChainId;
+      if (chainId == null || !isProGateActive(chainId)) {
+        setProPriceError(
+          "No ProPass on this network yet. Sepolia is live — network sepolia."
+        );
+        setProPriceLoading(false);
+        return;
+      }
+      const chainObj = SUPPORTED_CHAINS.find((c) => c.id === chainId);
+      if (!chainObj) {
+        setProPriceError("Set a network first.");
+        setProPriceLoading(false);
+        return;
+      }
+      const contract = PRO_PASS_CONTRACT[chainId];
+      if (!contract) {
+        setProPriceError("No ProPass on this network yet.");
+        setProPriceLoading(false);
+        return;
+      }
+      try {
+        const client = getClient(chainObj);
+        const price = (await client.readContract({
+          address: contract,
+          abi: proPassAbi,
+          functionName: "pricePerPeriod"
+        })) as bigint;
+        setProPricePerPeriod(price);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setProPriceError(msg.slice(0, 140));
+      } finally {
+        setProPriceLoading(false);
+      }
+    })();
+  }, [activeChainId, rpcProviders, activeRpcProviders]);
+
+  const confirmProBuy = useCallback(
+    async (periods: number) => {
+      const chainId = activeChainId;
+      if (chainId == null) throw new Error("Set a network first.");
+      const chainObj = SUPPORTED_CHAINS.find((c) => c.id === chainId);
+      if (!chainObj) throw new Error("Set a network first.");
+      if (!effectiveConnected) throw new Error("Connect a wallet first.");
+      const client = getClient(chainObj);
+      const contract = PRO_PASS_CONTRACT[chainId];
+      if (!contract) throw new Error("No ProPass on this network yet.");
+      setProBuyBusy(true);
+      try {
+        const pricePerPeriod = (await client.readContract({
+          address: contract,
+          abi: proPassAbi,
+          functionName: "pricePerPeriod"
+        })) as bigint;
+        const plan = buildPurchasePlan({
+          chainId,
+          periods,
+          pricePerPeriod
+        });
+        if (!plan.ok) throw new Error(plan.error);
+        await writeContractActive(
+          {
+            chainId: plan.chainId,
+            address: plan.contract,
+            abi: plan.abi,
+            functionName: plan.functionName,
+            args: plan.args,
+            value: plan.value
+          },
+          `pro purchase ${periods}`
+        );
+        void refreshProChrome();
+      } finally {
+        setProBuyBusy(false);
+      }
+    },
+    [
+      activeChainId,
+      effectiveConnected,
+      rpcProviders,
+      activeRpcProviders,
+      refreshProChrome
+    ]
+  );
 
   // --- Chat helpers (encrypted 1:1 messaging) -----------------------------
   // The messaging key pair derives from a wallet signature on KEY_MESSAGE. We
@@ -11805,6 +12021,11 @@ export default function TerminalShell({
           }
         }}
         consoleOverlayOpen={consoleOverlayOpen}
+        isPro={proIsPro}
+        proDaysLeft={proDaysLeft}
+        showProBuyCta={false}
+        onOpenProStatus={openProStatus}
+        onOpenProBuy={openProBuy}
       />
 
       {/* Single global F1–F12 listener (#28) — Soft ACK #253 E: while overlay open */}
@@ -11902,6 +12123,9 @@ export default function TerminalShell({
               mode={terminalMode}
               onModeChange={(m) => applyTerminalMode(m)}
               onOpenConsole={() => openConsoleOverlay()}
+              onOpenProStatus={openProStatus}
+              onOpenProBuy={openProBuy}
+              proIsPro={proIsPro}
               rpcProviders={rpcProviders}
               activeRpcProviders={activeRpcProviders}
               onRpcChange={handleSettingsRpcChange}
@@ -12130,6 +12354,24 @@ export default function TerminalShell({
         )}
 
       </div>
+
+      {/* Soft ACK #139 Design H — buy/status chrome (Escape dismiss; no ×). */}
+      {proSurface && (
+        <ProSurface
+          theme={theme}
+          mode={proSurface}
+          onClose={() => setProSurface(null)}
+          onSwitchBuy={openProBuy}
+          pricePerPeriod={proPricePerPeriod}
+          priceLoading={proPriceLoading}
+          priceError={proPriceError}
+          busy={proBuyBusy}
+          onConfirmBuy={confirmProBuy}
+          status={proStatus}
+          statusLoading={proStatusLoading}
+          statusError={proStatusError}
+        />
+      )}
 
       {/* Soft ACK #253 E / #256 — console overlay at shell root (z-40 above header z-30). */}
       {consoleOverlayOpen && (

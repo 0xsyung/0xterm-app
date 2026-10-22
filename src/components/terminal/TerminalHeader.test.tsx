@@ -52,7 +52,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(screen.queryByTestId("brand-clock-network")).toBeNull();
   });
 
-  it("wallet cluster is SETTINGS · NETWORK · CONNECT with ml-auto (#253 E)", () => {
+  it("wallet cluster is SETTINGS · NETWORK · CONNECT with ml-auto (#253 E); PRO optional (#139 G)", () => {
     render(
       <TerminalHeader {...baseProps} activeChainId={8453} onOpenNetworkSettings={vi.fn()} />
     );
@@ -61,6 +61,7 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     expect(cluster.className).toMatch(/gap-2/);
     const kids = Array.from(cluster.children);
     expect(within(cluster).queryByRole("tab", { name: "CONSOLE" })).toBeNull();
+    expect(within(cluster).queryByTestId("header-pro-chip")).toBeNull();
     expect(within(cluster).getByRole("tab", { name: "SETTINGS" })).toBeTruthy();
     expect(within(cluster).getByTestId("header-network")).toBeTruthy();
     expect(within(cluster).getByTestId("header-connect")).toBeTruthy();
@@ -76,7 +77,31 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
       networkEl.compareDocumentPosition(connectEl) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+    // ProChip returns null when not Pro — only SETTINGS · NETWORK · CONNECT
     expect(kids.length).toBe(3);
+  });
+
+  it("PRO chip sits left of SETTINGS when isPro (#139 G)", () => {
+    const onOpenProStatus = vi.fn();
+    render(
+      <TerminalHeader
+        {...baseProps}
+        activeChainId={11155111}
+        isPro
+        proDaysLeft={5}
+        onOpenProStatus={onOpenProStatus}
+      />
+    );
+    const cluster = screen.getByTestId("wallet-cluster");
+    const pro = within(cluster).getByTestId("header-pro-chip");
+    const settingsEl = within(cluster).getByRole("tab", { name: "SETTINGS" });
+    expect(
+      pro.compareDocumentPosition(settingsEl) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(pro.textContent).toMatch(/5d/);
+    fireEvent.click(pro);
+    expect(onOpenProStatus).toHaveBeenCalledTimes(1);
+    expect(Array.from(cluster.children).length).toBe(4);
   });
 
   it("read-only NETWORK chip shows short name; click opens Settings (#156)", () => {

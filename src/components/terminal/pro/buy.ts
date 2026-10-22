@@ -73,3 +73,21 @@ export function buildPurchasePlan(opts: {
     note: PRO_REFUSE.alwaysNew
   };
 }
+
+/** Clamp periods into [1, MAX] for UI steppers (Soft ACK Design H). */
+export function clampPeriods(n: number): number {
+  if (!Number.isFinite(n)) return 1;
+  const t = Math.trunc(n);
+  if (t < 1) return 1;
+  if (t > PRO_MAX_PERIODS) return PRO_MAX_PERIODS;
+  return t;
+}
+
+/** Format wei as ETH for chrome (tabular-nums friendly, ≤6 frac digits). */
+export function formatEthAmount(wei: bigint): string {
+  const whole = wei / 10n ** 18n;
+  const frac = wei % 10n ** 18n;
+  if (frac === 0n) return `${whole}`;
+  const f = frac.toString().padStart(18, "0").replace(/0+$/, "");
+  return `${whole}.${f.slice(0, 6)}`;
+}
