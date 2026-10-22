@@ -1,6 +1,6 @@
 /**
  * @file TerminalHeader.tsx
- * @description Terminal header — brand-clock + nav + wallet cluster (NETWORK + CONNECT) (#117/#121/#134/#156)
+ * @description Terminal header — brand-clock + nav + wallet cluster (PRO · SETTINGS · NETWORK · CONNECT) (#117/#121/#134/#156/#139)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -16,6 +16,7 @@ import { formatBadgeCount } from "./socialUnread";
 import { formatLocalHms } from "./localTime";
 import type { BindingsState, FKey } from "./keybindings";
 import { FKEYS, defaultBindings, resolveBinding } from "./keybindings";
+import ProChip from "./pro/ProChip";
 
 function formatClock(d: Date) {
   return formatLocalHms(d);
@@ -274,7 +275,12 @@ export default function TerminalHeader({
   walletAddress = null,
   isWalletConnected = false,
   onWalletOpen,
-  consoleOverlayOpen = false
+  consoleOverlayOpen = false,
+  isPro = false,
+  proDaysLeft = null,
+  showProBuyCta = false,
+  onOpenProStatus,
+  onOpenProBuy
 }: {
   theme: ThemeConfig;
   onCommand?: (cmd: string) => void;
@@ -299,6 +305,14 @@ export default function TerminalHeader({
   onWalletOpen?: () => void;
   /** Soft ACK #253 E — F-row while console overlay is open. */
   consoleOverlayOpen?: boolean;
+  /** Soft ACK #139 Design G — active ProPass. */
+  isPro?: boolean;
+  /** Soft-nice days left on furthest active pass. */
+  proDaysLeft?: number | null;
+  /** Soft-nice muted GET PRO when buy is one click (prefer hide). */
+  showProBuyCta?: boolean;
+  onOpenProStatus?: () => void;
+  onOpenProBuy?: () => void;
 }) {
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
@@ -375,11 +389,19 @@ export default function TerminalHeader({
         />
       )}
 
-      {/* Far-right wallet cluster: SETTINGS · NETWORK · CONNECT (#253 E — CONSOLE → Settings). */}
+      {/* Far-right wallet cluster: PRO · SETTINGS · NETWORK · CONNECT (#139 G / #253 E). */}
       <div
         className="flex items-center gap-2 shrink-0 ml-auto uppercase text-[10px] tracking-widest max-md:justify-end max-md:min-w-0 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden"
         data-testid="wallet-cluster"
       >
+        <ProChip
+          theme={theme}
+          isPro={isPro}
+          daysLeft={proDaysLeft}
+          showBuyCta={showProBuyCta}
+          onOpenStatus={onOpenProStatus}
+          onOpenBuy={onOpenProBuy}
+        />
         <SettingsTab
           theme={theme}
           radius="rounded-none"
