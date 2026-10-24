@@ -12,3 +12,4 @@ export * from "./agent";
 export * from "./signing";
 export * from "./info";
 export * from "./exchange";
+export * from "./userSignedConnect";

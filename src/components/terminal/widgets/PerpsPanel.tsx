@@ -51,6 +51,11 @@ import {
   ensureBuilderApproved,
   WithdrawTypes,
   UsdClassTransferTypes,
+  HL_CONNECT_BUSY_TIMEOUT_MS,
+  HL_CONNECT_TIMEOUT_COPY,
+  HL_CONNECT_SIGNING_HINT,
+  HL_CONNECT_WALLET_REQUIRED,
+  runHlUserSignedWithOptionalChainRetry,
   type HlMetaResponse,
   type HlNetwork,
   type HlOpenOrder,
@@ -371,26 +376,47 @@ export default function PerpsPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Soft ACK #260 C / Soft Design B — hang off SIGNING… with sticky retry copy.
+  useEffect(() => {
+    if (busy !== "agent" && busy !== "builder") return;
+    const t = window.setTimeout(() => {
+      setBusy(null);
+      setError(HL_CONNECT_TIMEOUT_COPY);
+      setStatus(null);
+    }, HL_CONNECT_BUSY_TIMEOUT_MS);
+    return () => window.clearTimeout(t);
+  }, [busy]);
+
   const connectAgent = async () => {
-    if (!walletAddress) return;
+    // Soft ACK #260: never silent no-op — sticky error next to CTA.
+    if (!walletAddress) {
+      setError(HL_CONNECT_WALLET_REQUIRED);
+      return;
+    }
     setBusy("agent");
     setError(null);
     setStatus(null);
     try {
-      const chain = await ensureSignatureChain(network);
-      if (!chain.ok) {
-        setError(chain.error);
-        return;
-      }
       const agent = getOrCreateAgentKey(store, walletAddress, network);
       setAgentAddress(agent.address);
-      const approved = await ensureAgentApproved({
+      // Soft ACK #260 C: typed-data first (domain embeds 0x66eee). Optional
+      // ensureSignatureChain + retry only when the failure looks chain-related.
+      const approved = await runHlUserSignedWithOptionalChainRetry({
         network,
-        masterAddress: walletAddress,
-        agentPrivateKey: agent.privateKey,
-        agentAddress: agent.address,
-        expectedSigner: walletAddress,
-        signTypedDataAsync
+        ensureSignatureChain,
+        attempt: async () => {
+          const result = await ensureAgentApproved({
+            network,
+            masterAddress: walletAddress,
+            agentPrivateKey: agent.privateKey,
+            agentAddress: agent.address,
+            expectedSigner: walletAddress,
+            signTypedDataAsync
+          });
+          return result.ok
+            ? { ok: true as const }
+            : { ok: false as const, error: result.error };
+        }
       });
       if (!approved.ok) {
         setError(approved.error);
@@ -406,7 +432,10 @@ export default function PerpsPanel({
   };
 
   const approveBuilder = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+      setError(HL_CONNECT_WALLET_REQUIRED);
+      return;
+    }
     if (!isBuilderAddressConfigured(builder)) {
       setError(
         "Builder address not configured (NEXT_PUBLIC_HL_BUILDER_ADDRESS)."
@@ -417,17 +446,22 @@ export default function PerpsPanel({
     setError(null);
     setStatus(null);
     try {
-      const chain = await ensureSignatureChain(network);
-      if (!chain.ok) {
-        setError(chain.error);
-        return;
-      }
-      const result = await postApproveBuilderFee({
+      // Soft ACK #260 C: same sign-first path as connectAgent (builder CTA).
+      const result = await runHlUserSignedWithOptionalChainRetry({
         network,
-        builder,
-        maxFeeBp: builderFeeBp,
-        expectedSigner: walletAddress,
-        signTypedDataAsync
+        ensureSignatureChain,
+        attempt: async () => {
+          const r = await postApproveBuilderFee({
+            network,
+            builder,
+            maxFeeBp: builderFeeBp,
+            expectedSigner: walletAddress,
+            signTypedDataAsync
+          });
+          return r.ok
+            ? { ok: true as const }
+            : { ok: false as const, error: r.error };
+        }
       });
       if (!result.ok) {
         setError(result.error);
@@ -813,16 +847,43 @@ export default function PerpsPanel({
                 )}
               </div>
               {!agentApproved && (
-                <button
-                  type="button"
-                  data-testid="perps-connect-agent"
-                  disabled={busy === "agent"}
-                  onClick={() => void connectAgent()}
-                  className={ctaCls}
-                  style={{ background: theme.phosphor, color: FILL_FG }}
-                >
-                  {busy === "agent" ? "SIGNING…" : PERPS_COPY.connectCta}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    data-testid="perps-connect-agent"
+                    disabled={busy === "agent"}
+                    onClick={() => void connectAgent()}
+                    className={ctaCls}
+                    style={{ background: theme.phosphor, color: FILL_FG }}
+                  >
+                    {busy === "agent" ? "SIGNING…" : PERPS_COPY.connectCta}
+                  </button>
+                  {busy === "agent" && (
+                    <div
+                      className={`text-[10px] ${theme.muted}`}
+                      data-testid="perps-connect-status"
+                    >
+                      {HL_CONNECT_SIGNING_HINT}
+                    </div>
+                  )}
+                  {error && (
+                    <div
+                      className={`${theme.warn} text-[10px]`}
+                      role="alert"
+                      data-testid="perps-connect-error"
+                    >
+                      {error}
+                    </div>
+                  )}
+                  {status && !error && !agentApproved && (
+                    <div
+                      className={`text-[10px] ${theme.primary}`}
+                      data-testid="perps-connect-status"
+                    >
+                      {status}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="flex flex-col gap-1">
@@ -834,16 +895,35 @@ export default function PerpsPanel({
                 </span>
               </div>
               {!builderApproved && (
-                <button
-                  type="button"
-                  data-testid="perps-approve-builder"
-                  disabled={busy === "builder"}
-                  onClick={() => void approveBuilder()}
-                  className={ctaCls}
-                  style={{ background: theme.phosphor, color: FILL_FG }}
-                >
-                  {busy === "builder" ? "SIGNING…" : PERPS_COPY.approveFeeCta}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    data-testid="perps-approve-builder"
+                    disabled={busy === "builder"}
+                    onClick={() => void approveBuilder()}
+                    className={ctaCls}
+                    style={{ background: theme.phosphor, color: FILL_FG }}
+                  >
+                    {busy === "builder" ? "SIGNING…" : PERPS_COPY.approveFeeCta}
+                  </button>
+                  {busy === "builder" && (
+                    <div
+                      className={`text-[10px] ${theme.muted}`}
+                      data-testid="perps-builder-status"
+                    >
+                      {HL_CONNECT_SIGNING_HINT}
+                    </div>
+                  )}
+                  {error && agentApproved && (
+                    <div
+                      className={`${theme.warn} text-[10px]`}
+                      role="alert"
+                      data-testid="perps-builder-error"
+                    >
+                      {error}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

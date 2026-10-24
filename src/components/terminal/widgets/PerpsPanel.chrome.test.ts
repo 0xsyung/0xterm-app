@@ -59,3 +59,34 @@ describe("PerpsPanel CHAT gutter (#227)", () => {
   });
 });
 
+
+describe("PerpsPanel CONNECT iPhone (#260)", () => {
+  const src = () =>
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+
+  it("signs user-typed-data before hard signature-chain switch (gesture)", () => {
+    const text = src();
+    expect(text).toMatch(/runHlUserSignedWithOptionalChainRetry/);
+    // connectAgent must not hard-return on ensureSignatureChain before attempt
+    const connect = text.slice(
+      text.indexOf("const connectAgent = async"),
+      text.indexOf("const approveBuilder = async")
+    );
+    expect(connect).toMatch(/runHlUserSignedWithOptionalChainRetry/);
+    expect(connect).not.toMatch(
+      /const chain = await ensureSignatureChain\(network\);\s*if \(!chain\.ok\)/
+    );
+  });
+
+  it("sticky connect error/status next to CTA + busy timeout", () => {
+    const text = src();
+    expect(text).toMatch(/data-testid="perps-connect-error"/);
+    expect(text).toMatch(/data-testid="perps-connect-status"/);
+    expect(text).toMatch(/HL_CONNECT_BUSY_TIMEOUT_MS/);
+    expect(text).toMatch(/HL_CONNECT_TIMEOUT_COPY/);
+    expect(text).toMatch(/HL_CONNECT_WALLET_REQUIRED/);
+  });
+});
