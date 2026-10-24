@@ -16,9 +16,10 @@ export const HL_L1_TYPED_DATA_CHAIN_ID = 1337;
 /**
  * EIP-712 signatureChainId for user-signed actions (approveAgent / approveBuilderFee).
  * The SDK hardcodes 0x66eee (Arbitrum Sepolia) for BOTH networks — the
- * signatureChainId field AND the EIP-712 domain chainId. The wallet is switched
- * there to sign and restored to HyperEVM afterwards. 0xterm uses the same
- * signing chain for mainnet and testnet (demo README: user-signed always 0x66eee).
+ * signatureChainId field AND the EIP-712 domain chainId. Soft ACK #260: PERPS
+ * CONNECT signs typed-data first (domain embeds 0x66eee) so iOS Safari/WC keeps
+ * the user gesture; chain align is a best-effort retry only. After success the
+ * wallet is restored to HyperEVM. Same signing chain for mainnet and testnet.
  */
 export const HL_TESTNET_SIGNATURE_CHAIN_ID = 0x66eee; // Arbitrum Sepolia
 export const HL_MAINNET_SIGNATURE_CHAIN_ID = 0x66eee; // Arbitrum Sepolia (SDK constant for both)
