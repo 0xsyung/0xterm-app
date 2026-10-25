@@ -90,3 +90,32 @@ describe("PerpsPanel CONNECT iPhone (#260)", () => {
     expect(text).toMatch(/HL_CONNECT_WALLET_REQUIRED/);
   });
 });
+
+
+describe("PerpsPanel CONNECT sticky Soft-fail (#262)", () => {
+  const src = () =>
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+
+  it("Soft-maps connect + builder sticky via formatHlConnectStickyError", () => {
+    const text = src();
+    expect(text).toMatch(/formatHlConnectStickyError/);
+    const connect = text.slice(
+      text.indexOf("const connectAgent = async"),
+      text.indexOf("const approveBuilder = async")
+    );
+    expect(connect).toMatch(/formatHlConnectStickyError\(approved\.error\)/);
+    expect(connect).not.toMatch(/setError\(approved\.error\)/);
+    const builder = text.slice(
+      text.indexOf("const approveBuilder = async"),
+      text.indexOf("const submitOrder = async")
+    );
+    expect(builder).toMatch(/formatHlConnectStickyError\(result\.error\)/);
+    // Soft ACK #260 chrome floor holds.
+    expect(text).toMatch(/data-testid="perps-connect-error"/);
+    expect(text).toMatch(/data-testid="perps-builder-error"/);
+    expect(text).toMatch(/runHlUserSignedWithOptionalChainRetry/);
+  });
+});
