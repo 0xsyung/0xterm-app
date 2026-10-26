@@ -1,6 +1,6 @@
 /**
  * @file userSignedConnect.ts
- * @description Soft ACK #260/#262 — iPhone PERPS CONNECT: sign-first + Soft sticky Soft-fail
+ * @description Soft ACK #260/#262 rework — sign-first + Soft sticky Soft-fail + OneKey chain-align
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  *
@@ -15,6 +15,13 @@
  * (or after a post-sign chain-retry). Sticky Soft-fail must Soft-map those so
  * Approve never reads as Soft-nice Cancel; Soft-nice Cancel only when the
  * cancel classifier is confident.
+ *
+ * Soft ACK #262 rework (Soft PASS NACK #263): OneKey / viem hard-rejects when
+ * domain chainId 421614 (0x66eee) ≠ wallet active chain (often 1 even when
+ * OneKey UI shows HyperEVM). Soft-detect that Soft-fail → Soft-align once via
+ * ensureSignatureChain(0x66eee) → retry; Soft-nice sticky Soft-fail for chain /
+ * session mismatch (never Soft-label as user reject). Sign-first holds for
+ * wallets that can sign without a prior switch.
  */
 import type { HlNetwork } from "./config";
 
@@ -36,6 +43,14 @@ export const HL_CONNECT_USER_CANCELLED = "Cancelled — connect when ready.";
  * returns opaque / reject-shaped noise. Beats raw provider "user rejected".
  */
 export const HL_CONNECT_FAILED = "Connect failed — retry.";
+
+/**
+ * Soft ACK #262 rework Soft Design A — Soft-nice sticky Soft-fail when wallet
+ * active chain ≠ HL EIP-712 domain 0x66eee / 421614 (OneKey / viem).
+ * Visibly not Soft-nice Cancel / user reject.
+ */
+export const HL_CONNECT_CHAIN_MISMATCH =
+  "Chain / session mismatch — switch wallet to Arbitrum Sepolia, then retry.";
 
 export type HlUserSignedAttemptResult =
   | { ok: true }
@@ -78,6 +93,30 @@ export function isHlConnectUserCancelled(
 }
 
 /**
+ * Soft ACK #262 rework Lock A/C — wallet active chain ≠ EIP-712 domain chainId
+ * (viem: `Provided chainId "421614" must match the active chainId "1"`).
+ * OneKey Soft PASS NACK: UI may Soft-show HyperEVM while connector still on 1;
+ * domain stays 0x66eee (Arbitrum Sepolia) — Soft-align target is 421614, not
+ * HyperEVM 999.
+ */
+export function isHlConnectChainMismatch(
+  error: string | null | undefined
+): boolean {
+  if (!error) return false;
+  // Confident Soft-nice Cancel beats Soft-chain Soft-map.
+  if (isHlConnectUserCancelled(error)) return false;
+  return (
+    /must match the active chainId/i.test(error) ||
+    /Provided chainId ["']?\d+["']? must match/i.test(error) ||
+    /wrong network|chain mismatch|network mismatch|unsupported (chain|network)|wallet must (be )?on/i.test(
+      error
+    ) ||
+    (/chainId/i.test(error) &&
+      /active chain|must match|switch|mismatch|unsupported/i.test(error))
+  );
+}
+
+/**
  * Soft ACK #262 Soft Design A/B — Soft-map CONNECT / builder sticky Soft-fail.
  * Never surfaces raw provider "user rejected" verbatim on sticky.
  */
@@ -88,6 +127,10 @@ export function formatHlConnectStickyError(
   const raw = error.trim();
 
   if (isHlConnectUserCancelled(raw)) return HL_CONNECT_USER_CANCELLED;
+
+  // Soft ACK #262 rework Soft Design A — Soft-nice chain/session Soft-fail
+  // before Soft-map Soft-reject Soft-noise (combined errors may embed both).
+  if (isHlConnectChainMismatch(raw)) return HL_CONNECT_CHAIN_MISMATCH;
 
   // Soft Design Soft FAIL list: never Soft-label Approve failures as Cancel.
   // Generic WC/viem 4001 string → Soft-fail Connect failed (note 2).
@@ -125,6 +168,8 @@ export function formatHlConnectStickyError(
       raw
     )
   ) {
+    // Session noise without confident chain-mismatch phrase → generic Soft-fail.
+    // True chain mismatch already returned HL_CONNECT_CHAIN_MISMATCH above.
     return HL_CONNECT_FAILED;
   }
   if (
@@ -155,7 +200,13 @@ export function formatHlConnectStickyError(
 export function shouldRetryHlUserSignedWithChainSwitch(
   error: string | null | undefined
 ): boolean {
-  if (!error || isWalletUserRejected(error)) return false;
+  if (!error) return false;
+  // Soft ACK #262 rework: Soft-nice Cancel skips retry. Generic WC
+  // "User rejected the request." still skips switchChain (false 4001 after
+  // Approve) — except true chain-mismatch Soft-fails Soft-align once.
+  if (isHlConnectUserCancelled(error)) return false;
+  if (isHlConnectChainMismatch(error)) return true;
+  if (isWalletUserRejected(error)) return false;
   // HL /exchange business + post-sign verification — do not re-prompt.
   if (
     /Must deposit|HTTP \d|not listed as an approved|unified account|Exchange rejected|\/exchange|signed by|not the connected account|wrong signer/i.test(
@@ -165,7 +216,7 @@ export function shouldRetryHlUserSignedWithChainSwitch(
     return false;
   }
   // Soft ACK #262: chain-align only; do not match bare `sign` / `wallet`.
-  return /wrong network|chain mismatch|unsupported (chain|network)|switch chain|network mismatch|chainId|wallet must (be )?on|provider.*chain|disconnected|session (expired|disconnect|invalid)|typed.?data.*(chain|network)|approveAgent signature rejected|approveBuilderFee signature rejected/i.test(
+  return /unsupported (chain|network)|switch chain|provider.*chain|disconnected|session (expired|disconnect|invalid)|typed.?data.*(chain|network)|approveAgent signature rejected|approveBuilderFee signature rejected/i.test(
     error
   );
 }

@@ -5,10 +5,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   HL_CONNECT_BUSY_TIMEOUT_MS,
+  HL_CONNECT_CHAIN_MISMATCH,
   HL_CONNECT_FAILED,
   HL_CONNECT_TIMEOUT_COPY,
   HL_CONNECT_USER_CANCELLED,
   formatHlConnectStickyError,
+  isHlConnectChainMismatch,
   isHlConnectUserCancelled,
   isWalletUserRejected,
   runHlUserSignedWithOptionalChainRetry,
@@ -143,11 +145,12 @@ describe("formatHlConnectStickyError (#262 Soft Design A/B)", () => {
     expect(formatHlConnectStickyError("Transaction rejected by user.")).toBe(
       HL_CONNECT_FAILED
     );
+    // Soft ACK #262 rework Soft Design A: chain chain phrase wins over reject Soft-noise.
     expect(
       formatHlConnectStickyError(
         "chain mismatch (User rejected the request.)"
       )
-    ).toBe(HL_CONNECT_FAILED);
+    ).toBe(HL_CONNECT_CHAIN_MISMATCH);
   });
 
   it("Soft-maps non-reject Soft-failures to distinct Soft-fail Soft-copy", () => {
@@ -237,5 +240,81 @@ describe("formatHlConnectStickyError coverage edges (#262)", () => {
     if (!res.ok) expect(res.error).toBe("still chain mismatch");
     expect(res.retriedWithChainSwitch).toBe(true);
     expect(attempt).toHaveBeenCalledTimes(2);
+  });
+});
+
+
+describe("Soft ACK #262 rework OneKey chain mismatch", () => {
+  const ONEKEY_VIEM =
+    'Provided chainId "421614" must match the active chainId "1"';
+
+  it("detects OneKey/viem chain mismatch and retries Soft-align once", async () => {
+    expect(isHlConnectChainMismatch(ONEKEY_VIEM)).toBe(true);
+    expect(isHlConnectChainMismatch(null)).toBe(false);
+    expect(isHlConnectUserCancelled(ONEKEY_VIEM)).toBe(false);
+    expect(isWalletUserRejected(ONEKEY_VIEM)).toBe(false);
+    expect(shouldRetryHlUserSignedWithChainSwitch(ONEKEY_VIEM)).toBe(true);
+
+    const ensureSignatureChain = vi.fn().mockResolvedValue({ ok: true });
+    const attempt = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, error: ONEKEY_VIEM })
+      .mockResolvedValueOnce({ ok: true });
+    const res = await runHlUserSignedWithOptionalChainRetry({
+      network: "mainnet",
+      ensureSignatureChain,
+      attempt
+    });
+    expect(res).toEqual({ ok: true, retriedWithChainSwitch: true });
+    expect(ensureSignatureChain).toHaveBeenCalledWith("mainnet");
+    expect(attempt).toHaveBeenCalledTimes(2);
+  });
+
+  it("Soft-nice sticky Soft-fail for chain mismatch (not user reject)", () => {
+    const sticky = formatHlConnectStickyError(ONEKEY_VIEM);
+    expect(sticky).toBe(HL_CONNECT_CHAIN_MISMATCH);
+    expect(sticky).not.toMatch(/user rejected|cancelled|canceled|denied/i);
+    expect(sticky).toMatch(/chain|session|mismatch|Arbitrum Sepolia/i);
+    expect(
+      formatHlConnectStickyError(
+        `${ONEKEY_VIEM} ([!] Wallet is on ETH — switch to ARB SEP was rejected or failed. Tx not sent.)`
+      )
+    ).toBe(HL_CONNECT_CHAIN_MISMATCH);
+    expect(formatHlConnectStickyError("Wrong network — switch to Arbitrum")).toBe(
+      HL_CONNECT_CHAIN_MISMATCH
+    );
+    // Soft-nice Cancel still wins when confident.
+    expect(formatHlConnectStickyError("User denied message signature.")).toBe(
+      HL_CONNECT_USER_CANCELLED
+    );
+    // Soft-map Approve Soft-fail holds.
+    expect(formatHlConnectStickyError("User rejected the request.")).toBe(
+      HL_CONNECT_FAILED
+    );
+  });
+
+  it("surfaces Soft-nice chain Soft-fail when Soft-align fails after OneKey mismatch", async () => {
+    const ensureSignatureChain = vi
+      .fn()
+      .mockResolvedValue({
+        ok: false,
+        error:
+          "[!] Wallet is on ETH — switch to ARB SEP was rejected or failed. Tx not sent."
+      });
+    const attempt = vi.fn().mockResolvedValue({ ok: false, error: ONEKEY_VIEM });
+    const res = await runHlUserSignedWithOptionalChainRetry({
+      network: "testnet",
+      ensureSignatureChain,
+      attempt
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(formatHlConnectStickyError(res.error)).toBe(HL_CONNECT_CHAIN_MISMATCH);
+      expect(formatHlConnectStickyError(res.error)).not.toMatch(
+        /user rejected|cancelled|canceled|denied/i
+      );
+    }
+    expect(res.retriedWithChainSwitch).toBe(false);
+    expect(attempt).toHaveBeenCalledTimes(1);
   });
 });

@@ -118,4 +118,20 @@ describe("PerpsPanel CONNECT sticky Soft-fail (#262)", () => {
     expect(text).toMatch(/data-testid="perps-builder-error"/);
     expect(text).toMatch(/runHlUserSignedWithOptionalChainRetry/);
   });
+
+  it("preserves Soft ACK #260 sign-first + Soft Design sticky chrome floor (#262 rework)", () => {
+    const text = src();
+    const connect = text.slice(
+      text.indexOf("const connectAgent = async"),
+      text.indexOf("const approveBuilder = async")
+    );
+    // Soft ACK rework C: no hard pre-sign ensureSignatureChain for all wallets.
+    expect(connect).not.toMatch(
+      /const chain = await ensureSignatureChain\(network\);\s*if \(!chain\.ok\)/
+    );
+    expect(text).toMatch(/HL_CONNECT_BUSY_TIMEOUT_MS/);
+    expect(text).toMatch(/HL_CONNECT_SIGNING_HINT/);
+    expect(text).toMatch(/data-testid="perps-connect-error"/);
+    expect(text).toMatch(/data-testid="perps-connect-status"/);
+  });
 });
