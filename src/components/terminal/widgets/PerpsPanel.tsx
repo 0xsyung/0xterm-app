@@ -55,6 +55,7 @@ import {
   HL_CONNECT_TIMEOUT_COPY,
   HL_CONNECT_SIGNING_HINT,
   HL_CONNECT_WALLET_REQUIRED,
+  formatHlConnectStickyError,
   runHlUserSignedWithOptionalChainRetry,
   type HlMetaResponse,
   type HlNetwork,
@@ -419,7 +420,8 @@ export default function PerpsPanel({
         }
       });
       if (!approved.ok) {
-        setError(approved.error);
+        // Soft ACK #262 Soft Design A/B — Soft-map sticky Soft-fail Soft-copy.
+        setError(formatHlConnectStickyError(approved.error));
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
@@ -464,7 +466,8 @@ export default function PerpsPanel({
         }
       });
       if (!result.ok) {
-        setError(result.error);
+        // Soft ACK #262 Soft Design note 1 — builder sticky Soft-same Soft-map Soft-rules.
+        setError(formatHlConnectStickyError(result.error));
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
