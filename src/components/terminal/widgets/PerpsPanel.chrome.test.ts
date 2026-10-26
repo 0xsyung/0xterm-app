@@ -106,13 +106,13 @@ describe("PerpsPanel CONNECT sticky Soft-fail (#262)", () => {
       text.indexOf("const connectAgent = async"),
       text.indexOf("const approveBuilder = async")
     );
-    expect(connect).toMatch(/formatHlConnectStickyError\(approved\.error\)/);
+    expect(connect).toMatch(/formatHlConnectStickyError\(approved\.error/);
     expect(connect).not.toMatch(/setError\(approved\.error\)/);
     const builder = text.slice(
       text.indexOf("const approveBuilder = async"),
       text.indexOf("const submitOrder = async")
     );
-    expect(builder).toMatch(/formatHlConnectStickyError\(result\.error\)/);
+    expect(builder).toMatch(/formatHlConnectStickyError\(result\.error/);
     // Soft ACK #260 chrome floor holds.
     expect(text).toMatch(/data-testid="perps-connect-error"/);
     expect(text).toMatch(/data-testid="perps-builder-error"/);
@@ -133,5 +133,44 @@ describe("PerpsPanel CONNECT sticky Soft-fail (#262)", () => {
     expect(text).toMatch(/HL_CONNECT_SIGNING_HINT/);
     expect(text).toMatch(/data-testid="perps-connect-error"/);
     expect(text).toMatch(/data-testid="perps-connect-status"/);
+  });
+});
+
+
+describe("PerpsPanel CONNECT Soft ACK #264 Soft-session Soft-stale + Soft-Cancel Soft-unlock", () => {
+  const src = () =>
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+
+  it("Soft-maps Soft-sticky Soft-with Soft-retried Soft-/ Soft-already Soft-on Soft-signature Soft-chain Soft-opts Soft-", () => {
+    const text = src();
+    expect(text).toMatch(/HL_CONNECT_SESSION_STALE/);
+    expect(text).toMatch(/HL_CONNECT_SWITCH_WALLET_CTA/);
+    expect(text).toMatch(/retriedWithChainSwitch/);
+    expect(text).toMatch(/walletAlreadyOnSignatureChain/);
+    expect(text).toMatch(/getWalletChainId/);
+    expect(text).toMatch(/signatureChainId/);
+    expect(text).toMatch(/onUnlockWalletPicker/);
+    expect(text).toMatch(/data-testid="perps-switch-wallet"/);
+  });
+
+  it("Soft-Cancel Soft-calls Soft-onUnlockWalletPicker Soft-; Soft-sign Soft-first Soft-holds Soft-", () => {
+    const text = src();
+    const connect = text.slice(
+      text.indexOf("const connectAgent = async"),
+      text.indexOf("const approveBuilder = async")
+    );
+    expect(connect).toMatch(/isHlConnectUserCancelled\(approved\.error\)/);
+    expect(connect).toMatch(/onUnlockWalletPicker\?\.\(\)/);
+    expect(connect).toMatch(/runHlUserSignedWithOptionalChainRetry/);
+    expect(connect).not.toMatch(
+      /const chain = await ensureSignatureChain\(network\);\s*if \(!chain\.ok\)/
+    );
+    // Soft ACK Design #260 Soft-chrome Soft-floor Soft-holds Soft-. Soft-
+    expect(text).toMatch(/data-testid="perps-connect-error"/);
+    expect(text).toMatch(/HL_CONNECT_BUSY_TIMEOUT_MS/);
+    expect(text).toMatch(/HL_CONNECT_SIGNING_HINT/);
   });
 });

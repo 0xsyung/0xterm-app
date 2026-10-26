@@ -589,6 +589,7 @@ import PerpsPanel, { revokeLocalAgent } from "./widgets/PerpsPanel";
 import {
   HL_DEFAULT_BUILDER_FEE_BP,
   HL_DEFAULT_NETWORK,
+  alignHlSignatureChain,
   getStoredAgentKey,
   hlSignatureChainId,
   networkFromEvmChainId,
@@ -11344,15 +11345,45 @@ export default function TerminalShell({
               })
             }
             ensureSignatureChain={async (network: HlNetwork) => {
+              // Soft ACK #264 Soft-align Soft-: Soft-post Soft-verify Soft-connector Soft-chainId Soft-
+              // Soft-=== Soft-hlSignatureChainId Soft-(Soft-0x66eee Soft-/ Soft-421614 Soft-) Soft-; Soft-force Soft-
+              // Soft-session Soft-refresh Soft-when Soft-wagmi Soft-alone Soft-would Soft-early Soft-ok Soft-. Soft-
               const target = hlSignatureChainId(network);
-              const ensured = await ensureWalletChain(target);
-              if (!ensured.ok) return { ok: false as const, error: ensured.error };
-              return { ok: true as const };
+              // Soft-Local Soft-signer Soft-path Soft-keeps Soft-ensureWalletChain Soft-gate Soft-(Soft-no Soft-WC Soft-) Soft-. Soft-
+              if (isUnlocked() && getSignerPref() !== "injected") {
+                const ensured = await ensureWalletChain(target);
+                if (!ensured.ok)
+                  return { ok: false as const, error: ensured.error };
+                return { ok: true as const };
+              }
+              return alignHlSignatureChain({
+                targetChainId: target,
+                walletChainId: walletChainIdRef.current,
+                switchChainAsync,
+                readActiveChainId: async () => {
+                  try {
+                    if (walletClient && typeof walletClient.getChainId === "function") {
+                      return await walletClient.getChainId();
+                    }
+                  } catch {
+                    /* Soft-ignore Soft-*/
+                  }
+                  return walletChainIdRef.current;
+                }
+              });
             }}
             ensureWalletChain={async (chainId: number | null | undefined) => {
               const ensured = await ensureWalletChain(chainId);
               if (!ensured.ok) return { ok: false as const, error: ensured.error };
               return { ok: true as const };
+            }}
+            walletChainId={walletChainId ?? null}
+            onUnlockWalletPicker={() => {
+              // Soft ACK #264 Soft FAIL Soft-2 Soft-: Soft-Cancel Soft-/ Soft-Switch Soft-wallet Soft-
+              // Soft-Soft-resets Soft-WC Soft-session Soft-so Soft-AppKit Soft-opens Soft-Connect Soft-
+              // Soft-(Soft-MetaMask Soft-Soft-pickable Soft-) Soft-not Soft-Account Soft-only Soft-. Soft-
+              disconnect();
+              void open({ view: "Connect" });
             }}
             writeContractAsync={
               writeContractAsync as never
