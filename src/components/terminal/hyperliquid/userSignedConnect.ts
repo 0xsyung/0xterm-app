@@ -1,6 +1,6 @@
 /**
  * @file userSignedConnect.ts
- * @description Soft ACK #260/#262 rework — sign-first + Soft sticky Soft-fail + OneKey chain-align
+ * @description Soft ACK #260/#262/#264 — sign-first + Soft sticky Soft-fail + Soft-align + session Soft-stale
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  *
@@ -22,6 +22,13 @@
  * ensureSignatureChain(0x66eee) → retry; Soft-nice sticky Soft-fail for chain /
  * session mismatch (never Soft-label as user reject). Sign-first holds for
  * wallets that can sign without a prior switch.
+ *
+ * Soft ACK #264 (Soft FAIL Soft PASS lock D after #263): Soft-align once can
+ * return ok while the signing provider stays stale (wagmi/UI already on
+ * 421614). Post-align verify + Soft-nice session-stale Soft-fail Soft-copy
+ * (never dead "switch to Arb Sepolia" when already there). Confident Cancel
+ * Soft-unlocks wallet picker (disconnect / open Connect) so MetaMask is
+ * pickable without reload.
  */
 import type { HlNetwork } from "./config";
 
@@ -46,11 +53,22 @@ export const HL_CONNECT_FAILED = "Connect failed — retry.";
 
 /**
  * Soft ACK #262 rework Soft Design A — Soft-nice sticky Soft-fail when wallet
- * active chain ≠ HL EIP-712 domain 0x66eee / 421614 (OneKey / viem).
- * Visibly not Soft-nice Cancel / user reject.
+ * active chain ≠ HL EIP-712 domain 0x66eee / 421614 (OneKey / viem) and Soft-
+ * align has not yet Soft-exhausted. Visibly not Soft-nice Cancel / user reject.
  */
 export const HL_CONNECT_CHAIN_MISMATCH =
   "Chain / session mismatch — switch wallet to Arbitrum Sepolia, then retry.";
+
+/**
+ * Soft ACK #264 Soft Design A — Soft-nice when Soft-align Soft-exhausted /
+ * connector Soft-stale (wallet UI already on Arb Sepolia / wagmi reports
+ * 421614). Soft-dead Soft-switch Soft-copy Soft-forbidden Soft-in Soft-this Soft-state.
+ */
+export const HL_CONNECT_SESSION_STALE =
+  "Wallet session stale — switch wallet or reconnect, then retry.";
+
+/** Soft ACK #264 Soft Design B — Soft-nice Switch wallet sticky CTA label. */
+export const HL_CONNECT_SWITCH_WALLET_CTA = "Switch wallet";
 
 export type HlUserSignedAttemptResult =
   | { ok: true }
@@ -59,6 +77,15 @@ export type HlUserSignedAttemptResult =
 export type EnsureSignatureChainFn = (
   network: HlNetwork
 ) => Promise<{ ok: true } | { ok: false; error: string }>;
+
+export type AlignHlSignatureChainDeps = {
+  targetChainId: number;
+  /** wagmi useAccount().chainId (may Soft-lie vs signing Soft-provider). */
+  walletChainId: number | null | undefined;
+  switchChainAsync: (args: { chainId: number }) => Promise<unknown>;
+  /** Soft ACK #264 optional eth_chainId Soft-re-probe (walletClient.getChainId). */
+  readActiveChainId?: () => Promise<number | null | undefined>;
+};
 
 /**
  * True when the wallet UI rejected / cancelled the prompt.
@@ -105,6 +132,8 @@ export function isHlConnectChainMismatch(
   if (!error) return false;
   // Confident Soft-nice Cancel beats Soft-chain Soft-map.
   if (isHlConnectUserCancelled(error)) return false;
+  // Soft ACK #264 Soft-session Soft-stale Soft-is Soft-its Soft-own Soft-class Soft-.
+  if (isHlConnectSessionStale(error)) return false;
   return (
     /must match the active chainId/i.test(error) ||
     /Provided chainId ["']?\d+["']? must match/i.test(error) ||
@@ -116,21 +145,114 @@ export function isHlConnectChainMismatch(
   );
 }
 
+/** Soft ACK #264 Soft Design A — Soft-nice Soft-session Soft-stale Soft-classifier. */
+export function isHlConnectSessionStale(
+  error: string | null | undefined
+): boolean {
+  if (!error) return false;
+  if (error === HL_CONNECT_SESSION_STALE) return true;
+  return /wallet session stale|session stale|switch wallet or reconnect/i.test(
+    error
+  );
+}
+
+/**
+ * Soft ACK #264 Soft FAIL Soft-1 Soft- — Soft-align Soft-HL Soft-signature Soft-chain Soft-with Soft-
+ * Soft-post Soft-switch Soft-verify Soft-. Soft-Never Soft-early Soft-ok Soft-on Soft-wagmi Soft-alone Soft-
+ * when Soft-signing Soft-provider Soft-may Soft-be Soft-stale Soft-(Soft-OneKey Soft-) Soft-. Soft-
+ * Soft-Target Soft-is Soft-always Soft-`hlSignatureChainId` Soft-(Soft-421614 Soft-/ Soft-0x66eee Soft-) Soft-
+ * Soft-not Soft-HyperEVM Soft-998 Soft-/ Soft-999 Soft-. Soft-
+ */
+export async function alignHlSignatureChain(
+  deps: AlignHlSignatureChainDeps
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const target = deps.targetChainId;
+  const wagmiOnTarget = deps.walletChainId === target;
+
+  const read = async (): Promise<number | null | undefined> => {
+    if (deps.readActiveChainId) {
+      try {
+        const id = await deps.readActiveChainId();
+        if (typeof id === "number" && Number.isFinite(id)) return id;
+      } catch {
+        /* Soft-ignore Soft-probe Soft-errors Soft-; Soft-fall Soft-through Soft-*/
+      }
+    }
+    return deps.walletChainId;
+  };
+
+  let active = await read();
+
+  // Soft-Probe Soft-confirms Soft-target Soft-with Soft-an Soft-explicit Soft-reader Soft-→ Soft-ok Soft-
+  // Soft-without Soft-another Soft-switch Soft-prompt Soft-(Soft-MM Soft-happy Soft-path Soft-) Soft-. Soft-
+  if (deps.readActiveChainId && active === target) {
+    return { ok: true };
+  }
+
+  // Soft ACK #264 Soft-: Soft-force Soft-switch Soft-when Soft-probe Soft-≠ Soft-target Soft-, Soft-or Soft-
+  // Soft-when Soft-no Soft-probe Soft-(Soft-refresh Soft-WC Soft-session Soft-even Soft-if Soft-wagmi Soft-
+  // Soft-already Soft-reports Soft-421614 Soft-) Soft-. Soft-
+  try {
+    await deps.switchChainAsync({ chainId: target });
+  } catch {
+    // Soft-Switch Soft-rejected Soft-while Soft-UI Soft-/ Soft-wagmi Soft-already Soft-on Soft-target Soft-
+    // Soft-→ Soft-Soft-nice Soft-session Soft-stale Soft-(Soft-not Soft-dead Soft-switch Soft-copy Soft-) Soft-. Soft-
+    if (wagmiOnTarget || active === target) {
+      return { ok: false, error: HL_CONNECT_SESSION_STALE };
+    }
+    return {
+      ok: false,
+      error: `[!] Wallet switch to ${target} was rejected or failed. Tx not sent.`
+    };
+  }
+
+  active = await read();
+  if (!deps.readActiveChainId) {
+    // Soft-No Soft-probe Soft-: Soft-switch Soft-resolved Soft-; Soft-second Soft-sign Soft-still Soft-
+    // Soft-mismatch Soft-Soft-maps Soft-to Soft-SESSION_STALE Soft-in Soft-runHl Soft-retry Soft-. Soft-
+    return { ok: true };
+  }
+  if (active === target) return { ok: true };
+  // Soft-Post Soft-align Soft-verify Soft-failed Soft-— Soft-connector Soft-stale Soft-. Soft-
+  return { ok: false, error: HL_CONNECT_SESSION_STALE };
+}
+
+export type FormatHlConnectStickyOpts = {
+  /** Soft ACK #264 — Soft-align Soft-once Soft-already Soft-ran Soft-. Soft-*/
+  retriedWithChainSwitch?: boolean;
+  /** Soft ACK #264 — Soft-wagmi Soft-/ Soft-UI Soft-already Soft-reports Soft-signature Soft-chain Soft-. Soft-*/
+  walletAlreadyOnSignatureChain?: boolean;
+};
+
 /**
  * Soft ACK #262 Soft Design A/B — Soft-map CONNECT / builder sticky Soft-fail.
  * Never surfaces raw provider "user rejected" verbatim on sticky.
+ * Soft ACK #264 Soft Design A — Soft-session Soft-stale Soft-beats Soft-dead Soft-switch Soft-copy Soft-
+ * Soft-when Soft-Soft-align Soft-Soft-exhausted Soft-/ Soft-already Soft-on Soft-target Soft-. Soft-
  */
 export function formatHlConnectStickyError(
-  error: string | null | undefined
+  error: string | null | undefined,
+  opts?: FormatHlConnectStickyOpts
 ): string {
   if (!error || !error.trim()) return HL_CONNECT_FAILED;
   const raw = error.trim();
 
   if (isHlConnectUserCancelled(raw)) return HL_CONNECT_USER_CANCELLED;
 
+  // Soft ACK #264 Soft Design A — Soft-nice Soft-session Soft-stale Soft-before Soft-dead Soft-switch Soft-.
+  if (isHlConnectSessionStale(raw)) return HL_CONNECT_SESSION_STALE;
+
   // Soft ACK #262 rework Soft Design A — Soft-nice chain/session Soft-fail
   // before Soft-map Soft-reject Soft-noise (combined errors may embed both).
-  if (isHlConnectChainMismatch(raw)) return HL_CONNECT_CHAIN_MISMATCH;
+  if (isHlConnectChainMismatch(raw)) {
+    if (
+      opts?.retriedWithChainSwitch ||
+      opts?.walletAlreadyOnSignatureChain
+    ) {
+      return HL_CONNECT_SESSION_STALE;
+    }
+    return HL_CONNECT_CHAIN_MISMATCH;
+  }
 
   // Soft Design Soft FAIL list: never Soft-label Approve failures as Cancel.
   // Generic WC/viem 4001 string → Soft-fail Connect failed (note 2).
@@ -205,6 +327,7 @@ export function shouldRetryHlUserSignedWithChainSwitch(
   // "User rejected the request." still skips switchChain (false 4001 after
   // Approve) — except true chain-mismatch Soft-fails Soft-align once.
   if (isHlConnectUserCancelled(error)) return false;
+  if (isHlConnectSessionStale(error)) return false;
   if (isHlConnectChainMismatch(error)) return true;
   if (isWalletUserRejected(error)) return false;
   // HL /exchange business + post-sign verification — do not re-prompt.
@@ -225,11 +348,19 @@ export function shouldRetryHlUserSignedWithChainSwitch(
  * Soft ACK #260 C: preserve user gesture — typed-data first; optional
  * `ensureSignatureChain` + single retry only when the first failure looks
  * chain-related. Domain `chainId` stays `0x66eee` inside the attempt (lock B).
+ *
+ * Soft ACK #264: Soft-after Soft-Soft-align Soft-ok Soft-+ Soft-second Soft-still Soft-chain Soft-
+ * Soft-mismatch Soft-→ Soft-rewrite Soft-to Soft-SESSION_STALE Soft-(Soft-especially Soft-when Soft-
+ * Soft-wagmi Soft-already Soft-on Soft-signature Soft-chain Soft-) Soft-. Soft-
  */
 export async function runHlUserSignedWithOptionalChainRetry(args: {
   network: HlNetwork;
   ensureSignatureChain: EnsureSignatureChainFn;
   attempt: () => Promise<HlUserSignedAttemptResult>;
+  /** Soft ACK #264 — wagmi Soft-wallet Soft-chain Soft-id Soft-snapshot Soft-. Soft-*/
+  getWalletChainId?: () => number | null | undefined;
+  /** Soft ACK #264 — HL EIP-712 Soft-signature Soft-chain Soft-(Soft-0x66eee Soft-/ Soft-421614 Soft-) Soft-. Soft-*/
+  signatureChainId?: number;
 }): Promise<HlUserSignedAttemptResult & { retriedWithChainSwitch: boolean }> {
   const first = await args.attempt();
   if (first.ok) {
@@ -241,19 +372,47 @@ export async function runHlUserSignedWithOptionalChainRetry(args: {
   const chain = await args.ensureSignatureChain(args.network);
   if (!chain.ok) {
     // Prefer the original sign error; append switch failure when distinct.
+    // Soft ACK #264: Soft-align Soft-may Soft-already Soft-return Soft-SESSION_STALE Soft-. Soft-
+    if (isHlConnectSessionStale(chain.error)) {
+      return {
+        ok: false,
+        error: HL_CONNECT_SESSION_STALE,
+        retriedWithChainSwitch: false
+      };
+    }
     const combined =
       chain.error && chain.error !== first.error
         ? `${first.error} (${chain.error})`
         : first.error;
+    // Soft-If Soft-wagmi Soft-already Soft-on Soft-target Soft-, Soft-Soft-map Soft-combined Soft-to Soft-stale Soft-. Soft-
+    const walletId = args.getWalletChainId?.();
+    if (
+      args.signatureChainId != null &&
+      walletId === args.signatureChainId &&
+      isHlConnectChainMismatch(combined)
+    ) {
+      return {
+        ok: false,
+        error: HL_CONNECT_SESSION_STALE,
+        retriedWithChainSwitch: false
+      };
+    }
     return { ok: false, error: combined, retriedWithChainSwitch: false };
   }
   const second = await args.attempt();
   if (second.ok) {
     return { ok: true, retriedWithChainSwitch: true };
   }
+  let error = second.error;
+  // Soft ACK #264 Soft Design A: Soft-align Soft-once Soft-Soft-exhausted Soft-+ Soft-still Soft-
+  // Soft-chain Soft-mismatch Soft-→ Soft-Soft-nice Soft-session Soft-stale Soft-(Soft-never Soft-dead Soft-
+  // Soft-switch Soft-copy Soft-when Soft-already Soft-on Soft-Arb Soft-Sepolia Soft-) Soft-. Soft-
+  if (isHlConnectChainMismatch(error)) {
+    error = HL_CONNECT_SESSION_STALE;
+  }
   return {
     ok: false,
-    error: second.error,
+    error,
     retriedWithChainSwitch: true
   };
 }

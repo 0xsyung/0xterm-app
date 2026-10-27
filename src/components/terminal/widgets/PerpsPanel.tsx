@@ -55,7 +55,12 @@ import {
   HL_CONNECT_TIMEOUT_COPY,
   HL_CONNECT_SIGNING_HINT,
   HL_CONNECT_WALLET_REQUIRED,
+  HL_CONNECT_USER_CANCELLED,
+  HL_CONNECT_SESSION_STALE,
+  HL_CONNECT_SWITCH_WALLET_CTA,
   formatHlConnectStickyError,
+  isHlConnectUserCancelled,
+  isHlConnectSessionStale,
   runHlUserSignedWithOptionalChainRetry,
   type HlMetaResponse,
   type HlNetwork,
@@ -70,7 +75,7 @@ import {
   FLOATING_CHAT_TOP_GAP_PX,
   INVEST_PANEL_CHAT_GUTTER_CLASS
 } from "./floatingChatLayout";
-import { hlEvmChainId } from "../hyperliquid/config";
+import { hlEvmChainId, hlSignatureChainId } from "../hyperliquid/config";
 
 const FILL_FG = "#000000";
 
@@ -108,6 +113,16 @@ export type PerpsPanelProps = {
   ensureSignatureChain: (network: HlNetwork) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** Ensure wallet is on an EVM chain (HyperEVM or the deposit chain). */
   ensureWalletChain: (chainId: number | null | undefined) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /**
+   * Soft ACK #264 — wagmi wallet chainId (signature Soft-align Soft-map).
+   * Distinct from activeChainId (HyperEVM / terminal network).
+   */
+  walletChainId?: number | null;
+  /**
+   * Soft ACK #264 Soft Design B — Soft-unlock AppKit Connect picker on Cancel /
+   * Soft-nice Switch wallet (disconnect + open Connect so MetaMask Soft-pickable).
+   */
+  onUnlockWalletPicker?: () => void;
   /** wagmi useWriteContract writeContractAsync for on-chain USDC deposit txs. */
   writeContractAsync: (args: {
     chainId?: number;
@@ -184,12 +199,15 @@ export default function PerpsPanel({
   signTypedDataAsync,
   ensureSignatureChain,
   ensureWalletChain,
+  walletChainId = null,
+  onUnlockWalletPicker,
   writeContractAsync,
   storage
 }: PerpsPanelProps) {
   const store =
     storage ?? (typeof window !== "undefined" ? window.localStorage : null);
   const network: HlNetwork = networkFromEvmChainId(activeChainId) || HL_DEFAULT_NETWORK;
+  const signatureChainId = hlSignatureChainId(network);
   const builder = resolveBuilderAddress();
 
   const [tab, setTab] = useState<PanelTab>("order");
@@ -405,6 +423,8 @@ export default function PerpsPanel({
       const approved = await runHlUserSignedWithOptionalChainRetry({
         network,
         ensureSignatureChain,
+        getWalletChainId: () => walletChainId,
+        signatureChainId,
         attempt: async () => {
           const result = await ensureAgentApproved({
             network,
@@ -420,8 +440,17 @@ export default function PerpsPanel({
         }
       });
       if (!approved.ok) {
-        // Soft ACK #262 Soft Design A/B — Soft-map sticky Soft-fail Soft-copy.
-        setError(formatHlConnectStickyError(approved.error));
+        // Soft ACK #262 Soft Design A/B + Soft ACK #264 Soft Design A —
+        // Soft-map sticky Soft-fail Soft-copy; Soft-session Soft-stale Soft-beats Soft-dead Soft-switch Soft-.
+        const sticky = formatHlConnectStickyError(approved.error, {
+          retriedWithChainSwitch: approved.retriedWithChainSwitch,
+          walletAlreadyOnSignatureChain: walletChainId === signatureChainId
+        });
+        setError(sticky);
+        // Soft ACK #264 Soft FAIL Soft-2 Soft-: Soft-confident Soft-Cancel Soft-Soft-unlocks Soft-picker Soft-. Soft-
+        if (isHlConnectUserCancelled(approved.error)) {
+          onUnlockWalletPicker?.();
+        }
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
@@ -452,6 +481,8 @@ export default function PerpsPanel({
       const result = await runHlUserSignedWithOptionalChainRetry({
         network,
         ensureSignatureChain,
+        getWalletChainId: () => walletChainId,
+        signatureChainId,
         attempt: async () => {
           const r = await postApproveBuilderFee({
             network,
@@ -466,8 +497,15 @@ export default function PerpsPanel({
         }
       });
       if (!result.ok) {
-        // Soft ACK #262 Soft Design note 1 — builder sticky Soft-same Soft-map Soft-rules.
-        setError(formatHlConnectStickyError(result.error));
+        // Soft ACK #262 Soft Design note 1 + Soft ACK #264 Soft Design A Soft-parity Soft-. Soft-
+        const sticky = formatHlConnectStickyError(result.error, {
+          retriedWithChainSwitch: result.retriedWithChainSwitch,
+          walletAlreadyOnSignatureChain: walletChainId === signatureChainId
+        });
+        setError(sticky);
+        if (isHlConnectUserCancelled(result.error)) {
+          onUnlockWalletPicker?.();
+        }
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
@@ -878,6 +916,20 @@ export default function PerpsPanel({
                       {error}
                     </div>
                   )}
+                  {error &&
+                    onUnlockWalletPicker &&
+                    (error === HL_CONNECT_USER_CANCELLED ||
+                      error === HL_CONNECT_SESSION_STALE ||
+                      isHlConnectSessionStale(error)) && (
+                      <button
+                        type="button"
+                        data-testid="perps-switch-wallet"
+                        onClick={() => onUnlockWalletPicker()}
+                        className={`inline-flex items-center justify-center px-2.5 py-1.5 border ${theme.border} uppercase tracking-widest text-[10px] cursor-pointer max-md:min-h-[44px] ${theme.muted} bg-transparent`}
+                      >
+                        {HL_CONNECT_SWITCH_WALLET_CTA}
+                      </button>
+                    )}
                   {status && !error && !agentApproved && (
                     <div
                       className={`text-[10px] ${theme.primary}`}
@@ -926,6 +978,21 @@ export default function PerpsPanel({
                       {error}
                     </div>
                   )}
+                  {error &&
+                    agentApproved &&
+                    onUnlockWalletPicker &&
+                    (error === HL_CONNECT_USER_CANCELLED ||
+                      error === HL_CONNECT_SESSION_STALE ||
+                      isHlConnectSessionStale(error)) && (
+                      <button
+                        type="button"
+                        data-testid="perps-builder-switch-wallet"
+                        onClick={() => onUnlockWalletPicker()}
+                        className={`inline-flex items-center justify-center px-2.5 py-1.5 border ${theme.border} uppercase tracking-widest text-[10px] cursor-pointer max-md:min-h-[44px] ${theme.muted} bg-transparent`}
+                      >
+                        {HL_CONNECT_SWITCH_WALLET_CTA}
+                      </button>
+                    )}
                 </>
               )}
             </div>

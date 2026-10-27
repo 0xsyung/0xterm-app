@@ -7,10 +7,14 @@ import {
   HL_CONNECT_BUSY_TIMEOUT_MS,
   HL_CONNECT_CHAIN_MISMATCH,
   HL_CONNECT_FAILED,
+  HL_CONNECT_SESSION_STALE,
+  HL_CONNECT_SWITCH_WALLET_CTA,
   HL_CONNECT_TIMEOUT_COPY,
   HL_CONNECT_USER_CANCELLED,
+  alignHlSignatureChain,
   formatHlConnectStickyError,
   isHlConnectChainMismatch,
+  isHlConnectSessionStale,
   isHlConnectUserCancelled,
   isWalletUserRejected,
   runHlUserSignedWithOptionalChainRetry,
@@ -237,7 +241,8 @@ describe("formatHlConnectStickyError coverage edges (#262)", () => {
       attempt
     });
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toBe("still chain mismatch");
+    // Soft ACK #264 Soft Design A: Soft-align Soft-exhausted Soft-+ Soft-chain Soft-mismatch Soft-→ Soft-SESSION_STALE Soft-. Soft-
+    if (!res.ok) expect(res.error).toBe(HL_CONNECT_SESSION_STALE);
     expect(res.retriedWithChainSwitch).toBe(true);
     expect(attempt).toHaveBeenCalledTimes(2);
   });
@@ -316,5 +321,210 @@ describe("Soft ACK #262 rework OneKey chain mismatch", () => {
     }
     expect(res.retriedWithChainSwitch).toBe(false);
     expect(attempt).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe("Soft ACK #264 Soft-align Soft-verify + Soft-session Soft-stale", () => {
+  const ONEKEY_VIEM =
+    'Provided chainId "421614" must match the active chainId "1"';
+  const TARGET = 421614; // 0x66eee
+
+  it("exports Soft-nice Soft-session Soft-stale Soft-copy + Soft-Switch Soft-wallet Soft-CTA", () => {
+    expect(HL_CONNECT_SESSION_STALE).toMatch(/session stale/i);
+    expect(HL_CONNECT_SESSION_STALE).toMatch(/switch wallet|reconnect/i);
+    expect(HL_CONNECT_SESSION_STALE).not.toMatch(/Arbitrum Sepolia/i);
+    expect(HL_CONNECT_SWITCH_WALLET_CTA).toMatch(/switch wallet/i);
+    expect(isHlConnectSessionStale(HL_CONNECT_SESSION_STALE)).toBe(true);
+    expect(isHlConnectSessionStale(ONEKEY_VIEM)).toBe(false);
+    expect(isHlConnectSessionStale(null)).toBe(false);
+  });
+
+  it("Soft-nice sticky Soft-maps Soft-align Soft-exhausted Soft-chain Soft-mismatch Soft-to Soft-session Soft-stale", () => {
+    expect(
+      formatHlConnectStickyError(ONEKEY_VIEM, { retriedWithChainSwitch: true })
+    ).toBe(HL_CONNECT_SESSION_STALE);
+    expect(
+      formatHlConnectStickyError(ONEKEY_VIEM, {
+        walletAlreadyOnSignatureChain: true
+      })
+    ).toBe(HL_CONNECT_SESSION_STALE);
+    // Soft-Without Soft-opts Soft-: Soft-first Soft-surface Soft-still Soft-Soft-nice Soft-chain Soft-mismatch Soft-. Soft-
+    expect(formatHlConnectStickyError(ONEKEY_VIEM)).toBe(HL_CONNECT_CHAIN_MISMATCH);
+    expect(formatHlConnectStickyError(HL_CONNECT_SESSION_STALE)).toBe(
+      HL_CONNECT_SESSION_STALE
+    );
+    // Soft-map Soft-Approve Soft-fail Soft-+ Soft-nice Soft-Cancel Soft-hold Soft-. Soft-
+    expect(formatHlConnectStickyError("User rejected the request.")).toBe(
+      HL_CONNECT_FAILED
+    );
+    expect(formatHlConnectStickyError("User denied message signature.")).toBe(
+      HL_CONNECT_USER_CANCELLED
+    );
+  });
+
+  it("runHl Soft-rewrites Soft-second Soft-chain Soft-mismatch Soft-to Soft-SESSION_STALE Soft-after Soft-align Soft-ok Soft-", async () => {
+    const ensureSignatureChain = vi.fn().mockResolvedValue({ ok: true });
+    const attempt = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, error: ONEKEY_VIEM })
+      .mockResolvedValueOnce({ ok: false, error: ONEKEY_VIEM });
+    const res = await runHlUserSignedWithOptionalChainRetry({
+      network: "testnet",
+      ensureSignatureChain,
+      attempt,
+      getWalletChainId: () => TARGET,
+      signatureChainId: TARGET
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBe(HL_CONNECT_SESSION_STALE);
+      expect(formatHlConnectStickyError(res.error, {
+        retriedWithChainSwitch: res.retriedWithChainSwitch,
+        walletAlreadyOnSignatureChain: true
+      })).toBe(HL_CONNECT_SESSION_STALE);
+      expect(formatHlConnectStickyError(res.error)).not.toMatch(/Arbitrum Sepolia/i);
+      expect(formatHlConnectStickyError(res.error)).not.toMatch(
+        /user rejected|cancelled|canceled|denied/i
+      );
+    }
+    expect(res.retriedWithChainSwitch).toBe(true);
+    expect(attempt).toHaveBeenCalledTimes(2);
+  });
+
+  it("runHl Soft-maps Soft-align Soft-SESSION_STALE Soft-directly Soft-", async () => {
+    const ensureSignatureChain = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: HL_CONNECT_SESSION_STALE });
+    const attempt = vi.fn().mockResolvedValue({ ok: false, error: ONEKEY_VIEM });
+    const res = await runHlUserSignedWithOptionalChainRetry({
+      network: "mainnet",
+      ensureSignatureChain,
+      attempt,
+      getWalletChainId: () => TARGET,
+      signatureChainId: TARGET
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe(HL_CONNECT_SESSION_STALE);
+    expect(res.retriedWithChainSwitch).toBe(false);
+  });
+
+  it("shouldRetry Soft-skips Soft-SESSION_STALE Soft-(Soft-no Soft-third Soft-align Soft-) Soft-", () => {
+    expect(shouldRetryHlUserSignedWithChainSwitch(HL_CONNECT_SESSION_STALE)).toBe(
+      false
+    );
+  });
+
+  it("alignHlSignatureChain Soft-ok Soft-when Soft-probe Soft-confirms Soft-target Soft-", async () => {
+    const switchChainAsync = vi.fn();
+    const res = await alignHlSignatureChain({
+      targetChainId: TARGET,
+      walletChainId: TARGET,
+      switchChainAsync,
+      readActiveChainId: async () => TARGET
+    });
+    expect(res).toEqual({ ok: true });
+    expect(switchChainAsync).not.toHaveBeenCalled();
+  });
+
+  it("alignHlSignatureChain Soft-forces Soft-switch Soft-when Soft-wagmi Soft-on Soft-target Soft-but Soft-probe Soft-stale Soft-", async () => {
+    const switchChainAsync = vi.fn().mockResolvedValue(undefined);
+    let probe = 1;
+    const res = await alignHlSignatureChain({
+      targetChainId: TARGET,
+      walletChainId: TARGET,
+      switchChainAsync,
+      readActiveChainId: async () => probe
+    });
+    expect(switchChainAsync).toHaveBeenCalledWith({ chainId: TARGET });
+    // Soft-Post Soft-switch Soft-probe Soft-still Soft-stale Soft-→ Soft-SESSION_STALE Soft-
+    expect(res).toEqual({ ok: false, error: HL_CONNECT_SESSION_STALE });
+  });
+
+  it("alignHlSignatureChain Soft-post Soft-verify Soft-ok Soft-after Soft-switch Soft-refreshes Soft-probe Soft-", async () => {
+    const switchChainAsync = vi.fn().mockImplementation(async () => {
+      probe = TARGET;
+    });
+    let probe: number = 1;
+    const res = await alignHlSignatureChain({
+      targetChainId: TARGET,
+      walletChainId: 1,
+      switchChainAsync,
+      readActiveChainId: async () => probe
+    });
+    expect(res).toEqual({ ok: true });
+    expect(switchChainAsync).toHaveBeenCalledWith({ chainId: TARGET });
+  });
+
+  it("alignHlSignatureChain Soft-Soft-nice Soft-SESSION_STALE Soft-when Soft-switch Soft-rejected Soft-but Soft-wagmi Soft-already Soft-on Soft-target Soft-", async () => {
+    const switchChainAsync = vi
+      .fn()
+      .mockRejectedValue(new Error("User rejected the request."));
+    const res = await alignHlSignatureChain({
+      targetChainId: TARGET,
+      walletChainId: TARGET,
+      switchChainAsync,
+      readActiveChainId: async () => 1
+    });
+    expect(res).toEqual({ ok: false, error: HL_CONNECT_SESSION_STALE });
+  });
+
+  it("alignHlSignatureChain Soft-without Soft-probe Soft-still Soft-forces Soft-switch Soft-then Soft-ok Soft-", async () => {
+    const switchChainAsync = vi.fn().mockResolvedValue(undefined);
+    const res = await alignHlSignatureChain({
+      targetChainId: TARGET,
+      walletChainId: TARGET,
+      switchChainAsync
+    });
+    expect(switchChainAsync).toHaveBeenCalledWith({ chainId: TARGET });
+    expect(res).toEqual({ ok: true });
+  });
+
+  it("sign-first Soft-holds Soft-— Soft-no Soft-align Soft-when Soft-first Soft-attempt Soft-ok Soft-", async () => {
+    const ensureSignatureChain = vi.fn();
+    const res = await runHlUserSignedWithOptionalChainRetry({
+      network: "testnet",
+      ensureSignatureChain,
+      attempt: async () => ({ ok: true }),
+      getWalletChainId: () => TARGET,
+      signatureChainId: TARGET
+    });
+    expect(res).toEqual({ ok: true, retriedWithChainSwitch: false });
+    expect(ensureSignatureChain).not.toHaveBeenCalled();
+  });
+
+  it("alignHl Soft-surfaces Soft-switch Soft-fail Soft-when Soft-not Soft-already Soft-on Soft-target Soft-", async () => {
+    const switchChainAsync = vi
+      .fn()
+      .mockRejectedValue(new Error("User rejected the request."));
+    const res = await alignHlSignatureChain({
+      targetChainId: TARGET,
+      walletChainId: 1,
+      switchChainAsync,
+      readActiveChainId: async () => 1
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/Wallet switch to 421614/);
+      expect(res.error).not.toBe(HL_CONNECT_SESSION_STALE);
+    }
+  });
+
+  it("runHl Soft-maps Soft-align Soft-fail Soft-+ Soft-wagmi Soft-on Soft-target Soft-to Soft-SESSION_STALE Soft-", async () => {
+    const ensureSignatureChain = vi.fn().mockResolvedValue({
+      ok: false,
+      error: "[!] Wallet switch to 421614 was rejected or failed. Tx not sent."
+    });
+    const attempt = vi.fn().mockResolvedValue({ ok: false, error: ONEKEY_VIEM });
+    const res = await runHlUserSignedWithOptionalChainRetry({
+      network: "testnet",
+      ensureSignatureChain,
+      attempt,
+      getWalletChainId: () => TARGET,
+      signatureChainId: TARGET
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe(HL_CONNECT_SESSION_STALE);
+    expect(res.retriedWithChainSwitch).toBe(false);
   });
 });
