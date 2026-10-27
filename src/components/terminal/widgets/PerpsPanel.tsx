@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeConfig } from "../types";
 import {
   PERPS_COPY,
@@ -52,6 +52,7 @@ import {
   WithdrawTypes,
   UsdClassTransferTypes,
   HL_CONNECT_BUSY_TIMEOUT_MS,
+  HL_CONNECT_CANCEL_DISMISS_ERROR,
   HL_CONNECT_TIMEOUT_COPY,
   HL_CONNECT_SIGNING_HINT,
   HL_CONNECT_WALLET_REQUIRED,
@@ -61,6 +62,7 @@ import {
   formatHlConnectStickyError,
   isHlConnectUserCancelled,
   isHlConnectSessionStale,
+  raceHlUserSignedAttemptWithCancelDismiss,
   runHlUserSignedWithOptionalChainRetry,
   type HlMetaResponse,
   type HlNetwork,
@@ -217,6 +219,10 @@ export default function PerpsPanel({
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Soft ACK #266 — bump to ignore late sign settle after Soft-cancel dismiss / timeout. */
+  const signingGenRef = useRef(0);
+  /** Soft ACK #266 — wallet deep-link hide seen while SIGNING… (Cancel-dismiss Soft-path). */
+  const wasHiddenDuringSigningRef = useRef(false);
 
   const [meta, setMeta] = useState<HlMetaResponse | null>(null);
   const [mids, setMids] = useState<Record<string, string>>({});
@@ -396,15 +402,45 @@ export default function PerpsPanel({
   }, [onClose]);
 
   // Soft ACK #260 C / Soft Design B — hang off SIGNING… with sticky retry copy.
+  // Soft ACK #266 Soft Design A — Soft-prompt Soft-Cancel Soft-clear Soft-lives Soft-in Soft-
+  // Soft-`raceHlUserSignedAttemptWithCancelDismiss` Soft-around Soft-sign Soft-attempts Soft-only Soft-
+  // Soft-(Soft-not Soft-Soft-align Soft-`switchChain` Soft-deep Soft-links Soft-) Soft-. Soft-Chrome Soft-tracks Soft-
+  // Soft-wallet Soft-hide Soft-so Soft-15s Soft-timeout Soft-Soft-upgrades Soft-to Soft-Soft-nice Soft-Cancel Soft-+ Soft-
+  // Soft-unlock Soft-when Soft-Cancel Soft-dismissed Soft-UI Soft-but Soft-sign Soft-never Soft-settled Soft-. Soft-
   useEffect(() => {
-    if (busy !== "agent" && busy !== "builder") return;
+    if (busy !== "agent" && busy !== "builder") {
+      wasHiddenDuringSigningRef.current = false;
+      return;
+    }
+    wasHiddenDuringSigningRef.current =
+      typeof document !== "undefined" && document.hidden;
+
+    const onVis = () => {
+      if (typeof document === "undefined") return;
+      if (document.hidden) wasHiddenDuringSigningRef.current = true;
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     const t = window.setTimeout(() => {
+      // Soft ACK #266: Soft-if Soft-wallet Soft-deep Soft-link Soft-was Soft-seen Soft-, Soft-Soft-nice Soft-Cancel Soft-+ Soft-unlock Soft-
+      // Soft-beats Soft-timeout Soft-copy Soft-(Soft-Cancel Soft-hang Soft-Soft FAIL Soft-) Soft-. Soft-True Soft-hang Soft-with Soft-no Soft-
+      // Soft-hide Soft-keeps Soft-#260 Soft-timeout Soft-floor Soft-. Soft-
+      signingGenRef.current += 1;
       setBusy(null);
-      setError(HL_CONNECT_TIMEOUT_COPY);
+      if (wasHiddenDuringSigningRef.current) {
+        setError(HL_CONNECT_USER_CANCELLED);
+        onUnlockWalletPicker?.();
+      } else {
+        setError(HL_CONNECT_TIMEOUT_COPY);
+      }
       setStatus(null);
     }, HL_CONNECT_BUSY_TIMEOUT_MS);
-    return () => window.clearTimeout(t);
-  }, [busy]);
+
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [busy, onUnlockWalletPicker]);
 
   const connectAgent = async () => {
     // Soft ACK #260: never silent no-op — sticky error next to CTA.
@@ -412,6 +448,8 @@ export default function PerpsPanel({
       setError(HL_CONNECT_WALLET_REQUIRED);
       return;
     }
+    const gen = ++signingGenRef.current;
+    wasHiddenDuringSigningRef.current = false;
     setBusy("agent");
     setError(null);
     setStatus(null);
@@ -420,25 +458,31 @@ export default function PerpsPanel({
       setAgentAddress(agent.address);
       // Soft ACK #260 C: typed-data first (domain embeds 0x66eee). Optional
       // ensureSignatureChain + retry only when the failure looks chain-related.
+      // Soft ACK #266: Soft-race Soft-sign Soft-attempt Soft-with Soft-Cancel Soft-dismiss Soft-(Soft-not Soft-Soft-align Soft-) Soft-. Soft-
       const approved = await runHlUserSignedWithOptionalChainRetry({
         network,
         ensureSignatureChain,
         getWalletChainId: () => walletChainId,
         signatureChainId,
-        attempt: async () => {
-          const result = await ensureAgentApproved({
-            network,
-            masterAddress: walletAddress,
-            agentPrivateKey: agent.privateKey,
-            agentAddress: agent.address,
-            expectedSigner: walletAddress,
-            signTypedDataAsync
-          });
-          return result.ok
-            ? { ok: true as const }
-            : { ok: false as const, error: result.error };
-        }
+        attempt: async () =>
+          raceHlUserSignedAttemptWithCancelDismiss({
+            attempt: async () => {
+              const result = await ensureAgentApproved({
+                network,
+                masterAddress: walletAddress,
+                agentPrivateKey: agent.privateKey,
+                agentAddress: agent.address,
+                expectedSigner: walletAddress,
+                signTypedDataAsync
+              });
+              return result.ok
+                ? { ok: true as const }
+                : { ok: false as const, error: result.error };
+            }
+          })
       });
+      // Soft ACK #266 Soft-: Soft-ignore Soft-late Soft-settle Soft-after Soft-dismiss Soft-/ Soft-timeout Soft-cleared Soft-busy Soft-. Soft-
+      if (signingGenRef.current !== gen) return;
       if (!approved.ok) {
         // Soft ACK #262 Soft Design A/B + Soft ACK #264 Soft Design A —
         // Soft-map sticky Soft-fail Soft-copy; Soft-session Soft-stale Soft-beats Soft-dead Soft-switch Soft-.
@@ -448,17 +492,22 @@ export default function PerpsPanel({
         });
         setError(sticky);
         // Soft ACK #264 Soft FAIL Soft-2 Soft-: Soft-confident Soft-Cancel Soft-Soft-unlocks Soft-picker Soft-. Soft-
-        if (isHlConnectUserCancelled(approved.error)) {
+        // Soft ACK #266 Soft-: Soft-Cancel Soft-dismiss Soft-error Soft-Soft-maps Soft-Soft-nice Soft-Cancel Soft-+ Soft-unlock Soft-. Soft-
+        if (
+          isHlConnectUserCancelled(approved.error) ||
+          approved.error === HL_CONNECT_CANCEL_DISMISS_ERROR
+        ) {
           onUnlockWalletPicker?.();
         }
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
+      if (signingGenRef.current !== gen) return;
       setAgentApproved(true);
       setStatus("Hyperliquid agent connected.");
       await refreshApprovals();
     } finally {
-      setBusy(null);
+      if (signingGenRef.current === gen) setBusy(null);
     }
   };
 
@@ -473,29 +522,36 @@ export default function PerpsPanel({
       );
       return;
     }
+    const gen = ++signingGenRef.current;
+    wasHiddenDuringSigningRef.current = false;
     setBusy("builder");
     setError(null);
     setStatus(null);
     try {
       // Soft ACK #260 C: same sign-first path as connectAgent (builder CTA).
+      // Soft ACK #266 Soft-: Soft-Cancel Soft-dismiss Soft-race Soft-parity Soft-with Soft-CONNECT Soft-. Soft-
       const result = await runHlUserSignedWithOptionalChainRetry({
         network,
         ensureSignatureChain,
         getWalletChainId: () => walletChainId,
         signatureChainId,
-        attempt: async () => {
-          const r = await postApproveBuilderFee({
-            network,
-            builder,
-            maxFeeBp: builderFeeBp,
-            expectedSigner: walletAddress,
-            signTypedDataAsync
-          });
-          return r.ok
-            ? { ok: true as const }
-            : { ok: false as const, error: r.error };
-        }
+        attempt: async () =>
+          raceHlUserSignedAttemptWithCancelDismiss({
+            attempt: async () => {
+              const r = await postApproveBuilderFee({
+                network,
+                builder,
+                maxFeeBp: builderFeeBp,
+                expectedSigner: walletAddress,
+                signTypedDataAsync
+              });
+              return r.ok
+                ? { ok: true as const }
+                : { ok: false as const, error: r.error };
+            }
+          })
       });
+      if (signingGenRef.current !== gen) return;
       if (!result.ok) {
         // Soft ACK #262 Soft Design note 1 + Soft ACK #264 Soft Design A Soft-parity Soft-. Soft-
         const sticky = formatHlConnectStickyError(result.error, {
@@ -503,17 +559,21 @@ export default function PerpsPanel({
           walletAlreadyOnSignatureChain: walletChainId === signatureChainId
         });
         setError(sticky);
-        if (isHlConnectUserCancelled(result.error)) {
+        if (
+          isHlConnectUserCancelled(result.error) ||
+          result.error === HL_CONNECT_CANCEL_DISMISS_ERROR
+        ) {
           onUnlockWalletPicker?.();
         }
         return;
       }
       await ensureWalletChain(hlEvmChainId(network));
+      if (signingGenRef.current !== gen) return;
       setBuilderApproved(true);
       setStatus(`0xterm builder fee approved (max ${formatFeePercent(builderFeeBp)}).`);
       await refreshApprovals();
     } finally {
-      setBusy(null);
+      if (signingGenRef.current === gen) setBusy(null);
     }
   };
 

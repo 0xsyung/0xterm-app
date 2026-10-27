@@ -29,11 +29,33 @@
  * (never dead "switch to Arb Sepolia" when already there). Confident Cancel
  * Soft-unlocks wallet picker (disconnect / open Connect) so MetaMask is
  * pickable without reload.
+ *
+ * Soft ACK #266: OneKey WC Cancel can dismiss the wallet UI while leaving
+ * `signTypedDataAsync` pending — busy stays `"agent"` / SIGNING… until the
+ * 15s timeout (or forever). Race each sign attempt with a Soft-cancel-dismiss
+ * watcher (hidden→visible + short grace) so confident Cancel Soft-settles
+ * promptly → Soft-nice Cancel sticky + unlock, without a hard pre-sign
+ * `ensureSignatureChain` or changing domain `0x66eee`.
  */
 import type { HlNetwork } from "./config";
 
 /** Soft Design chrome B — hang off SIGNING… (~15s ±5 OK). */
 export const HL_CONNECT_BUSY_TIMEOUT_MS = 15_000;
+
+/**
+ * Soft ACK #266 — after Safari returns from a wallet deep-link (Cancel
+ * dismiss), wait this grace for `signTypedDataAsync` to settle before
+ * Soft-settling Soft-nice Cancel. Approve happy-path usually settles faster;
+ * Soft PASS lock D residual if a slow Approve lands after grace.
+ */
+export const HL_CONNECT_CANCEL_DISMISS_GRACE_MS = 1_500;
+
+/**
+ * Soft ACK #266 — confident Cancel phrase for `isHlConnectUserCancelled`
+ * Soft-map when WC Cancel dismisses UI but leaves the sign request pending.
+ */
+export const HL_CONNECT_CANCEL_DISMISS_ERROR =
+  "Request cancelled by the user";
 
 export const HL_CONNECT_TIMEOUT_COPY =
   "Wallet did not respond — check MetaMask / WalletConnect, then retry.";
@@ -342,6 +364,141 @@ export function shouldRetryHlUserSignedWithChainSwitch(
   return /unsupported (chain|network)|switch chain|provider.*chain|disconnected|session (expired|disconnect|invalid)|typed.?data.*(chain|network)|approveAgent signature rejected|approveBuilderFee signature rejected/i.test(
     error
   );
+}
+
+
+/** Soft ACK #266 — minimal doc surface for Cancel-dismiss Soft-watch (testable). */
+export type HlCancelDismissDocument = {
+  hidden: boolean;
+  addEventListener: (type: string, listener: () => void) => void;
+  removeEventListener: (type: string, listener: () => void) => void;
+};
+
+export type HlCancelDismissWindow = {
+  addEventListener: (type: string, listener: () => void) => void;
+  removeEventListener: (type: string, listener: () => void) => void;
+};
+
+export type RaceHlUserSignedCancelDismissArgs = {
+  attempt: () => Promise<HlUserSignedAttemptResult>;
+  graceMs?: number;
+  /** Inject document for unit tests; default `document` when present. */
+  getDocument?: () => HlCancelDismissDocument | null | undefined;
+  /** Inject window focus/pageshow targets; default `window` when present. */
+  getWindow?: () => HlCancelDismissWindow | null | undefined;
+};
+
+/**
+ * Soft ACK #266 Soft Design A — race a sign attempt against Cancel/dismiss.
+ *
+ * OneKey WC on iPhone often deep-links out; Cancel returns to Safari
+ * (`visibilitychange` visible) without rejecting `signTypedDataAsync`.
+ * Soft-settle Soft-nice Cancel after hidden→visible + grace when the attempt
+ * is still pending. Does not Soft-arm during Soft-align `switchChain` — call
+ * only around the typed-data attempt itself (sign-first holds).
+ */
+export async function raceHlUserSignedAttemptWithCancelDismiss(
+  args: RaceHlUserSignedCancelDismissArgs
+): Promise<HlUserSignedAttemptResult> {
+  const graceMs = args.graceMs ?? HL_CONNECT_CANCEL_DISMISS_GRACE_MS;
+  const doc: HlCancelDismissDocument | null =
+    args.getDocument?.() ??
+    (typeof document !== "undefined"
+      ? (document as unknown as HlCancelDismissDocument)
+      : null);
+  const win: HlCancelDismissWindow | null =
+    args.getWindow?.() ??
+    (typeof window !== "undefined"
+      ? (window as unknown as HlCancelDismissWindow)
+      : null);
+
+  if (!doc) {
+    return args.attempt();
+  }
+
+  let settled = false;
+  let wasHidden = !!doc.hidden;
+  let graceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cleanupFns: Array<() => void> = [];
+
+  const cleanup = () => {
+    for (const fn of cleanupFns) fn();
+    cleanupFns.length = 0;
+    if (graceTimer != null) {
+      clearTimeout(graceTimer);
+      graceTimer = null;
+    }
+  };
+
+  const dismissPromise = new Promise<HlUserSignedAttemptResult>((resolve) => {
+    const armGrace = () => {
+      if (settled || graceTimer != null) return;
+      graceTimer = setTimeout(() => {
+        graceTimer = null;
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve({ ok: false, error: HL_CONNECT_CANCEL_DISMISS_ERROR });
+      }, graceMs);
+    };
+
+    const onVis = () => {
+      if (settled) return;
+      if (doc.hidden) {
+        wasHidden = true;
+        if (graceTimer != null) {
+          clearTimeout(graceTimer);
+          graceTimer = null;
+        }
+        return;
+      }
+      if (wasHidden) armGrace();
+    };
+
+    const onFocusLike = () => {
+      if (settled) return;
+      if (wasHidden && !doc.hidden) armGrace();
+    };
+
+    doc.addEventListener("visibilitychange", onVis);
+    cleanupFns.push(() =>
+      doc.removeEventListener("visibilitychange", onVis)
+    );
+    if (win) {
+      win.addEventListener("pageshow", onFocusLike);
+      win.addEventListener("focus", onFocusLike);
+      cleanupFns.push(() => {
+        win.removeEventListener("pageshow", onFocusLike);
+        win.removeEventListener("focus", onFocusLike);
+      });
+    }
+  });
+
+  const attemptPromise = args.attempt().then(
+    (result) => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+      }
+      return result;
+    },
+    (err: unknown) => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+      }
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : String(err ?? "Connect failed");
+      return { ok: false as const, error: message };
+    }
+  );
+
+  return Promise.race([attemptPromise, dismissPromise]);
 }
 
 /**

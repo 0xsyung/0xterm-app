@@ -174,3 +174,53 @@ describe("PerpsPanel CONNECT Soft ACK #264 Soft-session Soft-stale + Soft-Cancel
     expect(text).toMatch(/HL_CONNECT_SIGNING_HINT/);
   });
 });
+
+
+describe("PerpsPanel CONNECT Soft ACK #266 Cancel clears SIGNING…", () => {
+  const src = () =>
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "PerpsPanel.tsx"),
+      "utf8"
+    );
+
+  it("Soft-races Soft-sign Soft-attempt Soft-with Soft-Cancel Soft-dismiss Soft-+ Soft-gen Soft-guard Soft-", () => {
+    const text = src();
+    const connect = text.slice(
+      text.indexOf("const connectAgent = async"),
+      text.indexOf("const approveBuilder = async")
+    );
+    expect(connect).toMatch(/raceHlUserSignedAttemptWithCancelDismiss/);
+    expect(connect).toMatch(/signingGenRef/);
+    expect(connect).toMatch(/HL_CONNECT_CANCEL_DISMISS_ERROR/);
+    expect(connect).toMatch(/runHlUserSignedWithOptionalChainRetry/);
+    // Soft ACK #260 Soft-sign Soft-first Soft-holds Soft- — Soft-no Soft-hard Soft-pre Soft-sign Soft-ensure Soft-. Soft-
+    expect(connect).not.toMatch(
+      /const chain = await ensureSignatureChain\(network\);\s*if \(!chain\.ok\)/
+    );
+  });
+
+  it("Soft-chrome Soft-Cancel Soft-dismiss Soft-clears Soft-busy Soft-+ Soft-Soft-nice Soft-Cancel Soft-+ Soft-unlock Soft-", () => {
+    const text = src();
+    expect(text).toMatch(/raceHlUserSignedAttemptWithCancelDismiss/);
+    expect(text).toMatch(/wasHiddenDuringSigningRef/);
+    expect(text).toMatch(/visibilitychange/);
+    expect(text).toMatch(/HL_CONNECT_USER_CANCELLED/);
+    expect(text).toMatch(/onUnlockWalletPicker/);
+    // Soft ACK #260 Soft-timeout Soft-floor Soft-holds Soft-; Soft-Soft-upgrade Soft-when Soft-was Soft-hidden Soft-. Soft-
+    expect(text).toMatch(/HL_CONNECT_BUSY_TIMEOUT_MS/);
+    expect(text).toMatch(/HL_CONNECT_TIMEOUT_COPY/);
+    expect(text).toMatch(/HL_CONNECT_SIGNING_HINT/);
+    expect(text).toMatch(/data-testid="perps-connect-error"/);
+    expect(text).toMatch(/data-testid="perps-switch-wallet"/);
+  });
+
+  it("builder Soft-parity Soft-Cancel Soft-dismiss Soft-race Soft-", () => {
+    const text = src();
+    const builder = text.slice(
+      text.indexOf("const approveBuilder = async"),
+      text.indexOf("const submitOrder = async")
+    );
+    expect(builder).toMatch(/raceHlUserSignedAttemptWithCancelDismiss/);
+    expect(builder).toMatch(/signingGenRef/);
+  });
+});

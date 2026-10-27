@@ -1,10 +1,12 @@
 /**
  * @file userSignedConnect.test.ts
- * @description Soft ACK #260/#262 — sign-first, Soft sticky Soft-fail Soft-map, chain retry
+ * @description Soft ACK #260/#262/#264/#266 — sign-first, Soft sticky Soft-fail Soft-map, Cancel dismiss
  */
 import { describe, expect, it, vi } from "vitest";
 import {
   HL_CONNECT_BUSY_TIMEOUT_MS,
+  HL_CONNECT_CANCEL_DISMISS_ERROR,
+  HL_CONNECT_CANCEL_DISMISS_GRACE_MS,
   HL_CONNECT_CHAIN_MISMATCH,
   HL_CONNECT_FAILED,
   HL_CONNECT_SESSION_STALE,
@@ -17,6 +19,7 @@ import {
   isHlConnectSessionStale,
   isHlConnectUserCancelled,
   isWalletUserRejected,
+  raceHlUserSignedAttemptWithCancelDismiss,
   runHlUserSignedWithOptionalChainRetry,
   shouldRetryHlUserSignedWithChainSwitch
 } from "./userSignedConnect";
@@ -526,5 +529,282 @@ describe("Soft ACK #264 Soft-align Soft-verify + Soft-session Soft-stale", () =>
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe(HL_CONNECT_SESSION_STALE);
     expect(res.retriedWithChainSwitch).toBe(false);
+  });
+});
+
+
+describe("raceHlUserSignedAttemptWithCancelDismiss (#266)", () => {
+  it("exports Soft-cancel Soft-dismiss Soft-grace Soft-+ Soft-confident Soft-Cancel Soft-error Soft-", () => {
+    expect(HL_CONNECT_CANCEL_DISMISS_GRACE_MS).toBe(1_500);
+    expect(isHlConnectUserCancelled(HL_CONNECT_CANCEL_DISMISS_ERROR)).toBe(true);
+    expect(formatHlConnectStickyError(HL_CONNECT_CANCEL_DISMISS_ERROR)).toBe(
+      HL_CONNECT_USER_CANCELLED
+    );
+  });
+
+  it("resolves Soft-attempt Soft-when Soft-sign Soft-settles Soft-before Soft-grace Soft-", async () => {
+    const listeners = new Map<string, Set<() => void>>();
+    const doc = {
+      hidden: false,
+      addEventListener: (type: string, fn: () => void) => {
+        if (!listeners.has(type)) listeners.set(type, new Set());
+        listeners.get(type)!.add(fn);
+      },
+      removeEventListener: (type: string, fn: () => void) => {
+        listeners.get(type)?.delete(fn);
+      }
+    };
+    const res = await raceHlUserSignedAttemptWithCancelDismiss({
+      attempt: async () => ({ ok: true }),
+      graceMs: 50,
+      getDocument: () => doc,
+      getWindow: () => null
+    });
+    expect(res).toEqual({ ok: true });
+  });
+
+  it("Soft-settles Soft-nice Soft-Cancel Soft-after Soft-hidden Soft-→ Soft-visible Soft-+ Soft-grace Soft-while Soft-pending Soft-", async () => {
+    vi.useFakeTimers();
+    try {
+      const listeners = new Map<string, Set<() => void>>();
+      const doc = {
+        hidden: false,
+        addEventListener: (type: string, fn: () => void) => {
+          if (!listeners.has(type)) listeners.set(type, new Set());
+          listeners.get(type)!.add(fn);
+        },
+        removeEventListener: (type: string, fn: () => void) => {
+          listeners.get(type)?.delete(fn);
+        }
+      };
+      const fire = (type: string) => {
+        for (const fn of listeners.get(type) ?? []) fn();
+      };
+
+      let resolveAttempt!: (v: { ok: true } | { ok: false; error: string }) => void;
+      const pending = new Promise<{ ok: true } | { ok: false; error: string }>((resolve) => {
+        resolveAttempt = resolve;
+      });
+
+      const raced = raceHlUserSignedAttemptWithCancelDismiss({
+        attempt: () => pending,
+        graceMs: 100,
+        getDocument: () => doc,
+        getWindow: () => null
+      });
+
+      // Soft-Deep Soft-link Soft-out Soft-to Soft-OneKey Soft-. Soft-
+      doc.hidden = true;
+      fire("visibilitychange");
+      // Soft-Cancel Soft-→ Soft-return Soft-to Soft-Safari Soft-. Soft-
+      doc.hidden = false;
+      fire("visibilitychange");
+
+      // Soft-Still Soft-pending Soft-through Soft-grace Soft-→ Soft-Soft-nice Soft-Cancel Soft-. Soft-
+      await vi.advanceTimersByTimeAsync(100);
+      const res = await raced;
+      expect(res).toEqual({ ok: false, error: HL_CONNECT_CANCEL_DISMISS_ERROR });
+      expect(isHlConnectUserCancelled(res.ok ? null : res.error)).toBe(true);
+
+      // Soft-Late Soft-settle Soft-must Soft-not Soft-throw Soft-(Soft-swallowed Soft-) Soft-. Soft-
+      resolveAttempt({ ok: false, error: "User rejected the request." });
+      await vi.advanceTimersByTimeAsync(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does Soft-not Soft-Soft-cancel Soft-when Soft-never Soft-hidden Soft-(Soft-true Soft-hang Soft-keeps Soft-pending Soft-) Soft-", async () => {
+    vi.useFakeTimers();
+    try {
+      const listeners = new Map<string, Set<() => void>>();
+      const doc = {
+        hidden: false,
+        addEventListener: (type: string, fn: () => void) => {
+          if (!listeners.has(type)) listeners.set(type, new Set());
+          listeners.get(type)!.add(fn);
+        },
+        removeEventListener: (type: string, fn: () => void) => {
+          listeners.get(type)?.delete(fn);
+        }
+      };
+      const fire = (type: string) => {
+        for (const fn of listeners.get(type) ?? []) fn();
+      };
+
+      let resolveAttempt!: (v: { ok: true }) => void;
+      const pending = new Promise<{ ok: true }>((resolve) => {
+        resolveAttempt = resolve;
+      });
+
+      let settled: unknown = null;
+      const raced = raceHlUserSignedAttemptWithCancelDismiss({
+        attempt: () => pending,
+        graceMs: 100,
+        getDocument: () => doc,
+        getWindow: () => null
+      }).then((r) => {
+        settled = r;
+        return r;
+      });
+
+      // Soft-Focus Soft-without Soft-prior Soft-hide Soft-must Soft-not Soft-Soft-arm Soft-Cancel Soft-. Soft-
+      fire("visibilitychange");
+      await vi.advanceTimersByTimeAsync(500);
+      expect(settled).toBeNull();
+
+      resolveAttempt({ ok: true });
+      const res = await raced;
+      expect(res).toEqual({ ok: true });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Approve Soft-wins Soft-race Soft-when Soft-sig Soft-arrives Soft-within Soft-grace Soft-after Soft-return Soft-", async () => {
+    vi.useFakeTimers();
+    try {
+      const listeners = new Map<string, Set<() => void>>();
+      const doc = {
+        hidden: false,
+        addEventListener: (type: string, fn: () => void) => {
+          if (!listeners.has(type)) listeners.set(type, new Set());
+          listeners.get(type)!.add(fn);
+        },
+        removeEventListener: (type: string, fn: () => void) => {
+          listeners.get(type)?.delete(fn);
+        }
+      };
+      const fire = (type: string) => {
+        for (const fn of listeners.get(type) ?? []) fn();
+      };
+
+      let resolveAttempt!: (v: { ok: true }) => void;
+      const pending = new Promise<{ ok: true }>((resolve) => {
+        resolveAttempt = resolve;
+      });
+
+      const raced = raceHlUserSignedAttemptWithCancelDismiss({
+        attempt: () => pending,
+        graceMs: 200,
+        getDocument: () => doc,
+        getWindow: () => null
+      });
+
+      doc.hidden = true;
+      fire("visibilitychange");
+      doc.hidden = false;
+      fire("visibilitychange");
+
+      await vi.advanceTimersByTimeAsync(50);
+      resolveAttempt({ ok: true });
+      const res = await raced;
+      expect(res).toEqual({ ok: true });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Soft-arms Soft-Cancel Soft-via Soft-window Soft-focus Soft-/ Soft-pageshow Soft-after Soft-hide Soft-", async () => {
+    vi.useFakeTimers();
+    try {
+      const docListeners = new Map<string, Set<() => void>>();
+      const winListeners = new Map<string, Set<() => void>>();
+      const doc = {
+        hidden: false,
+        addEventListener: (type: string, fn: () => void) => {
+          if (!docListeners.has(type)) docListeners.set(type, new Set());
+          docListeners.get(type)!.add(fn);
+        },
+        removeEventListener: (type: string, fn: () => void) => {
+          docListeners.get(type)?.delete(fn);
+        }
+      };
+      const win = {
+        addEventListener: (type: string, fn: () => void) => {
+          if (!winListeners.has(type)) winListeners.set(type, new Set());
+          winListeners.get(type)!.add(fn);
+        },
+        removeEventListener: (type: string, fn: () => void) => {
+          winListeners.get(type)?.delete(fn);
+        }
+      };
+      const fireDoc = (type: string) => {
+        for (const fn of docListeners.get(type) ?? []) fn();
+      };
+      const fireWin = (type: string) => {
+        for (const fn of winListeners.get(type) ?? []) fn();
+      };
+
+      const pending = new Promise<{ ok: true }>(() => {
+        /* Soft-never Soft-settles Soft-*/
+      });
+
+      const raced = raceHlUserSignedAttemptWithCancelDismiss({
+        attempt: () => pending,
+        graceMs: 80,
+        getDocument: () => doc,
+        getWindow: () => win
+      });
+
+      doc.hidden = true;
+      fireDoc("visibilitychange");
+      doc.hidden = false;
+      // Soft-pageshow Soft-/ Soft-focus Soft-without Soft-another Soft-visibilitychange Soft-. Soft-
+      fireWin("pageshow");
+
+      await vi.advanceTimersByTimeAsync(80);
+      const res = await raced;
+      expect(res).toEqual({ ok: false, error: HL_CONNECT_CANCEL_DISMISS_ERROR });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Soft-maps Soft-thrown Soft-attempt Soft-errors Soft-to Soft-ok Soft-false Soft-", async () => {
+    const doc = {
+      hidden: false,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    };
+    const res = await raceHlUserSignedAttemptWithCancelDismiss({
+      attempt: async () => {
+        throw new Error("User denied message signature.");
+      },
+      getDocument: () => doc,
+      getWindow: () => null
+    });
+    expect(res).toEqual({
+      ok: false,
+      error: "User denied message signature."
+    });
+    expect(isHlConnectUserCancelled(res.ok ? null : res.error)).toBe(true);
+
+    const res2 = await raceHlUserSignedAttemptWithCancelDismiss({
+      attempt: async () => {
+        throw "string-reject";
+      },
+      getDocument: () => doc,
+      getWindow: () => null
+    });
+    expect(res2).toEqual({ ok: false, error: "string-reject" });
+
+    const res3 = await raceHlUserSignedAttemptWithCancelDismiss({
+      attempt: async () => {
+        throw 42;
+      },
+      getDocument: () => doc,
+      getWindow: () => null
+    });
+    expect(res3).toEqual({ ok: false, error: "42" });
+  });
+
+  it("falls Soft-through Soft-to Soft-attempt Soft-when Soft-no Soft-document Soft-", async () => {
+    const res = await raceHlUserSignedAttemptWithCancelDismiss({
+      attempt: async () => ({ ok: true }),
+      getDocument: () => null,
+      getWindow: () => null
+    });
+    expect(res).toEqual({ ok: true });
   });
 });
