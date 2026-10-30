@@ -20,8 +20,8 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268)", () => {
-  it("renders list with Binance row, status badge, and no pagination for 1 item", () => {
+describe("IncidentsPanel (#268/#270)", () => {
+  it("renders Soft Design A′ list: 5 rows, Binance first, pagination hidden (≤ page size 8)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();
@@ -32,6 +32,12 @@ describe("IncidentsPanel (#268)", () => {
     expect(
       screen.getByTestId("incident-status-binance-hot-wallet-2026-10-30").textContent
     ).toMatch(/ACTIVE/i);
+    expect(screen.getByTestId("incident-row-polymarket-debugbear-rum-2026-10-29")).toBeTruthy();
+    expect(screen.getByTestId("incident-row-hifi-finance-governance-2026-10-28")).toBeTruthy();
+    expect(screen.getByTestId("incident-row-zklink-nova-bridge-2026-10-28")).toBeTruthy();
+    expect(screen.getByTestId("incident-row-tranchepool-avalanche-2026-10-28")).toBeTruthy();
+    expect(screen.getByText(/5 reports/i)).toBeTruthy();
+    // Soft Design A′: 5 ≤ page size 8 → PREV/NEXT Soft-chrome stays hidden
     expect(screen.queryByTestId("incident-pagination")).toBeNull();
   });
 
