@@ -594,7 +594,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
         "swap",
         "trace",
         "trade",
-        "will"
+        "will",
+        "incidents"
       ].sort()
     );
   });
@@ -648,7 +649,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
       "SCREEN",
       "SIM",
       "TRACE",
-      "READ"
+      "READ",
+      "REPORTS"
     ]);
   });
 
@@ -682,7 +684,8 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
       "TOKEN INFO",
       "PRICE",
       "BALANCE",
-      "PORTFOLIO"
+      "PORTFOLIO",
+      "INCIDENTS"
     ]);
   });
 
@@ -711,6 +714,17 @@ describe("rendered tool buttons map to wired panels (#160)", () => {
     expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toContain(
       "READ"
     );
+  });
+
+  it("FORENSIC REPORTS wires INCIDENTS panel (#268 Soft ACK)", () => {
+    const reports = readyWorkspaceActions(FORENSIC_ACTIONS).filter((a) => a.tab === "REPORTS");
+    expect(reports.map((a) => a.label)).toEqual(["INCIDENTS"]);
+    expect(reports.map((a) => a.panel)).toEqual(["incidents"]);
+    expect(reports.map((a) => a.hint)).toEqual(["open incident reports"]);
+    expect(liveSubTabs(FORENSIC_SUB_TABS, FORENSIC_ACTIONS).map((t) => t.id)).toContain(
+      "REPORTS"
+    );
+    expect(defaultPanelForTab("forensic", "REPORTS")).toBe("incidents");
   });
 
   it("INVEST PORTFOLIO wires BALANCE·PORTFOLIO·WILL (#253 merge)", () => {
