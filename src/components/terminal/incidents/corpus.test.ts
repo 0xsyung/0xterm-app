@@ -12,11 +12,28 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268)", () => {
-  it("ships Binance as the first hardcoded report", () => {
-    expect(incidents.length).toBeGreaterThanOrEqual(1);
+describe("incidents corpus (#268/#270)", () => {
+  it("ships Binance first by occurredAt desc, plus Soft ACK #270 backfill (5 total)", () => {
+    expect(incidents.length).toBe(5);
     expect(incidents[0]?.id).toBe("binance-hot-wallet-2026-10-30");
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.title).toMatch(/Binance/i);
+    expect(incidents.map((i) => i.id)).toEqual([
+      "binance-hot-wallet-2026-10-30",
+      "polymarket-debugbear-rum-2026-10-29",
+      "hifi-finance-governance-2026-10-28",
+      "zklink-nova-bridge-2026-10-28",
+      "tranchepool-avalanche-2026-10-28"
+    ]);
+    for (let i = 1; i < incidents.length; i++) {
+      expect(incidents[i - 1]!.occurredAt >= incidents[i]!.occurredAt).toBe(true);
+    }
+  });
+
+  it("Soft ACK #270 four backfill statuses Soft-match Manager locks", () => {
+    expect(getIncidentById("polymarket-debugbear-rum-2026-10-29")?.status).toBe("RESOLVED");
+    expect(getIncidentById("zklink-nova-bridge-2026-10-28")?.status).toBe("CONTAINED");
+    expect(getIncidentById("hifi-finance-governance-2026-10-28")?.status).toBe("UNRESOLVED");
+    expect(getIncidentById("tranchepool-avalanche-2026-10-28")?.status).toBe("UNRESOLVED");
   });
 
   it("every factual claim Soft-cites a known source URL", () => {
@@ -46,27 +63,35 @@ describe("incidents corpus (#268)", () => {
     expect(confirmed.length).toBeGreaterThan(0);
   });
 
-  it("sections follow Soft Design order and omit empty filler", () => {
-    const binance = getIncidentById("binance-hot-wallet-2026-10-30")!;
-    const ids = binance.sections.map((s) => s.id);
-    const orderIdx = ids.map((id) => INCIDENT_SECTION_ORDER.indexOf(id));
-    expect(orderIdx.every((i) => i >= 0)).toBe(true);
-    for (let i = 1; i < orderIdx.length; i++) {
-      expect(orderIdx[i]).toBeGreaterThan(orderIdx[i - 1]);
-    }
-    for (const sec of binance.sections) {
-      const has =
-        sec.claims.length > 0 ||
-        (sec.bullets?.length ?? 0) > 0 ||
-        (sec.figures?.length ?? 0) > 0;
-      expect(has, sec.id).toBe(true);
+  it("sections follow Soft Design order and omit empty filler for every incident", () => {
+    for (const inc of incidents) {
+      const ids = inc.sections.map((s) => s.id);
+      const orderIdx = ids.map((id) => INCIDENT_SECTION_ORDER.indexOf(id));
+      expect(orderIdx.every((i) => i >= 0), inc.id).toBe(true);
+      for (let i = 1; i < orderIdx.length; i++) {
+        expect(orderIdx[i]).toBeGreaterThan(orderIdx[i - 1]);
+      }
+      for (const sec of inc.sections) {
+        const has =
+          sec.claims.length > 0 ||
+          (sec.bullets?.length ?? 0) > 0 ||
+          (sec.figures?.length ?? 0) > 0;
+        expect(has, `${inc.id}:${sec.id}`).toBe(true);
+      }
+      const money = inc.sections.find((s) => s.id === "money");
+      expect(money?.figures?.length, inc.id).toBeGreaterThan(0);
+      for (const f of money!.figures!) {
+        expect(["confirmed", "estimate"]).toContain(f.confidence);
+        expect(f.sourceIds.length).toBeGreaterThan(0);
+      }
     }
   });
 
-  it("pageIncidents uses Soft page size 8 and pages correctly", () => {
+  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 5 ≤ 8 → one page)", () => {
     expect(INCIDENT_PAGE_SIZE).toBe(8);
+    expect(incidents.length).toBeLessThanOrEqual(INCIDENT_PAGE_SIZE);
     const one = pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE);
-    expect(one).toHaveLength(Math.min(incidents.length, INCIDENT_PAGE_SIZE));
+    expect(one).toHaveLength(incidents.length);
     const padded = [
       ...incidents,
       ...Array.from({ length: 10 }, (_, i) => ({
@@ -74,8 +99,9 @@ describe("incidents corpus (#268)", () => {
         id: `extra-${i}`
       }))
     ];
+    expect(padded.length).toBe(15);
     expect(pageIncidents(padded, 0, 8)).toHaveLength(8);
-    expect(pageIncidents(padded, 1, 8)).toHaveLength(3);
+    expect(pageIncidents(padded, 1, 8)).toHaveLength(7);
     expect(incidentSourceMap(incidents[0]!).size).toBe(incidents[0]!.sources.length);
   });
 
