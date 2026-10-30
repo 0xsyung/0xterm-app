@@ -42,7 +42,9 @@ export const WIRED_WORKSPACE_PANELS: readonly WorkspacePanelId[] = [
   "dig-session",
   "dig-check",
   // INVEST Will (#247 Soft ACK)
-  "will"
+  "will",
+  // FORENSIC REPORTS (#268 Soft ACK)
+  "incidents"
 ] as const;
 
 const WIRED_SET: ReadonlySet<WorkspacePanelId> = new Set(WIRED_WORKSPACE_PANELS);

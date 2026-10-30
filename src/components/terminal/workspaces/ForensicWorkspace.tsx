@@ -15,7 +15,8 @@ export const FORENSIC_SUB_TABS: { id: ForensicSubTab; label: string }[] = [
   { id: "SCREEN", label: "SCREEN" },
   { id: "SIM", label: "SIM" },
   { id: "TRACE", label: "TRACE" },
-  { id: "READ", label: "READ" }
+  { id: "READ", label: "READ" },
+  { id: "REPORTS", label: "REPORTS" }
 ];
 
 /**
@@ -88,6 +89,14 @@ export const FORENSIC_ACTIONS: WorkspaceAction[] = [
     hint: "open portfolio panel",
     panel: "portfolio",
     tab: "READ"
+  },
+  // #268 Soft ACK — REPORTS · INCIDENTS
+  {
+    cmd: "incidents",
+    label: "INCIDENTS",
+    hint: "open incident reports",
+    panel: "incidents",
+    tab: "REPORTS"
   }
 ];
 

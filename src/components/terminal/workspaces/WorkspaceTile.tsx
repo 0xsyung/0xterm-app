@@ -40,12 +40,14 @@ export type WorkspacePanelId =
   | "dig-session"
   | "dig-check"
   // INVEST Will panel (#247 Soft ACK)
-  | "will";
+  | "will"
+  // FORENSIC REPORTS incidents (#268 Soft ACK)
+  | "incidents";
 
 /** Sub-tab ids per workspace mode (#145). */
 export type InvestSubTab = "NEWS" | "TRADE" | "PORTFOLIO";
 export type DevSubTab = "SOURCE" | "BUILD" | "SHIP";
-export type ForensicSubTab = "SCREEN" | "SIM" | "TRACE" | "READ";
+export type ForensicSubTab = "SCREEN" | "SIM" | "TRACE" | "READ" | "REPORTS";
 
 export type WorkspaceAction = {
   cmd: string;

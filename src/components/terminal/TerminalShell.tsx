@@ -222,6 +222,7 @@ import {
 import { runMixerCommand } from "./mixer/runMixer";
 import { runWillCommand, fetchWillStatusPayload } from "./will/runWill";
 import WillPanel from "./will/WillPanel";
+import IncidentsPanel from "./incidents/IncidentsPanel";
 import { runProCommand } from "./pro/runPro";
 import {
   requireProForExternalWrite,
@@ -11925,6 +11926,15 @@ export default function TerminalShell({
           />
         );
       }
+      case "incidents":
+        return (
+          <IncidentsPanel
+            theme={theme}
+            onClose={close}
+            frameless
+          />
+        );
+
       case "dig-source":
         return <DigSourcePanel theme={theme} onClose={close} />;
       case "dig-artifact":
