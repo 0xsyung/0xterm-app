@@ -12,7 +12,7 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270)", () => {
+describe("incidents corpus (#268/#270/#272)", () => {
   it("ships Binance first by occurredAt desc, plus Soft ACK #270 backfill (5 total)", () => {
     expect(incidents.length).toBe(5);
     expect(incidents[0]?.id).toBe("binance-hot-wallet-2026-10-30");
@@ -107,6 +107,58 @@ describe("incidents corpus (#268/#270)", () => {
 
   it("Binance status is ACTIVE containment at Soft ACK seed time", () => {
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.status).toBe("ACTIVE");
+  });
+
+  it("Soft ACK #272 Binance Soft-refresh: DevOps / no-key-leak / ~$6.3B est ≠ ~$3B freeze", () => {
+    const binance = getIncidentById("binance-hot-wallet-2026-10-30")!;
+    expect(binance.amountSummary).toMatch(/6\.3B/i);
+    expect(binance.amountSummary).toMatch(/\$3B/i);
+    const srcIds = new Set(binance.sources.map((s) => s.id));
+    for (const id of [
+      "binance-x-devops",
+      "binance-x-freeze",
+      "binance-x-cover",
+      "binance-x-predict",
+      "panews"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(binance.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(
+        true
+      );
+    }
+    // Soft-omit: blog slug Soft-seed returned error page at tip — not cited
+    expect(binance.sources.some((s) => s.url.includes("Binance-Security-Incident-Update-2"))).toBe(
+      false
+    );
+    const what = binance.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/DevOps/i);
+    expect(whatText).toMatch(/service container/i);
+    expect(whatText).toMatch(/no evidence of any wallet private-key leak/i);
+    expect(whatText).toMatch(/Earlier analyst take|Soft-demoted|Soft-labeled/i);
+    const money = binance.sections.find((s) => s.id === "money")!;
+    const moneyText = [
+      ...(money.claims?.map((c) => c.text) ?? []),
+      ...(money.figures?.map((f) => `${f.label} ${f.amount}`) ?? [])
+    ].join("\n");
+    expect(moneyText).toMatch(/6\.3B/);
+    expect(moneyText).toMatch(/SAFU/);
+    expect(moneyText).toMatch(/Proof of Reserves|PoR/i);
+    const officialEst = money.figures!.find((f) => /6\.3B/.test(f.amount));
+    expect(officialEst?.confidence).toBe("estimate");
+    const freeze = money.figures!.find(
+      (f) => /verified funds frozen/i.test(f.label) || /~\$3B/.test(f.amount)
+    );
+    expect(freeze?.confidence).toBe("confirmed");
+    const orgs = binance.sections.find((s) => s.id === "orgs")!;
+    expect(orgs.claims.some((c) => /PREDICT/i.test(c.text))).toBe(true);
+    // Soft Design A / Eng C: four backfill IDs Soft-hold untouched by this Soft ACK
+    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+      "polymarket-debugbear-rum-2026-10-29",
+      "hifi-finance-governance-2026-10-28",
+      "zklink-nova-bridge-2026-10-28",
+      "tranchepool-avalanche-2026-10-28"
+    ]);
   });
 
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {

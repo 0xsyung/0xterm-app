@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #270 — in-repo incidents[] (no CMS/API). Binance + four past-incident backfill.
+ * @description Soft ACK #272 — in-repo incidents[] (no CMS/API). Binance Soft-refresh + Soft ACK #270 backfill hold.
  * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-10-30 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,7 +9,7 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #270 appends four past incidents; Binance holds.
+ * Hardcoded incident corpus. Soft ACK #272 Soft-refreshes Binance only; Soft ACK #270 four backfill IDs hold.
  * Soft-nice list order: occurredAt descending. Do not invent facts.
  */
 export const incidents: Incident[] = [
@@ -18,7 +18,8 @@ export const incidents: Incident[] = [
     title: "Binance hot-wallet drain — potential security issue",
     occurredAt: "2026-10-29T20:24:00.000Z",
     status: "ACTIVE",
-    amountSummary: "Freezes ~$2.5B–$3B+ (confirmed); stolen totals unconfirmed",
+    amountSummary:
+      "Official est. impact ~$6.3B; verified frozen ~$3B (confirmed)",
     chains: ["Ethereum", "Bitcoin", "Tron", "Arbitrum", "Optimism", "Avalanche"],
     sources: [
       {
@@ -43,7 +44,8 @@ export const incidents: Incident[] = [
       },
       {
         id: "cyberdaily",
-        title: "Cyberdaily — Official Binance X updates (freeze total, cover losses)",
+        title:
+          "Cyberdaily — Official Binance updates (DevOps laptop, ~$6.3B, SAFU+corp)",
         url: "https://www.cyberdaily.au/security/14375-binance-investigating-potential-security-incident-as-wallets-drained-of-billions"
       },
       {
@@ -58,7 +60,8 @@ export const incidents: Incident[] = [
       },
       {
         id: "cointelegraph-blockaid",
-        title: "Cointelegraph — Blockaid: key misuse / signing infra, not raw key theft",
+        title:
+          "Cointelegraph — Blockaid early take: signing-infra misuse (pre–official update)",
         url: "https://cointelegraph.com/news/binance-hack-may-involve-private-key-misuse-not-theft-blockaid-ceo"
       },
       {
@@ -90,6 +93,33 @@ export const incidents: Incident[] = [
         id: "binance-x",
         title: "Binance official X (@binance) — primary update channel",
         url: "https://x.com/binance"
+      },
+      {
+        id: "binance-x-devops",
+        title:
+          "Binance X — DevOps laptop → service container; no private-key leak; ~$6.3B est.",
+        url: "https://x.com/binance/status/2115993361517891592"
+      },
+      {
+        id: "binance-x-freeze",
+        title: "Binance X — verified frozen ~$3B",
+        url: "https://x.com/binance/status/2115970069696217576"
+      },
+      {
+        id: "binance-x-cover",
+        title: "Binance X — cover all losses; deposits/withdrawals suspended",
+        url: "https://x.com/binance/status/2115981055043981791"
+      },
+      {
+        id: "binance-x-predict",
+        title: "Binance X — PREDICT listing postponed until further notice",
+        url: "https://x.com/binance/status/2115997882629435456"
+      },
+      {
+        id: "panews",
+        title:
+          "PANews — Durable quote of official DevOps / ~$6.3B / SAFU+corp / PoR update",
+        url: "https://www.panews.io/articles/01a18aa0-7624-71d3-95c4-901bde2cba87"
       }
     ],
     sections: [
@@ -102,6 +132,14 @@ export const incidents: Incident[] = [
             sourceIds: ["bbc", "ap", "techcrunch", "binance-x"]
           },
           {
+            text: "Official preliminary cause (estimate until post-mortem): Binance's initial investigation suggests a compromised DevOps engineer laptop allowed an attacker to access a service container and submit unauthorized withdrawal transactions.",
+            sourceIds: ["binance-x-devops", "panews", "cyberdaily"]
+          },
+          {
+            text: "Official: Binance said it has found no evidence of any wallet private-key leak; a detailed technical post-mortem is promised once facts are fully verified.",
+            sourceIds: ["binance-x-devops", "panews", "cyberdaily"]
+          },
+          {
             text: "On-chain analysis centers on Binance 14 (a major Ethereum hot wallet): an EIP-7702 authorization delegated the account to an attacker-controlled sweeper contract, enabling a batch sweep of ETH and tokens.",
             sourceIds: ["coindesk", "cointelegraph-blockaid", "defiant", "drk"]
           },
@@ -110,8 +148,8 @@ export const incidents: Incident[] = [
             sourceIds: ["slowmist-techflow"]
           },
           {
-            text: "Blockaid's preliminary assessment pointed to compromise or misuse of signing infrastructure (\"key misuse\") rather than extraction of a raw private key — unconfirmed pending Binance's post-mortem.",
-            sourceIds: ["cointelegraph-blockaid"]
+            text: "Earlier analyst take (Soft-labeled; pre–official DevOps update): Blockaid's preliminary assessment pointed to compromise or misuse of signing infrastructure (\"key misuse\") rather than extraction of a raw private key — Soft-demoted relative to Binance's later official \"no private-key leak\" preliminary.",
+            sourceIds: ["cointelegraph-blockaid", "binance-x-devops"]
           },
           {
             text: "Etherscan-linked reporting places a large Binance 14 ETH move at about 20:24 UTC on 29 Oct 2026 (≈04:24 HKT Fri 30 Oct), with related sweeps of other labeled Binance wallets shortly after.",
@@ -137,12 +175,20 @@ export const incidents: Incident[] = [
             sourceIds: ["techcrunch", "cyberdaily", "bbc", "binance-x"]
           },
           {
-            text: "Deposits and withdrawals temporarily suspended while security checks, freezes, and law-enforcement coordination continued; Binance Alpha trading also reported paused as a precaution.",
-            sourceIds: ["bbc", "nbc", "cyberdaily", "aljazeera"]
+            text: "Deposits and withdrawals temporarily suspended while security checks, freezes, and law-enforcement coordination continued; Binance Alpha trading also reported paused as a precaution (prior Soft PASS press cites).",
+            sourceIds: ["bbc", "nbc", "cyberdaily", "aljazeera", "binance-x-cover"]
           },
           {
             text: "Stablecoin issuers and partners announced freezes of linked assets; Binance published verified freeze totals that rose from about $2.54B toward ~$3B in subsequent updates.",
-            sourceIds: ["bbc", "cyberdaily", "ap", "aljazeera"]
+            sourceIds: ["bbc", "cyberdaily", "ap", "aljazeera", "binance-x-freeze"]
+          },
+          {
+            text: "~02:25 UTC 30 Oct 2026 (≈10:25 HKT): Binance posted the official preliminary investigation update — DevOps laptop → service container path, no private-key leak evidence, official estimated impact ~$6.3B, SAFU + company funds cover, updated PoR after remediation.",
+            sourceIds: ["binance-x-devops", "panews", "cyberdaily"]
+          },
+          {
+            text: "Same morning: Binance said Predict (PREDICT) listing will be postponed until further notice (org ops Soft-nice; no Soft-guessed market-impact claim).",
+            sourceIds: ["binance-x-predict"]
           }
         ]
       },
@@ -151,8 +197,19 @@ export const incidents: Incident[] = [
         title: "Organization reactions",
         claims: [
           {
-            text: "Binance (official): investigating a potential security issue; user funds safe; will cover all losses; deposits/withdrawals suspended; full post-mortem promised; rely only on official Binance channels.",
-            sourceIds: ["bbc", "nbc", "cyberdaily", "binance-x", "aljazeera"]
+            text: "Binance (official): investigating; user funds safe; will cover all losses via SAFU fund and company funds; deposits/withdrawals suspended; affected address authorisation revoked; law enforcement + blockchain intelligence engaged; full technical post-mortem promised; rely only on official Binance channels.",
+            sourceIds: [
+              "binance-x-devops",
+              "binance-x-cover",
+              "panews",
+              "cyberdaily",
+              "bbc",
+              "nbc"
+            ]
+          },
+          {
+            text: "Binance Soft-nice ops: Predict (PREDICT) listing postponed until further notice.",
+            sourceIds: ["binance-x-predict"]
           },
           {
             text: "Changpeng Zhao (majority shareholder, not day-to-day operator): said it looks like a hack and that he expects user funds to be fully covered.",
@@ -181,12 +238,16 @@ export const incidents: Incident[] = [
         title: "News / security firms",
         claims: [
           {
-            text: "Reuters-class / wire and major outlets (BBC, AP, NBC, Al Jazeera, TechCrunch) framed the event as a suspected exchange hack with industry-wide freezes while Binance avoided confirming a final stolen total.",
+            text: "Reuters-class / wire and major outlets (BBC, AP, NBC, Al Jazeera, TechCrunch) framed the event as a suspected exchange hack with industry-wide freezes while Binance avoided confirming a final stolen total in early coverage.",
             sourceIds: ["bbc", "ap", "nbc", "aljazeera", "techcrunch"]
           },
           {
-            text: "Blockaid published on-chain analysis of the EIP-7702 nonce-bracket delegation against Binance 14 and assessed signing-infrastructure misuse (via Cointelegraph interview with Blockaid's CEO).",
-            sourceIds: ["cointelegraph-blockaid"]
+            text: "PANews and Cyberdaily carried durable quotes of Binance's later official update (DevOps laptop / service container, no private-key leak evidence, ~$6.3B estimated impact, SAFU + corporate cover, PoR after remediation).",
+            sourceIds: ["panews", "cyberdaily", "binance-x-devops"]
+          },
+          {
+            text: "Earlier analyst take (Soft-labeled): Blockaid published on-chain analysis of the EIP-7702 nonce-bracket delegation against Binance 14 and assessed signing-infrastructure misuse (Cointelegraph interview) — Soft-read alongside, not above, Binance's later official preliminary.",
+            sourceIds: ["cointelegraph-blockaid", "binance-x-devops"]
           },
           {
             text: "SlowMist commentary (via TechFlow) stressed EIP-7702 as a facilitator for batch sweeps, not a protocol root vulnerability.",
@@ -197,8 +258,8 @@ export const incidents: Incident[] = [
             sourceIds: ["defiant", "drk"]
           },
           {
-            text: "BleepingComputer and Bitcoin.com summarized public tracker tallies in the multi-billion range while noting Binance had not confirmed unauthorized theft totals.",
-            sourceIds: ["bleeping", "bitcoincom"]
+            text: "BleepingComputer and Bitcoin.com summarized public tracker tallies in the multi-billion range while noting Binance had not confirmed unauthorized theft totals in early coverage — Soft-distinct from Binance's later official ~$6.3B estimated impact.",
+            sourceIds: ["bleeping", "bitcoincom", "binance-x-devops"]
           }
         ]
       },
@@ -207,16 +268,23 @@ export const incidents: Incident[] = [
         title: "Status",
         claims: [
           {
-            text: "At Soft ACK time (30 Oct 2026 HKT): active containment / unresolved — investigation ongoing; deposits and withdrawals still described as suspended pending resolution; no full official post-mortem yet.",
-            sourceIds: ["bbc", "nbc", "cyberdaily", "aljazeera", "binance-x"]
+            text: "At Soft ACK #272 tip time (30 Oct 2026 HKT): ACTIVE containment / unresolved — investigation ongoing; deposits and withdrawals still described as suspended; affected address authorisation revoked; no full official post-mortem yet.",
+            sourceIds: [
+              "binance-x-devops",
+              "binance-x-cover",
+              "panews",
+              "cyberdaily",
+              "bbc",
+              "nbc"
+            ]
           },
           {
-            text: "Binance said it would share a full post-mortem once the investigation is complete and that freeze totals may continue to rise as partners trace assets.",
-            sourceIds: ["bbc", "cyberdaily", "nbc"]
+            text: "Binance said it will share a detailed technical post-mortem once the investigation is complete and the facts are fully verified; freeze totals may continue to rise as partners trace assets.",
+            sourceIds: ["binance-x-devops", "binance-x-freeze", "panews", "cyberdaily"]
           },
           {
-            text: "Root cause (key theft vs signing-path compromise vs other) remains unconfirmed by Binance.",
-            sourceIds: ["cointelegraph-blockaid", "techcrunch", "bitcoincom"]
+            text: "Official preliminary cause is the DevOps laptop → service container path with no evidence of wallet private-key leak; Soft-label estimate until post-mortem. Earlier Blockaid \"key misuse\" wording is Soft-demoted as a pre-update analyst take.",
+            sourceIds: ["binance-x-devops", "panews", "cointelegraph-blockaid"]
           }
         ]
       },
@@ -225,16 +293,32 @@ export const incidents: Incident[] = [
         title: "Money",
         claims: [
           {
-            text: "Soft-read: issuer/partner freezes and Binance's verified freeze figures are far firmer than public \"stolen\" tallies. Analyst drain estimates remain unconfirmed.",
-            sourceIds: ["bbc", "cyberdaily", "bitcoincom", "bleeping"]
+            text: "Soft-read: official estimated impact (~$6.3B, Binance figure; Soft-label estimate) ≠ verified freeze (~$3B, official confirmed). Issuer/partner freezes remain Soft-firmer than public early tracker \"stolen\" tallies.",
+            sourceIds: [
+              "binance-x-devops",
+              "binance-x-freeze",
+              "panews",
+              "cyberdaily",
+              "bbc"
+            ]
+          },
+          {
+            text: "Binance will cover all losses through the SAFU fund and company funds; user funds are safe; Binance will publish an updated Proof of Reserves once remediation is complete.",
+            sourceIds: ["binance-x-devops", "panews", "cyberdaily", "binance-x-cover"]
           }
         ],
         figures: [
           {
-            label: "Binance verified funds frozen (official update quoted in press)",
-            amount: "~$2.54B (later updates ~$3B; may rise)",
+            label: "Binance official estimated total impact (estimate until post-mortem)",
+            amount: "~$6.3B (official estimate — Soft-distinct from verified freeze)",
+            confidence: "estimate",
+            sourceIds: ["binance-x-devops", "panews", "cyberdaily"]
+          },
+          {
+            label: "Binance verified funds frozen on-chain (official)",
+            amount: "~$3B (earlier Soft PASS ladder ~$2.54B → ~$3B)",
             confidence: "confirmed",
-            sourceIds: ["cyberdaily", "ap", "aljazeera", "bbc"]
+            sourceIds: ["binance-x-freeze", "binance-x-devops", "panews", "cyberdaily", "aljazeera"]
           },
           {
             label: "Tether USDT frozen (issuer)",
@@ -249,19 +333,19 @@ export const incidents: Incident[] = [
             sourceIds: ["bbc", "coindesk", "cyberdaily"]
           },
           {
-            label: "Binance pledge to cover losses",
-            amount: "Cover all losses / user funds safe (official)",
+            label: "Binance cover (SAFU + company funds)",
+            amount: "Cover all losses / user funds safe; updated PoR after remediation (official)",
             confidence: "confirmed",
-            sourceIds: ["bbc", "nbc", "cyberdaily", "binance-x"]
+            sourceIds: ["binance-x-devops", "binance-x-cover", "panews", "cyberdaily"]
           },
           {
-            label: "Public analyst / tracker stolen tallies",
-            amount: "~$2B–$5.8B+ (range across outlets; unconfirmed)",
+            label: "Earlier public analyst / tracker stolen tallies (pre–official ~$6.3B)",
+            amount: "~$2B–$5.8B+ (range across outlets; Soft-labeled estimate / unconfirmed)",
             confidence: "estimate",
             sourceIds: ["techcrunch", "bbc", "bleeping", "bitcoincom", "drk"]
           },
           {
-            label: "Glassnode / Chainalysis estimates cited by BBC",
+            label: "Glassnode / Chainalysis estimates cited by BBC (early)",
             amount: "~$5.3B (Glassnode) / ~$5.9B (Chainalysis) — estimates",
             confidence: "estimate",
             sourceIds: ["bbc"]
