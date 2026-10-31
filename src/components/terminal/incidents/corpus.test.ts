@@ -12,15 +12,17 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272/#275)", () => {
-  it("ships Flap/Kintsu first by occurredAt desc, Soft ACK #275 + Soft ACK #272/#270 hold (6 total)", () => {
-    expect(incidents.length).toBe(6);
-    expect(incidents[0]?.id).toBe("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31");
+describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
+  it("ships VergeX first by occurredAt desc, Soft ACK #277 + Soft ACK #275/#272/#270 hold (7 total)", () => {
+    expect(incidents.length).toBe(7);
+    expect(incidents[0]?.id).toBe("vergex-account-drain-2026-10-31");
+    expect(getIncidentById("vergex-account-drain-2026-10-31")?.title).toMatch(/VergeX/i);
     expect(getIncidentById("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")?.title).toMatch(
       /Flap|Kintsu|StepDrainer/i
     );
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.title).toMatch(/Binance/i);
     expect(incidents.map((i) => i.id)).toEqual([
+      "vergex-account-drain-2026-10-31",
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
@@ -91,7 +93,7 @@ describe("incidents corpus (#268/#270/#272/#275)", () => {
     }
   });
 
-  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 6 ≤ 8 → one page)", () => {
+  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 7 ≤ 8 → one page)", () => {
     expect(INCIDENT_PAGE_SIZE).toBe(8);
     expect(incidents.length).toBeLessThanOrEqual(INCIDENT_PAGE_SIZE);
     const one = pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE);
@@ -103,7 +105,7 @@ describe("incidents corpus (#268/#270/#272/#275)", () => {
         id: `extra-${i}`
       }))
     ];
-    expect(padded.length).toBe(16);
+    expect(padded.length).toBe(17);
     expect(pageIncidents(padded, 0, 8)).toHaveLength(8);
     expect(pageIncidents(padded, 1, 8)).toHaveLength(8);
     expect(incidentSourceMap(incidents[0]!).size).toBe(incidents[0]!.sources.length);
@@ -157,7 +159,7 @@ describe("incidents corpus (#268/#270/#272/#275)", () => {
     const orgs = binance.sections.find((s) => s.id === "orgs")!;
     expect(orgs.claims.some((c) => /PREDICT/i.test(c.text))).toBe(true);
     // Soft Design A / Eng C: Soft ACK #272 Binance + Soft ACK #270 four backfill Soft-hold
-    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+    expect(incidents.map((i) => i.id).slice(2)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -223,8 +225,8 @@ describe("incidents corpus (#268/#270/#272/#275)", () => {
     expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
-    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold
-    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold (after VergeX + Flap)
+    expect(incidents.map((i) => i.id).slice(2)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -232,6 +234,65 @@ describe("incidents corpus (#268/#270/#272/#275)", () => {
       "tranchepool-avalanche-2026-10-28"
     ]);
     expect(collectUnsourcedClaimPaths(flap)).toEqual([]);
+  });
+
+  it("Soft ACK #277 VergeX CONTAINED: official URLs + early Tintin Soft-label + prior six hold", () => {
+    const vx = getIncidentById("vergex-account-drain-2026-10-31")!;
+    expect(vx.status).toBe("CONTAINED");
+    expect(vx.amountSummary).toMatch(/3,?688\.58/);
+    expect(vx.amountSummary).toMatch(/850/);
+    const srcIds = new Set(vx.sources.map((s) => s.id));
+    for (const id of [
+      "vergex-x-ack",
+      "slowmist-vergex",
+      "odaily-early",
+      "techflow-early",
+      "tintin-sync",
+      "tintin-refund"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(vx.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(vx.sources.find((s) => s.id === "vergex-x-ack")?.url).toContain(
+      "2116549211110129781"
+    );
+    expect(vx.sources.find((s) => s.id === "slowmist-vergex")?.url).toContain(
+      "hacked.slowmist.io"
+    );
+    expect(vx.sources.find((s) => s.id === "odaily-early")?.url).toContain(
+      "2116541915634229416"
+    );
+    expect(vx.sources.find((s) => s.id === "techflow-early")?.url).toContain(
+      "techflowpost.com"
+    );
+    const what = vx.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/withdrawal/i);
+    expect(whatText).toMatch(/3,?688\.58/);
+    expect(whatText).toMatch(/Unknown/i);
+    const status = vx.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/CONTAINED/i);
+    expect(statusText).not.toMatch(/Status RESOLVED/);
+    expect(statusText).toMatch(/not RESOLVED|do not flip to RESOLVED/i);
+    expect(statusText).toMatch(/staged|withdrawal reopen|method/i);
+    const money = vx.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /3,?688\.58/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /850/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    const news = vx.sections.find((s) => s.id === "news")!;
+    expect(news.claims.some((c) => /Tintin|850|TechFlow|Odaily/i.test(c.text))).toBe(true);
+    // Soft Design A / Eng C: prior six Soft PASS deep-dives Soft-hold
+    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+      "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+      "binance-hot-wallet-2026-10-30",
+      "polymarket-debugbear-rum-2026-10-29",
+      "hifi-finance-governance-2026-10-28",
+      "zklink-nova-bridge-2026-10-28",
+      "tranchepool-avalanche-2026-10-28"
+    ]);
+    expect(collectUnsourcedClaimPaths(vx)).toEqual([]);
   });
 
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {
