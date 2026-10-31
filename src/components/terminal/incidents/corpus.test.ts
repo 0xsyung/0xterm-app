@@ -12,12 +12,16 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272)", () => {
-  it("ships Binance first by occurredAt desc, plus Soft ACK #270 backfill (5 total)", () => {
-    expect(incidents.length).toBe(5);
-    expect(incidents[0]?.id).toBe("binance-hot-wallet-2026-10-30");
+describe("incidents corpus (#268/#270/#272/#275)", () => {
+  it("ships Flap/Kintsu first by occurredAt desc, Soft ACK #275 + Soft ACK #272/#270 hold (6 total)", () => {
+    expect(incidents.length).toBe(6);
+    expect(incidents[0]?.id).toBe("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31");
+    expect(getIncidentById("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")?.title).toMatch(
+      /Flap|Kintsu|StepDrainer/i
+    );
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.title).toMatch(/Binance/i);
     expect(incidents.map((i) => i.id)).toEqual([
+      "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -87,7 +91,7 @@ describe("incidents corpus (#268/#270/#272)", () => {
     }
   });
 
-  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 5 ≤ 8 → one page)", () => {
+  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 6 ≤ 8 → one page)", () => {
     expect(INCIDENT_PAGE_SIZE).toBe(8);
     expect(incidents.length).toBeLessThanOrEqual(INCIDENT_PAGE_SIZE);
     const one = pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE);
@@ -99,9 +103,9 @@ describe("incidents corpus (#268/#270/#272)", () => {
         id: `extra-${i}`
       }))
     ];
-    expect(padded.length).toBe(15);
+    expect(padded.length).toBe(16);
     expect(pageIncidents(padded, 0, 8)).toHaveLength(8);
-    expect(pageIncidents(padded, 1, 8)).toHaveLength(7);
+    expect(pageIncidents(padded, 1, 8)).toHaveLength(8);
     expect(incidentSourceMap(incidents[0]!).size).toBe(incidents[0]!.sources.length);
   });
 
@@ -152,13 +156,82 @@ describe("incidents corpus (#268/#270/#272)", () => {
     expect(freeze?.confidence).toBe("confirmed");
     const orgs = binance.sections.find((s) => s.id === "orgs")!;
     expect(orgs.claims.some((c) => /PREDICT/i.test(c.text))).toBe(true);
-    // Soft Design A / Eng C: four backfill IDs Soft-hold untouched by this Soft ACK
+    // Soft Design A / Eng C: Soft ACK #272 Binance + Soft ACK #270 four backfill Soft-hold
     expect(incidents.map((i) => i.id).slice(1)).toEqual([
+      "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
       "zklink-nova-bridge-2026-10-28",
       "tranchepool-avalanche-2026-10-28"
     ]);
+  });
+
+  it("Soft ACK #275 Flap/Kintsu/StepDrainer ACTIVE: official URLs + residual Soft-label + prior five hold", () => {
+    const flap = getIncidentById("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")!;
+    expect(flap.status).toBe("ACTIVE");
+    expect(flap.amountSummary).toMatch(/unconfirmed/i);
+    const srcIds = new Set(flap.sources.map((s) => s.id));
+    for (const id of [
+      "flap-hijack",
+      "flap-migrate",
+      "flap-restore",
+      "kintsu-hijack",
+      "kintsu-vercel",
+      "kintsu-restore-1",
+      "kintsu-restore-2",
+      "longbow-restore",
+      "blockaid-trio",
+      "blockaid-narrow",
+      "blockaid-expand"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(flap.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(flap.sources.find((s) => s.id === "flap-hijack")?.url).toContain(
+      "2116352828734050339"
+    );
+    expect(flap.sources.find((s) => s.id === "flap-migrate")?.url).toContain(
+      "2116400269445509360"
+    );
+    expect(flap.sources.find((s) => s.id === "flap-restore")?.url).toContain(
+      "2116433470276972590"
+    );
+    expect(flap.sources.find((s) => s.id === "kintsu-hijack")?.url).toContain(
+      "2116373486234902587"
+    );
+    expect(flap.sources.find((s) => s.id === "kintsu-vercel")?.url).toContain(
+      "2116382643017101513"
+    );
+    expect(flap.sources.find((s) => s.id === "blockaid-expand")?.url).toContain(
+      "2116368762488107157"
+    );
+    expect(flap.sources.find((s) => s.id === "blockaid-trio")?.url).toContain(
+      "2116354922128015441"
+    );
+    const what = flap.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/DNS/i);
+    expect(whatText).toMatch(/Vercel Domains/i);
+    expect(whatText).toMatch(/Step Drainer|StepDrainer/i);
+    const status = flap.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/ACTIVE/i);
+    expect(statusText).toMatch(/no all-clear/i);
+    expect(statusText).toMatch(/OK to use|OK-to-use/i);
+    expect(statusText).toMatch(/residual/i);
+    const money = flap.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold
+    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+      "binance-hot-wallet-2026-10-30",
+      "polymarket-debugbear-rum-2026-10-29",
+      "hifi-finance-governance-2026-10-28",
+      "zklink-nova-bridge-2026-10-28",
+      "tranchepool-avalanche-2026-10-28"
+    ]);
+    expect(collectUnsourcedClaimPaths(flap)).toEqual([]);
   });
 
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {

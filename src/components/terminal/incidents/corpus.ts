@@ -1,7 +1,7 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #272 — in-repo incidents[] (no CMS/API). Binance Soft-refresh + Soft ACK #270 backfill hold.
- * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-10-30 HKT.
+ * @description Soft ACK #275 — in-repo incidents[] (no CMS/API). Flap/Kintsu/StepDrainer ACTIVE append; Soft ACK #272/#270 hold.
+ * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-10-31 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -9,10 +9,326 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #272 Soft-refreshes Binance only; Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #275 appends Flap/Kintsu/StepDrainer ACTIVE; Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * Soft-nice list order: occurredAt descending. Do not invent facts.
  */
 export const incidents: Incident[] = [
+  {
+    id: "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+    title: "Flap / Kintsu / StepDrainer — DNS + frontend wave",
+    occurredAt: "2026-10-31T00:35:00.000Z",
+    status: "ACTIVE",
+    amountSummary:
+      "Loss size unconfirmed; no official total (ACTIVE DNS / multi-dApp wave)",
+    chains: ["BNB Chain", "Monad", "Multi-chain (frontend)"],
+    sources: [
+      {
+        id: "flap-hijack",
+        title: "Flap (@flapdotsh) — flap.sh DNS hijack ACK; do not visit/connect/sign",
+        url: "https://x.com/flapdotsh/status/2116352828734050339"
+      },
+      {
+        id: "flap-migrate",
+        title: "Flap (@flapdotsh) — migrate to flap.cool; root cause still investigating",
+        url: "https://x.com/flapdotsh/status/2116400269445509360"
+      },
+      {
+        id: "flap-restore",
+        title: "Flap (@flapdotsh) — flap.sh + flap.cool both OK to use",
+        url: "https://x.com/flapdotsh/status/2116433470276972590"
+      },
+      {
+        id: "tokenpost-flap",
+        title: "TokenPost — Flap restores flap.sh; flap.cool remains backup",
+        url: "https://www.tokenpost.com/news/technology/45378"
+      },
+      {
+        id: "kintsu-hijack",
+        title: "Kintsu — registrar DNS hijack; revoke if connected/signed since ~00:00 UTC",
+        url: "https://x.com/Kintsu/status/2116373486234902587"
+      },
+      {
+        id: "kintsu-vercel",
+        title: "Kintsu — Vercel Domains registrar-level hijack; wallet drainer / supply-chain framing",
+        url: "https://x.com/Kintsu/status/2116382643017101513"
+      },
+      {
+        id: "kintsu-restore-1",
+        title: "Kintsu — restored to infra; avoid until all-clear; DNS cache window",
+        url: "https://x.com/Kintsu/status/2116383575159312695"
+      },
+      {
+        id: "kintsu-restore-2",
+        title: "Kintsu — serving real site; stay cautious; working with registrar (no all-clear)",
+        url: "https://x.com/Kintsu/status/2116401713930289391"
+      },
+      {
+        id: "longbow-restore",
+        title: "Longbow (@longbowlend) — Vercel Domains vector; restored; contracts/vaults unaffected",
+        url: "https://x.com/longbowlend/status/2116398695612555659"
+      },
+      {
+        id: "blockaid-trio",
+        title: "Blockaid — frontend attack alert: flap.sh / kintsu.xyz / stonkbrokers.cash",
+        url: "https://x.com/blockaid_/status/2116354922128015441"
+      },
+      {
+        id: "blockaid-narrow",
+        title: "Blockaid edit — alert narrowed to Flap + Kintsu (StonkBrokers dropped)",
+        url: "https://x.com/blockaid_/status/2116363035598266514"
+      },
+      {
+        id: "blockaid-expand",
+        title: "Blockaid — Step Drainer expansion (10 additional domains actively serving)",
+        url: "https://x.com/blockaid_/status/2116368762488107157"
+      },
+      {
+        id: "crypto-news",
+        title: "crypto.news — DeFi DNS attack / Step Drainer; StonkBrokers contested vs Blockaid edit",
+        url: "https://crypto.news/defi-dns-attack-12-sites-step-drainer/"
+      },
+      {
+        id: "kucoin-flap",
+        title: "KuCoin — Flap DNS hijack flash; Soft-label Liquidated collector + attacker IP press",
+        url: "https://www.kucoin.com/news/flash/flap-official-website-hit-by-dns-hijacking-team-warns-users-not-to-access"
+      },
+      {
+        id: "eth-cedric",
+        title: "Flap founder (@eth_cedric) — domain hijack; working with Blockaid / Vercel / Name.com",
+        url: "https://x.com/eth_cedric/status/2116386593082642873"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "Attackers compromised domain / registrar control so official hostnames served unauthorized phishing / clone frontends. Soft-read: DNS + frontend / registrar wave — not a confirmed smart-contract or vault drain.",
+            sourceIds: ["flap-hijack", "kintsu-hijack", "kintsu-vercel", "blockaid-trio", "longbow-restore"]
+          },
+          {
+            text: "Flap (@flapdotsh) confirmed flap.sh DNS hijack redirecting to an unauthorized site and told users not to visit, connect wallets, or sign until further notice.",
+            sourceIds: ["flap-hijack", "kucoin-flap"]
+          },
+          {
+            text: "Kintsu confirmed a DNS hijack at its registrar (Vercel Domains) serving a wallet drainer; framed as a possible supply-chain attack outside project control; users who connected/signed since ~00:00 UTC 31 Oct told to revoke at Revoke.cash and move funds.",
+            sourceIds: ["kintsu-hijack", "kintsu-vercel"]
+          },
+          {
+            text: "Blockaid flagged a potential frontend attack on flap.sh / kintsu.xyz / stonkbrokers.cash, later edited the public alert to Flap + Kintsu only, then expanded to ten more domains actively serving Step Drainer.",
+            sourceIds: ["blockaid-trio", "blockaid-narrow", "blockaid-expand", "crypto-news"]
+          },
+          {
+            text: "Longbow confirmed the same Vercel Domains registrar vector hit Longbow alongside Kintsu and other DeFi protocols; Longbow said app, contracts, and vaults were not breached.",
+            sourceIds: ["longbow-restore"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "~00:35 UTC 31 Oct 2026 (≈08:35 HKT): Soft-label researcher window for flap.sh NS / SOA cutover (not Flap official).",
+            sourceIds: ["kucoin-flap", "crypto-news"]
+          },
+          {
+            text: "02:13 UTC (≈10:13 HKT): @flapdotsh official DNS-hijack ACK — do not visit / connect / sign.",
+            sourceIds: ["flap-hijack"]
+          },
+          {
+            text: "02:21 UTC (≈10:21 HKT): @blockaid_ community alert naming flap.sh, kintsu.xyz, stonkbrokers.cash.",
+            sourceIds: ["blockaid-trio"]
+          },
+          {
+            text: "02:54 UTC (≈10:54 HKT): Blockaid edit / follow-up alert narrows to Flap + Kintsu (StonkBrokers dropped from the public list).",
+            sourceIds: ["blockaid-narrow", "crypto-news"]
+          },
+          {
+            text: "03:16 UTC (≈11:16 HKT): Blockaid expansion — ten additional domains actively serving Step Drainer (stonkfun, pickle, echelon, origami, fluxbeam, stakepoint, supswap, longbow, shprd, apexdefi).",
+            sourceIds: ["blockaid-expand", "crypto-news"]
+          },
+          {
+            text: "03:35 UTC (≈11:35 HKT): @Kintsu official registrar hijack + revoke/move-funds guidance.",
+            sourceIds: ["kintsu-hijack"]
+          },
+          {
+            text: "04:11–04:15 UTC (≈12:11–12:15 HKT): Kintsu cites Vercel Domains vector; then says domain restored to own infra — still no all-clear; DNS cache window up to ~1h.",
+            sourceIds: ["kintsu-vercel", "kintsu-restore-1"]
+          },
+          {
+            text: "05:15 UTC (≈13:15 HKT): @longbowlend confirms restore + same Vercel Domains wave; wait for all-clear.",
+            sourceIds: ["longbow-restore"]
+          },
+          {
+            text: "05:21 UTC (≈13:21 HKT): Flap migrates users to flap.cool; root cause / domain-provider link still under investigation; avoid flap.sh wallet connect at that time.",
+            sourceIds: ["flap-migrate"]
+          },
+          {
+            text: "05:27 UTC (≈13:27 HKT): Kintsu update — real site serving again; stay cautious; working with registrar (still no all-clear).",
+            sourceIds: ["kintsu-restore-2"]
+          },
+          {
+            text: "07:33 UTC (≈15:34 HKT): Flap restore — flap.sh back online; flap.cool remains; both domains OK to use; continue monitoring.",
+            sourceIds: ["flap-restore", "tokenpost-flap"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "Flap: ACK → migrate to flap.cool → later declare both flap.sh and flap.cool OK to use; Soft-label root cause still investigating at migrate time.",
+            sourceIds: ["flap-hijack", "flap-migrate", "flap-restore", "tokenpost-flap"]
+          },
+          {
+            text: "Kintsu: registrar hijack ACK; revoke guidance; Vercel Domains escalation; remitted to own infra — Soft-explicit stay-cautious / no public all-clear in Soft-cited posts.",
+            sourceIds: ["kintsu-hijack", "kintsu-vercel", "kintsu-restore-1", "kintsu-restore-2"]
+          },
+          {
+            text: "Longbow: confirms Vercel Domains registrar hijack same wave; restore; asks users wait for all-clear (cache window); says on-chain vaults unaffected.",
+            sourceIds: ["longbow-restore"]
+          },
+          {
+            text: "Blockaid: initial multi-dApp alert → narrow → Step Drainer expansion list; says investigation continuing; no public aggregate loss.",
+            sourceIds: ["blockaid-trio", "blockaid-narrow", "blockaid-expand", "crypto-news"]
+          },
+          {
+            text: "Flap founder (@eth_cedric): identifies domain hijack; working with Blockaid; reaching out to Vercel and Name.com; notes other protocols may be affected.",
+            sourceIds: ["eth-cedric"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "Blockaid named Step Drainer on the expanded domain set; crypto.news restates the 12-site count (Flap + Kintsu + 10) and notes circulating screenshots differed on StonkBrokers.",
+            sourceIds: ["blockaid-expand", "crypto-news"]
+          },
+          {
+            text: "KuCoin flash restates Flap official ACK and Soft-labels researcher claims (Liquidated-cited collector address claiming BNB theft via forged wallet page; Soft-label attacker IP 31.56.52.52 from KOL press).",
+            sourceIds: ["kucoin-flap"]
+          },
+          {
+            text: "TokenPost covers Flap restore of flap.sh with flap.cool kept as backup.",
+            sourceIds: ["tokenpost-flap"]
+          },
+          {
+            text: "StonkBrokers status contested: appeared in Blockaid initial alert and some circulating screenshots, then dropped from Blockaid public edit — no @ClutchMarkets official incident ACK Soft-cited here.",
+            sourceIds: ["blockaid-trio", "blockaid-narrow", "crypto-news"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Wave status ACTIVE: multi-dApp DNS / frontend wave remains open even though Flap declares both domains OK to use.",
+            sourceIds: ["flap-restore", "blockaid-expand", "kintsu-restore-2", "longbow-restore"]
+          },
+          {
+            text: "Flap chip: remitted / OK-to-use (flap.sh + flap.cool) per official restore; Soft-label root cause still open from migrate-post context.",
+            sourceIds: ["flap-restore", "flap-migrate", "tokenpost-flap"]
+          },
+          {
+            text: "Kintsu chip: remitted to own infra but no all-clear in Soft-cited updates (stay cautious / working with registrar).",
+            sourceIds: ["kintsu-restore-1", "kintsu-restore-2"]
+          },
+          {
+            text: "Longbow chip: remitted / await all-clear per official post (cache-window guidance).",
+            sourceIds: ["longbow-restore"]
+          },
+          {
+            text: "Residual Soft-label risk on Blockaid expanded domains listed as actively serving Step Drainer at alert time (pickle / fluxbeam / shprd / apexdefi among others) until project all-clears land — do not flip wave to RESOLVED on Flap alone.",
+            sourceIds: ["blockaid-expand", "crypto-news"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Soft-read: no official Flap / Kintsu / Blockaid aggregate USD stolen total found in Soft-cited sources. Soft-label researcher collector claims separately from confirmed protocol loss.",
+            sourceIds: ["blockaid-expand", "crypto-news", "kucoin-flap", "flap-hijack", "kintsu-hijack"]
+          }
+        ],
+        figures: [
+          {
+            label: "Official Flap / Kintsu / Longbow stolen total",
+            amount: "Not disclosed",
+            confidence: "estimate",
+            sourceIds: ["flap-hijack", "kintsu-hijack", "longbow-restore", "crypto-news"]
+          },
+          {
+            label: "Blockaid public aggregate loss figure",
+            amount: "Not published (investigation continuing)",
+            confidence: "estimate",
+            sourceIds: ["blockaid-expand", "crypto-news"]
+          },
+          {
+            label: "Soft-label researcher collector (Liquidated via KuCoin flash)",
+            amount: "0x24497068cA4166ca32a04ae530ce00Cf79755bD5 (BNB size unstated)",
+            confidence: "estimate",
+            sourceIds: ["kucoin-flap"]
+          },
+          {
+            label: "Longbow on-chain funds / vaults",
+            amount: "Unaffected (official claim)",
+            confidence: "confirmed",
+            sourceIds: ["longbow-restore"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Attack path is DNS / frontend / registrar — users who connect or sign on hijacked hostnames risk wallet-drainer / approval flows (Blockaid Step Drainer Soft-label).",
+            sourceIds: ["blockaid-expand", "kintsu-vercel", "flap-hijack", "crypto-news"]
+          },
+          {
+            text: "Press / researcher Soft-cite BNB / BSC for Flap phishing drains (Soft-label — not an official Flap total); Kintsu is described in press as Monad liquid-staking (sMON) context.",
+            sourceIds: ["kucoin-flap", "crypto-news"]
+          },
+          {
+            text: "Soft-label attacker IP 31.56.52.52 appears in KuCoin / KOL press restating Flap hijack IOCs — treat as researcher / press until independent firm corroborates each claim.",
+            sourceIds: ["kucoin-flap"]
+          },
+          {
+            text: "Longbow says app / contracts / vaults were not breached and on-chain funds are unaffected despite the domain hijack.",
+            sourceIds: ["longbow-restore"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Soft ACK labels: active DNS hijack · multi-dApp frontend · Flap + Kintsu official ACK · Blockaid StepDrainer wave · Vercel Domains vector · loss unconfirmed · StonkBrokers contested · residual risk on unrestored domains.",
+            sourceIds: ["flap-hijack", "kintsu-hijack", "blockaid-expand", "kintsu-vercel", "blockaid-narrow", "crypto-news"]
+          },
+          {
+            text: "Users who visited unauthorized redirects and connected / signed during the hijack window remain Soft-label residual risk (Kintsu revoke guidance explicit for the ~00:00 UTC window).",
+            sourceIds: ["kintsu-hijack", "kintsu-restore-1", "flap-hijack"]
+          },
+          {
+            text: "StonkBrokers / @ClutchMarkets remain contested without a Soft-cited official incident ACK — Soft-label not as confirmed victim-project parity with Flap / Kintsu.",
+            sourceIds: ["blockaid-trio", "blockaid-narrow", "crypto-news"]
+          }
+        ]
+      }
+    ]
+  },
+
   {
     id: "binance-hot-wallet-2026-10-30",
     title: "Binance hot-wallet drain — potential security issue",
