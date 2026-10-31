@@ -20,12 +20,18 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275)", () => {
-  it("renders Soft Design A′ list: 6 rows, Flap/Kintsu first, pagination hidden (≤ page size 8)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277)", () => {
+  it("renders Soft Design A′ list: 7 rows, VergeX first, pagination hidden (≤ page size 8)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();
     expect(screen.getByTestId("incident-list")).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-row-vergex-account-drain-2026-10-31")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-status-vergex-account-drain-2026-10-31").textContent
+    ).toMatch(/CONTAINED/i);
     expect(
       screen.getByTestId("incident-row-flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")
     ).toBeTruthy();
@@ -44,8 +50,8 @@ describe("IncidentsPanel (#268/#270/#275)", () => {
     expect(screen.getByTestId("incident-row-hifi-finance-governance-2026-10-28")).toBeTruthy();
     expect(screen.getByTestId("incident-row-zklink-nova-bridge-2026-10-28")).toBeTruthy();
     expect(screen.getByTestId("incident-row-tranchepool-avalanche-2026-10-28")).toBeTruthy();
-    expect(screen.getByText(/6 reports/i)).toBeTruthy();
-    // Soft Design A′: 6 ≤ page size 8 → PREV/NEXT Soft-chrome stays hidden
+    expect(screen.getByText(/7 reports/i)).toBeTruthy();
+    // Soft Design A′: 7 ≤ page size 8 → PREV/NEXT Soft-chrome stays hidden
     expect(screen.queryByTestId("incident-pagination")).toBeNull();
   });
 
