@@ -20,12 +20,20 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277)", () => {
-  it("renders Soft Design A′ list: 7 rows, VergeX first, pagination hidden (≤ page size 8)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279)", () => {
+  it("renders Soft Design A′ list: 8 rows, Talis first, pagination hidden (≤ page size 8)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();
     expect(screen.getByTestId("incident-list")).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-row-talis-protocol-injective-nft-exploit-2026-10-31")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId(
+        "incident-status-talis-protocol-injective-nft-exploit-2026-10-31"
+      ).textContent
+    ).toMatch(/CONTAINED/i);
     expect(
       screen.getByTestId("incident-row-vergex-account-drain-2026-10-31")
     ).toBeTruthy();
@@ -50,8 +58,8 @@ describe("IncidentsPanel (#268/#270/#275/#277)", () => {
     expect(screen.getByTestId("incident-row-hifi-finance-governance-2026-10-28")).toBeTruthy();
     expect(screen.getByTestId("incident-row-zklink-nova-bridge-2026-10-28")).toBeTruthy();
     expect(screen.getByTestId("incident-row-tranchepool-avalanche-2026-10-28")).toBeTruthy();
-    expect(screen.getByText(/7 reports/i)).toBeTruthy();
-    // Soft Design A′: 7 ≤ page size 8 → PREV/NEXT Soft-chrome stays hidden
+    expect(screen.getByText(/8 reports/i)).toBeTruthy();
+    // Soft Design A′: 8 ≤ page size 8 → PREV/NEXT Soft-chrome stays hidden
     expect(screen.queryByTestId("incident-pagination")).toBeNull();
   });
 

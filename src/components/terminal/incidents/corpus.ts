@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #277 — in-repo incidents[] (no CMS/API). VergeX CONTAINED append; Soft ACK #275/#272/#270 hold.
+ * @description Soft ACK #279 — in-repo incidents[] (no CMS/API). Talis Protocol CONTAINED append; Soft ACK #277/#275/#272 hold.
  * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-11-01 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,10 +9,259 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #277 appends VergeX CONTAINED; Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #279 appends Talis Protocol CONTAINED; Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * Soft-nice list order: occurredAt descending. Do not invent facts.
  */
 export const incidents: Incident[] = [
+  {
+    id: "talis-protocol-injective-nft-exploit-2026-10-31",
+    title: "Talis Protocol — Injective NFT marketplace / auction exploit (~5,700 NFTs)",
+    occurredAt: "2026-10-31T22:50:05.000Z",
+    status: "CONTAINED",
+    amountSummary:
+      "~5,700 escrowed NFTs taken and sold into open collection offers; >26,000 NFTs returned from contracts; USD undisclosed",
+    chains: ["Injective", "Multi-chain Talis (paused as precaution)"],
+    sources: [
+      {
+        id: "talis-x-1",
+        title: "Talis Protocol (@ProtocolTalis) 1/ — official ACK: bug in marketplace + auction contracts on Injective; ~5,700 escrowed NFTs taken",
+        url: "https://x.com/ProtocolTalis/status/2116664033457680705"
+      },
+      {
+        id: "talis-x-2",
+        title: "Talis 2/ — halted Injective listings/auctions; returned >26,000 NFTs from contracts to owners",
+        url: "https://x.com/ProtocolTalis/status/2116664036138025405"
+      },
+      {
+        id: "talis-x-3",
+        title: "Talis 3/ — other-chain listings/auctions paused; don't buy/list/bid until safe; open offers cancellable",
+        url: "https://x.com/ProtocolTalis/status/2116664039107637467"
+      },
+      {
+        id: "talis-x-4",
+        title: "Talis 4/ — patched contracts ready; pre-deployment review; timeline TBD",
+        url: "https://x.com/ProtocolTalis/status/2116664041032626506"
+      },
+      {
+        id: "talis-x-5",
+        title: "Talis 5/ — restitution plan: restore NFTs + make offer makers whole; affected list forthcoming",
+        url: "https://x.com/ProtocolTalis/status/2116664043566191069"
+      },
+      {
+        id: "talis-x-6",
+        title: "Talis 6/ — anti-phishing (never DM / wallet-connect claim); full post-mortem will follow",
+        url: "https://x.com/ProtocolTalis/status/2116664045604426067"
+      },
+      {
+        id: "chaincatcher-talis",
+        title: "ChainCatcher — press restatement of official ~5,700 NFTs / halt / return Soft-counts",
+        url: "https://www.chaincatcher.com/en/article/2300764"
+      },
+      {
+        id: "kucoin-talis",
+        title: "KuCoin flash — Talis Protocol NFT market on Injective exploited; 5,700 NFTs stolen",
+        url: "https://www.kucoin.com/news/flash/talis-protocol-nft-market-on-injective-exploited-5-700-nfts-stolen"
+      },
+      {
+        id: "slowmist-home",
+        title: "SlowMist Hacked — Soft-label: no Talis Protocol row this Soft Eng pass",
+        url: "https://hacked.slowmist.io/en/"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "Official @ProtocolTalis: on 31 Oct 2026 an attacker exploited a bug in the Talis marketplace and auction contracts on Injective. About 5,700 escrowed NFTs were taken and sold into open collection offers. Soft-read: on-chain smart-contract / marketplace-custody incident — not a DNS/frontend StepDrainer wave and not a CEX hot-wallet drain.",
+            sourceIds: ["talis-x-1", "chaincatcher-talis", "kucoin-talis"]
+          },
+          {
+            text: "Containment Soft-claimed in the same official thread: halted new listings/auctions on Injective; returned more than 26,000 NFTs still in the contracts to owners; paused new listings/auctions on other chains as a precaution; users told not to buy/list/bid until safe (open offers remain cancellable).",
+            sourceIds: ["talis-x-2", "talis-x-3"]
+          },
+          {
+            text: "Technical root cause beyond official “a bug” Soft-open: Soft Eng Soft-read found no SlowMist Talis row, no DefiLlama Talis Protocol hacks entry Soft-cited this pass, and no Soft-cited PeckShield/BlockSec/CertiK exploit write-up. Do not invent method, attacker addresses, or USD.",
+            sourceIds: ["talis-x-1", "talis-x-4", "slowmist-home"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "31 Oct 2026 (exact hour Soft-undisclosed): official Soft-labels exploit “Earlier today, Oct 31” — ~5,700 escrowed NFTs taken and sold into open collection offers on Injective.",
+            sourceIds: ["talis-x-1"]
+          },
+          {
+            text: "22:50:05 UTC 31 Oct (≈06:50 HKT 1 Nov): @ProtocolTalis 1/ disclosure thread starts — marketplace + auction contract bug Soft-ACK.",
+            sourceIds: ["talis-x-1"]
+          },
+          {
+            text: "22:50:06 UTC: 2/ — Injective listings/auctions halted; >26,000 NFTs returned from contracts (check wallet if listing/auction disappeared).",
+            sourceIds: ["talis-x-2"]
+          },
+          {
+            text: "22:50:07 UTC: 3/ — other chains paused as precaution; don’t buy/list/bid until safe; open offers cancellable.",
+            sourceIds: ["talis-x-3"]
+          },
+          {
+            text: "22:50:07 UTC: 4/ — patched contracts ready; pre-deployment review; timeline TBD.",
+            sourceIds: ["talis-x-4"]
+          },
+          {
+            text: "22:50:08 UTC: 5/ + 6/ — restitution plan (restore NFTs + make offer makers whole; publish affected list); anti-phishing; full post-mortem promised.",
+            sourceIds: ["talis-x-5", "talis-x-6"]
+          },
+          {
+            text: "Afternoon Soft Eng Soft-re-verify (~22:20 HKT 1 Nov): press flashes Soft-restate official Soft-counts; SlowMist Hacked Soft-label still no Talis row this pass; no Soft-cited newer @ProtocolTalis post after the thread.",
+            sourceIds: ["chaincatcher-talis", "kucoin-talis", "slowmist-home", "talis-x-1"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "Talis Protocol (@ProtocolTalis): primary official ACK + containment + restitution-plan promise + post-mortem Soft-commitment across the 6-part thread.",
+            sourceIds: ["talis-x-1", "talis-x-2", "talis-x-3", "talis-x-4", "talis-x-5", "talis-x-6"]
+          },
+          {
+            text: "SlowMist Hacked: Soft-label absence — Soft Eng Soft-re-verify Soft-found no Talis Protocol entry Soft-cited this pass (do not invent a SlowMist loss row).",
+            sourceIds: ["slowmist-home"]
+          },
+          {
+            text: "Injective L1 / unrelated protocols: Soft Eng Soft-read Soft-found no Soft-cited @injective official incident Soft-post Soft-claiming chain-level compromise in this pass — Soft-label exploit framed as Talis Injective contracts.",
+            sourceIds: ["talis-x-1", "talis-x-3"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "ChainCatcher Soft-restates official Soft-counts (~5,700 taken; halt; returns) — Soft-cite as secondary press, not an independent loss ledger.",
+            sourceIds: ["chaincatcher-talis", "talis-x-1"]
+          },
+          {
+            text: "KuCoin flash Soft-restates the same official Soft-facts (5,700 NFTs stolen on Injective Talis market) — Soft-label press Soft-amplify.",
+            sourceIds: ["kucoin-talis", "talis-x-1"]
+          },
+          {
+            text: "Soft Eng Soft-read: no Soft-cited DefiLlama Talis Protocol hacks Soft-row and no Soft-cited SlowMist Talis Soft-row this pass — Soft-label unlisted; do not invent firm Soft-method Soft-fields.",
+            sourceIds: ["slowmist-home", "talis-x-1"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status CONTAINED — not RESOLVED: official Soft-claims exploit path stopped via Injective halt + escrow Soft-return + other-chain pause, but patched contracts remain in pre-deploy review only, restitution Soft-plan Soft-unpublished, affected-NFT Soft-list Soft-pending, and post-mortem Soft-pending.",
+            sourceIds: ["talis-x-2", "talis-x-3", "talis-x-4", "talis-x-5", "talis-x-6"]
+          },
+          {
+            text: "Soft-label residual until live patch Soft-confirmed, restitution Soft-executed, and Soft-method Soft-post-mortem Soft-lands — do not flip to RESOLVED on pause Soft-alone.",
+            sourceIds: ["talis-x-4", "talis-x-5", "talis-x-6"]
+          },
+          {
+            text: "Stolen ~5,700 NFT ownership Soft-open; offer makers Soft-impacted with Soft-promised Soft-make-whole Soft-intent Soft-only.",
+            sourceIds: ["talis-x-1", "talis-x-5"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Soft-read: Soft-cite NFT Soft-counts Soft-from official Soft-only. ~5,700 taken ≠ >26,000 returned (remaining escrow returned is not the stolen set). USD / INJ cash loss undisclosed — do not invent a dollar figure.",
+            sourceIds: ["talis-x-1", "talis-x-2", "chaincatcher-talis", "kucoin-talis", "slowmist-home"]
+          }
+        ],
+        figures: [
+          {
+            label: "Escrowed NFTs taken + sold into collection offers (official)",
+            amount: "~5,700 NFTs",
+            confidence: "confirmed",
+            sourceIds: ["talis-x-1", "kucoin-talis"]
+          },
+          {
+            label: "NFTs returned from contracts to owners (official)",
+            amount: ">26,000 NFTs",
+            confidence: "confirmed",
+            sourceIds: ["talis-x-2"]
+          },
+          {
+            label: "USD / token cash loss",
+            amount: "Not disclosed",
+            confidence: "estimate",
+            sourceIds: ["talis-x-1", "slowmist-home", "chaincatcher-talis"]
+          },
+          {
+            label: "SlowMist listed loss",
+            amount: "n/a (no Talis row this pass)",
+            confidence: "estimate",
+            sourceIds: ["slowmist-home"]
+          },
+          {
+            label: "Patch / trading restore",
+            amount: "Pre-deploy review only; timeline TBD",
+            confidence: "confirmed",
+            sourceIds: ["talis-x-4"]
+          },
+          {
+            label: "Restitution",
+            amount: "Plan Soft-promised; Soft-not Soft-executed Soft-in Soft-this Soft-pass",
+            confidence: "estimate",
+            sourceIds: ["talis-x-5"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Exploit Soft-framed officially as Talis marketplace + auction contracts on Injective. Asset impact Soft-cited as escrowed NFTs (no official USDC / INJ cash figure).",
+            sourceIds: ["talis-x-1", "talis-x-2"]
+          },
+          {
+            text: "Other Talis chains: new listings / auctions paused as precaution only — official does not claim other-chain contracts were exploited.",
+            sourceIds: ["talis-x-3"]
+          },
+          {
+            text: "Product Soft-context only: injective.talis.art / talis.art Soft-label adjacency; do not equate to root cause without confirmation.",
+            sourceIds: ["talis-x-1", "chaincatcher-talis"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Soft ACK labels: Injective NFT marketplace exploit · official @ProtocolTalis ACK · ~5,700 escrowed NFTs · >26,000 NFTs returned · USD undisclosed · patch pre-deploy review · restitution forthcoming · SlowMist/DefiLlama unlisted (this pass).",
+            sourceIds: ["talis-x-1", "talis-x-2", "talis-x-4", "talis-x-5", "slowmist-home", "kucoin-talis"]
+          },
+          {
+            text: "Affected: owners of ~5,700 stolen escrowed NFTs; offer makers whose collection offers filled; owners of >26k returned escrow; broader Talis users under pause.",
+            sourceIds: ["talis-x-1", "talis-x-2", "talis-x-3", "talis-x-5"]
+          },
+          {
+            text: "Users Soft-advised: don’t buy / list / bid until team confirms safe; cancel open offers OK; don’t buy affected NFTs once list publishes; never trust DM / wallet-connect claim Soft-requests.",
+            sourceIds: ["talis-x-3", "talis-x-5", "talis-x-6"]
+          }
+        ]
+      }
+    ]
+  },
   {
     id: "vergex-account-drain-2026-10-31",
     title: "VergeX — AI trading platform account drain (~$3,688.58 USDC)",
