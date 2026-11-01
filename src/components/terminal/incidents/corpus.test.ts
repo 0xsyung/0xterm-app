@@ -12,16 +12,20 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
-  it("ships VergeX first by occurredAt desc, Soft ACK #277 + Soft ACK #275/#272/#270 hold (7 total)", () => {
-    expect(incidents.length).toBe(7);
-    expect(incidents[0]?.id).toBe("vergex-account-drain-2026-10-31");
+describe("incidents corpus (#268/#270/#272/#275/#277/#279)", () => {
+  it("ships Talis first by occurredAt desc, Soft ACK #279 + Soft ACK #277/#275/#272/#270 hold (8 total)", () => {
+    expect(incidents.length).toBe(8);
+    expect(incidents[0]?.id).toBe("talis-protocol-injective-nft-exploit-2026-10-31");
+    expect(getIncidentById("talis-protocol-injective-nft-exploit-2026-10-31")?.title).toMatch(
+      /Talis|Injective/i
+    );
     expect(getIncidentById("vergex-account-drain-2026-10-31")?.title).toMatch(/VergeX/i);
     expect(getIncidentById("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")?.title).toMatch(
       /Flap|Kintsu|StepDrainer/i
     );
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.title).toMatch(/Binance/i);
     expect(incidents.map((i) => i.id)).toEqual([
+      "talis-protocol-injective-nft-exploit-2026-10-31",
       "vergex-account-drain-2026-10-31",
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
       "binance-hot-wallet-2026-10-30",
@@ -93,7 +97,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
     }
   });
 
-  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 7 ≤ 8 → one page)", () => {
+  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 8 ≤ 8 → one page)", () => {
     expect(INCIDENT_PAGE_SIZE).toBe(8);
     expect(incidents.length).toBeLessThanOrEqual(INCIDENT_PAGE_SIZE);
     const one = pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE);
@@ -105,7 +109,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
         id: `extra-${i}`
       }))
     ];
-    expect(padded.length).toBe(17);
+    expect(padded.length).toBe(18);
     expect(pageIncidents(padded, 0, 8)).toHaveLength(8);
     expect(pageIncidents(padded, 1, 8)).toHaveLength(8);
     expect(incidentSourceMap(incidents[0]!).size).toBe(incidents[0]!.sources.length);
@@ -159,7 +163,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
     const orgs = binance.sections.find((s) => s.id === "orgs")!;
     expect(orgs.claims.some((c) => /PREDICT/i.test(c.text))).toBe(true);
     // Soft Design A / Eng C: Soft ACK #272 Binance + Soft ACK #270 four backfill Soft-hold
-    expect(incidents.map((i) => i.id).slice(2)).toEqual([
+    expect(incidents.map((i) => i.id).slice(3)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -225,8 +229,8 @@ describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
     expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
-    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold (after VergeX + Flap)
-    expect(incidents.map((i) => i.id).slice(2)).toEqual([
+    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold (after Talis + VergeX + Flap)
+    expect(incidents.map((i) => i.id).slice(3)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -283,8 +287,8 @@ describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
     const news = vx.sections.find((s) => s.id === "news")!;
     expect(news.claims.some((c) => /Tintin|850|TechFlow|Odaily/i.test(c.text))).toBe(true);
-    // Soft Design A / Eng C: prior six Soft PASS deep-dives Soft-hold
-    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+    // Soft Design A / Eng C: prior six Soft PASS deep-dives Soft-hold (after Talis + VergeX)
+    expect(incidents.map((i) => i.id).slice(2)).toEqual([
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
@@ -293,6 +297,80 @@ describe("incidents corpus (#268/#270/#272/#275/#277)", () => {
       "tranchepool-avalanche-2026-10-28"
     ]);
     expect(collectUnsourcedClaimPaths(vx)).toEqual([]);
+  });
+
+
+  it("Soft ACK #279 Talis Protocol CONTAINED: official thread URLs + SlowMist Soft-absence + prior seven hold", () => {
+    const talis = getIncidentById("talis-protocol-injective-nft-exploit-2026-10-31")!;
+    expect(talis.status).toBe("CONTAINED");
+    expect(talis.amountSummary).toMatch(/5,?700/);
+    expect(talis.amountSummary).toMatch(/26,?000|undisclosed/i);
+    const srcIds = new Set(talis.sources.map((s) => s.id));
+    for (const id of [
+      "talis-x-1",
+      "talis-x-2",
+      "talis-x-3",
+      "talis-x-4",
+      "talis-x-5",
+      "talis-x-6",
+      "chaincatcher-talis",
+      "kucoin-talis",
+      "slowmist-home"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(talis.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(talis.sources.find((s) => s.id === "talis-x-1")?.url).toContain(
+      "2116664033457680705"
+    );
+    expect(talis.sources.find((s) => s.id === "talis-x-2")?.url).toContain(
+      "2116664036138025405"
+    );
+    expect(talis.sources.find((s) => s.id === "talis-x-3")?.url).toContain(
+      "2116664039107637467"
+    );
+    expect(talis.sources.find((s) => s.id === "talis-x-4")?.url).toContain(
+      "2116664041032626506"
+    );
+    expect(talis.sources.find((s) => s.id === "talis-x-5")?.url).toContain(
+      "2116664043566191069"
+    );
+    expect(talis.sources.find((s) => s.id === "talis-x-6")?.url).toContain(
+      "2116664045604426067"
+    );
+    expect(talis.sources.find((s) => s.id === "slowmist-home")?.url).toContain(
+      "hacked.slowmist.io"
+    );
+    const what = talis.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/Injective/i);
+    expect(whatText).toMatch(/5,?700/);
+    expect(whatText).toMatch(/marketplace|auction/i);
+    const status = talis.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/CONTAINED/i);
+    expect(statusText).not.toMatch(/Status RESOLVED/);
+    expect(statusText).toMatch(/not RESOLVED|do not flip to RESOLVED/i);
+    expect(statusText).toMatch(/pre-deploy|restitution|post-mortem/i);
+    const money = talis.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /5,?700/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /26,?000/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /Not disclosed|undisclosed|n\/a/i.test(f.amount))).toBe(
+      true
+    );
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    // Soft Design A / Eng C: prior seven Soft PASS deep-dives Soft-hold
+    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+      "vergex-account-drain-2026-10-31",
+      "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+      "binance-hot-wallet-2026-10-30",
+      "polymarket-debugbear-rum-2026-10-29",
+      "hifi-finance-governance-2026-10-28",
+      "zklink-nova-bridge-2026-10-28",
+      "tranchepool-avalanche-2026-10-28"
+    ]);
+    expect(collectUnsourcedClaimPaths(talis)).toEqual([]);
   });
 
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {
