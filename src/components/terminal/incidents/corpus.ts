@@ -1,7 +1,7 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #275 — in-repo incidents[] (no CMS/API). Flap/Kintsu/StepDrainer ACTIVE append; Soft ACK #272/#270 hold.
- * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-10-31 HKT.
+ * @description Soft ACK #277 — in-repo incidents[] (no CMS/API). VergeX CONTAINED append; Soft ACK #275/#272/#270 hold.
+ * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-11-01 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -9,10 +9,234 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #275 appends Flap/Kintsu/StepDrainer ACTIVE; Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #277 appends VergeX CONTAINED; Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * Soft-nice list order: occurredAt descending. Do not invent facts.
  */
 export const incidents: Incident[] = [
+  {
+    id: "vergex-account-drain-2026-10-31",
+    title: "VergeX — AI trading platform account drain (~$3,688.58 USDC)",
+    occurredAt: "2026-10-31T13:56:00.000Z",
+    status: "CONTAINED",
+    amountSummary:
+      "official ~$3,688.58 USDC affected and returned; earlier community max ~850 USDT/user",
+    chains: ["Multi-chain (platform accounts)", "USDC"],
+    sources: [
+      {
+        id: "vergex-x-ack",
+        title: "VergeX (@vergex_ai) — official incident ACK; 3,688.58 USDC returned; staged restore",
+        url: "https://x.com/vergex_ai/status/2116549211110129781"
+      },
+      {
+        id: "tintin-sync",
+        title: "Tintin (@Tintinx2021) — Chinese sync of official 3,688.58 USDC + funds returned",
+        url: "https://x.com/Tintinx2021/status/2116549547900252399"
+      },
+      {
+        id: "tintin-refund",
+        title: "Tintin — reply to Odaily: affected users fully refunded; others unaffected",
+        url: "https://x.com/Tintinx2021/status/2116550692194447597"
+      },
+      {
+        id: "odaily-early",
+        title: "Odaily — early Tintin community Soft-label (~850 USDT max / 72h); official silent at press",
+        url: "https://x.com/OdailyChina/status/2116541915634229416"
+      },
+      {
+        id: "techflow-early",
+        title: "TechFlow — community drain window ~21:56 HKT; Tintin few users / ~850 USDT max / 72h",
+        url: "https://www.techflowpost.com/en-US/newsletter/142252"
+      },
+      {
+        id: "slowmist-vergex",
+        title: "SlowMist Hacked — VergeX $3,688.58; method Unknown; returned / staged restore",
+        url: "https://hacked.slowmist.io/en/"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "Users of VergeX (AI trading / agent platform) reported consecutive withdrawal-verification / OTP emails with no user action, then unauthorized transfers out of platform accounts. Soft-read: account / withdrawal-authorization incident — not a public smart-contract exploit and not a DNS/frontend StepDrainer wave.",
+            sourceIds: ["vergex-x-ack", "techflow-early", "odaily-early", "slowmist-vergex"]
+          },
+          {
+            text: "@vergex_ai official: risk controls triggered within one minute; some users received withdrawal verification emails triggered by the attack; total 3,688.58 USDC affected; other users unaffected; all affected funds returned; services restoring in stages; withdrawal reopen schedule TBD via official X + community.",
+            sourceIds: ["vergex-x-ack", "tintin-sync", "slowmist-vergex"]
+          },
+          {
+            text: "Attack method remains Unknown (SlowMist + no official technical root-cause). Soft-label community speculation that the drain touched VergeX account / withdrawal-auth path vs Trade-only exchange API alone is unconfirmed.",
+            sourceIds: ["slowmist-vergex", "vergex-x-ack"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "~13:56 UTC 31 Oct 2026 (≈21:56 HKT): Soft-label community window — consecutive withdrawal verification emails, then unauthorized transfers (TechFlow / Odaily restating community).",
+            sourceIds: ["techflow-early", "odaily-early"]
+          },
+          {
+            text: "~14:39–14:44 UTC (≈22:39–22:44 HKT): Press Soft-cites Tintin community Soft-label — few users; max ~850 USDT each; refunds within 72h; @vergex_ai still silent at publish.",
+            sourceIds: ["techflow-early", "odaily-early"]
+          },
+          {
+            text: "15:13 UTC (≈23:13 HKT): @vergex_ai official ACK — 3,688.58 USDC affected; funds returned; staged restore; withdrawal reopen TBD.",
+            sourceIds: ["vergex-x-ack"]
+          },
+          {
+            text: "15:15 UTC (≈23:15 HKT): Tintin Chinese sync of same official numbers + funds returned.",
+            sourceIds: ["tintin-sync"]
+          },
+          {
+            text: "15:19 UTC (≈23:19 HKT): Tintin reply to Odaily — affected users fully refunded; funds back in accounts; others unaffected.",
+            sourceIds: ["tintin-refund", "odaily-early"]
+          },
+          {
+            text: "Overnight / Soft Eng re-verify (~00:45–01:00 HKT 1 Nov): SlowMist lists VergeX $3,688.58 / method Unknown / returned / staged restore; no Soft-cited official withdrawal-reopen post.",
+            sourceIds: ["slowmist-vergex", "vergex-x-ack"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "VergeX (@vergex_ai): official incident ACK; risk controls <1 min; 3,688.58 USDC affected and returned; staged service restore; withdrawal reopen schedule TBD.",
+            sourceIds: ["vergex-x-ack"]
+          },
+          {
+            text: "Tintin (@Tintinx2021): early community Soft-label (few users / ~850 USDT max / 72h refund) via press; later X sync matching official USDC total and refund-complete replies.",
+            sourceIds: ["odaily-early", "techflow-early", "tintin-sync", "tintin-refund"]
+          },
+          {
+            text: "SlowMist Hacked: lists VergeX 2026-10-31 at $3,688.58 with method Unknown; description mirrors official returned / staged-restore language.",
+            sourceIds: ["slowmist-vergex"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "TechFlow (datePublished ~14:39 UTC): community drain Soft-window ~21:56 HKT; Tintin Soft-label few users / ~850 USDT max / 72h; official X silent at publish — Soft-label early estimate vs later official total.",
+            sourceIds: ["techflow-early"]
+          },
+          {
+            text: "Odaily X restates the same early Tintin Soft-label (≈22:44 HKT) with screenshots Soft-cited in press — Soft-label community screenshots alone are not a loss ledger.",
+            sourceIds: ["odaily-early"]
+          },
+          {
+            text: "SlowMist Hacked restates official $3,688.58 and Unknown method; Soft Eng Soft-read: no DefiLlama VergeX hacks entry Soft-cited this pass.",
+            sourceIds: ["slowmist-vergex"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status CONTAINED — not RESOLVED: official claims impact stopped and all affected funds returned, but attack method remains open and withdrawals / full service restore remain staged (reopen schedule TBD).",
+            sourceIds: ["vergex-x-ack", "slowmist-vergex", "tintin-refund"]
+          },
+          {
+            text: "Soft-label residual platform risk until root cause, confirmed withdrawal reopen, and post-mortem land — do not flip to RESOLVED on refunds alone.",
+            sourceIds: ["vergex-x-ack", "slowmist-vergex"]
+          },
+          {
+            text: "Other users Soft-claimed unaffected (official + Tintin).",
+            sourceIds: ["vergex-x-ack", "tintin-sync", "tintin-refund"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Soft-read: official total 3,688.58 USDC supersedes earlier Tintin-via-press ~850 USDT max / user Soft-label for the aggregate. Do not invent a USDT↔USDC conversion narrative.",
+            sourceIds: ["vergex-x-ack", "odaily-early", "techflow-early", "slowmist-vergex"]
+          }
+        ],
+        figures: [
+          {
+            label: "Official affected total (@vergex_ai)",
+            amount: "3,688.58 USDC",
+            confidence: "confirmed",
+            sourceIds: ["vergex-x-ack", "tintin-sync"]
+          },
+          {
+            label: "SlowMist listed loss",
+            amount: "$3,688.58",
+            confidence: "estimate",
+            sourceIds: ["slowmist-vergex"]
+          },
+          {
+            label: "Early Tintin Soft-label max / user (via TechFlow / Odaily)",
+            amount: "~850 USDT (pre-official total)",
+            confidence: "estimate",
+            sourceIds: ["techflow-early", "odaily-early"]
+          },
+          {
+            label: "Funds returned (official + Tintin)",
+            amount: "All affected (official claim)",
+            confidence: "confirmed",
+            sourceIds: ["vergex-x-ack", "tintin-refund", "tintin-sync"]
+          },
+          {
+            label: "Attack method",
+            amount: "Unknown",
+            confidence: "estimate",
+            sourceIds: ["slowmist-vergex", "vergex-x-ack"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Asset Soft-cited officially as USDC (3,688.58). Early press Soft-label used USDT for the per-user max — Soft-label unit difference only; aggregate Soft-cites official USDC.",
+            sourceIds: ["vergex-x-ack", "techflow-early", "odaily-early"]
+          },
+          {
+            text: "Soft-read: account / withdrawal-authorization path on VergeX platform accounts — no Soft-cited official claim of on-chain protocol / Hyperliquid exploit in this pass.",
+            sourceIds: ["vergex-x-ack", "slowmist-vergex", "techflow-early"]
+          },
+          {
+            text: "Product Soft-context only: vergex.trade risk disclosure Soft-positions non-custodial exchange/API trading — Soft-label adjacency; do not equate to root cause without confirmation.",
+            sourceIds: ["vergex-x-ack"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Soft ACK labels: AI trading platform account drain · official @vergex_ai ACK · SlowMist listed · ~$3,688.58 USDC · funds returned (official) · attack method unknown · withdrawals staged restore · Tintin community then official.",
+            sourceIds: ["vergex-x-ack", "slowmist-vergex", "techflow-early", "odaily-early", "tintin-refund"]
+          },
+          {
+            text: "Affected scope Soft-claimed as a few / some users; others Soft-claimed unaffected. Exact user count and any residual disputes Soft-open.",
+            sourceIds: ["vergex-x-ack", "techflow-early", "tintin-refund"]
+          },
+          {
+            text: "Users Soft-advised by official to log in and check balances; withdrawal reopen TBD via official X + community — Soft-label residual until reopen confirmed.",
+            sourceIds: ["vergex-x-ack", "tintin-sync"]
+          }
+        ]
+      }
+    ]
+  },
   {
     id: "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
     title: "Flap / Kintsu / StepDrainer — DNS + frontend wave",
