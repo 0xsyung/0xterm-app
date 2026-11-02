@@ -13,10 +13,11 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)", () => {
-  it("ships BTCPay first by occurredAt desc; Soft ACK #281/#282/#284 + Soft ACK #279/#277/#275/#272/#270 hold (11 total)", () => {
-    expect(incidents.length).toBe(11);
-    expect(incidents[0]?.id).toBe("btcpay-server-hot-wallet-sweeps-2026-11-01");
+describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285/#296)", () => {
+  it("ships b14g first by occurredAt desc; Soft ACK #296 + Soft ACK #281/#282/#284 + Soft ACK #279/#277/#275/#272/#270 hold (12 total)", () => {
+    expect(incidents.length).toBe(12);
+    expect(incidents[0]?.id).toBe("b14g-core-hardfork-recovery-2026-11-02");
+    expect(getIncidentById("b14g-core-hardfork-recovery-2026-11-02")?.title).toMatch(/b14g|Core/i);
     expect(getIncidentById("btcpay-server-hot-wallet-sweeps-2026-11-01")?.title).toMatch(/BTCPay/i);
     expect(getIncidentById("solana-mobile-skr-claim-dapp-store-phishing-2026-11-01")?.title).toMatch(
       /Solana Mobile|SKR Claim/i
@@ -33,6 +34,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     );
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.title).toMatch(/Binance/i);
     expect(incidents.map((i) => i.id)).toEqual([
+      "b14g-core-hardfork-recovery-2026-11-02",
       "btcpay-server-hot-wallet-sweeps-2026-11-01",
       "solana-mobile-skr-claim-dapp-store-phishing-2026-11-01",
       "talis-protocol-injective-nft-exploit-2026-10-31",
@@ -115,7 +117,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     }
   });
 
-  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 11 > 8 → pagination)", () => {
+  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 12 > 8 → pagination)", () => {
     expect(INCIDENT_PAGE_SIZE).toBe(8);
     expect(incidents.length).toBeGreaterThan(INCIDENT_PAGE_SIZE);
     expect(pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE)).toHaveLength(INCIDENT_PAGE_SIZE);
@@ -129,7 +131,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
         id: `extra-${i}`
       }))
     ];
-    expect(padded.length).toBe(21);
+    expect(padded.length).toBe(22);
     expect(pageIncidents(padded, 0, 8)).toHaveLength(8);
     expect(pageIncidents(padded, 1, 8)).toHaveLength(8);
     expect(incidentSourceMap(incidents[0]!).size).toBe(incidents[0]!.sources.length);
@@ -184,7 +186,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     const orgs = binance.sections.find((s) => s.id === "orgs")!;
     expect(orgs.claims.some((c) => /PREDICT/i.test(c.text))).toBe(true);
     // Soft Design A / Eng C: Soft ACK #272 Binance + Soft ACK #270 four backfill Soft-hold
-    expect(incidents.map((i) => i.id).slice(6)).toEqual([
+    expect(incidents.map((i) => i.id).slice(7)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -251,7 +253,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
     // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold (after newer appends + Flap)
-    expect(incidents.map((i) => i.id).slice(6)).toEqual([
+    expect(incidents.map((i) => i.id).slice(7)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -309,7 +311,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     const news = vx.sections.find((s) => s.id === "news")!;
     expect(news.claims.some((c) => /Tintin|850|TechFlow|Odaily/i.test(c.text))).toBe(true);
     // Soft Design A / Eng C: prior six Soft PASS deep-dives Soft-hold (after newer appends + VergeX)
-    expect(incidents.map((i) => i.id).slice(4)).toEqual([
+    expect(incidents.map((i) => i.id).slice(5)).toEqual([
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
       "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
       "binance-hot-wallet-2026-10-30",
@@ -383,7 +385,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
     // Soft Design A / Eng C: prior seven Soft PASS deep-dives Soft-hold (after Soft ACK #281/#282 prepend)
-    expect(incidents.map((i) => i.id).slice(3)).toEqual([
+    expect(incidents.map((i) => i.id).slice(4)).toEqual([
       "vergex-account-drain-2026-10-31",
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
       "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
@@ -397,7 +399,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
   });
 
   it("Soft ACK #285 Background Soft-backfill: every incident Soft-has protocolType; size Soft-metrics Soft-cite; no Soft-filler N/A", () => {
-    expect(incidents.length).toBe(11);
+    expect(incidents.length).toBe(12);
     for (const inc of incidents) {
       expect(inc.background, inc.id).toBeTruthy();
       expect(inc.background!.protocolType.trim().length, inc.id).toBeGreaterThan(0);
@@ -427,6 +429,9 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     expect(
       getIncidentById("threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30")?.background?.protocolType
     ).toBe("bridge");
+    expect(getIncidentById("b14g-core-hardfork-recovery-2026-11-02")?.background?.protocolType).toBe(
+      "restaking"
+    );
   });
 
   it("Soft ACK #281 Solana Mobile SKR Claim CONTAINED: official URLs + press Seed Vault Soft-label + prior hold", () => {
@@ -551,6 +556,82 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)",
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
     expect(collectUnsourcedClaimPaths(th)).toEqual([]);
+  });
+
+  it("Soft ACK #296 b14g / Core CONTAINED recovery Update: hard-fork clawback + residual Soft-locks + prior hold", () => {
+    const b14g = getIncidentById("b14g-core-hardfork-recovery-2026-11-02")!;
+    expect(b14g.status).toBe("CONTAINED");
+    expect(b14g.status).not.toBe("RESOLVED");
+    expect(b14g.amountSummary).toMatch(/68,?146,?177\.22/);
+    expect(b14g.amountSummary).toMatch(/70\.2%/);
+    expect(b14g.amountSummary).toMatch(/28\.9M|28\.90M/);
+    expect(b14g.amountSummary).toMatch(/not distributed/i);
+    expect(b14g.background?.protocolType).toBe("restaking");
+    expect(b14g.background?.sizeMetrics?.length).toBeGreaterThan(0);
+    const srcIds = new Set(b14g.sources.map((s) => s.id));
+    for (const id of [
+      "b14g-recovery-x",
+      "corescan-recovery",
+      "bitquery-b14g",
+      "tokenpost-b14g",
+      "pwn-b14g"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(b14g.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(b14g.sources.find((s) => s.id === "b14g-recovery-x")?.url).toContain(
+      "2117155664980251068"
+    );
+    expect(b14g.sources.find((s) => s.id === "corescan-recovery")?.url).toContain(
+      "0xb85095fE01C1d95da3B1df0998ff5eDDcC9ac064"
+    );
+    expect(b14g.sources.find((s) => s.id === "bitquery-b14g")?.url).toContain(
+      "bitquery.io/investigations/b14g-hack"
+    );
+    expect(b14g.sources.find((s) => s.id === "tokenpost-b14g")?.url).toContain("46223");
+    expect(b14g.sources.find((s) => s.id === "pwn-b14g")?.url).toContain(
+      "b14g-core-staking-zero-withdrawal-drain-oct-2026"
+    );
+    const what = b14g.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/97,?045,?563/);
+    expect(whatText).toMatch(/zero|0 CORE/i);
+    expect(whatText).toMatch(/68,?146,?177\.22/);
+    expect(whatText).toMatch(/0xb85095fE01C1d95da3B1df0998ff5eDDcC9ac064/);
+    expect(whatText).toMatch(/fake recovery/i);
+    const status = b14g.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/CONTAINED/i);
+    expect(statusText).toMatch(/recovery in progress/i);
+    expect(statusText).not.toMatch(/Status RESOLVED/);
+    expect(statusText).toMatch(/not RESOLVED|do not flip to RESOLVED/i);
+    expect(statusText).toMatch(/not been distributed|not distributed/i);
+    expect(statusText).toMatch(/fake recovery/i);
+    const money = b14g.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /68,?146,?177\.22/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /97,?045,?563/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /28\.90M|28\.9M/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /0xb85095fE01C1d95da3B1df0998ff5eDDcC9ac064/.test(f.amount))).toBe(
+      true
+    );
+    expect(money.figures!.some((f) => /0 so far/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+      "btcpay-server-hot-wallet-sweeps-2026-11-01",
+      "solana-mobile-skr-claim-dapp-store-phishing-2026-11-01",
+      "talis-protocol-injective-nft-exploit-2026-10-31",
+      "vergex-account-drain-2026-10-31",
+      "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+      "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
+      "binance-hot-wallet-2026-10-30",
+      "polymarket-debugbear-rum-2026-10-29",
+      "hifi-finance-governance-2026-10-28",
+      "zklink-nova-bridge-2026-10-28",
+      "tranchepool-avalanche-2026-10-28"
+    ]);
+    expect(collectUnsourcedClaimPaths(b14g)).toEqual([]);
+    expect(collectOpsJargonPaths(b14g)).toEqual([]);
   });
 
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {

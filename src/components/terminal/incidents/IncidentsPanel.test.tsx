@@ -20,12 +20,19 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285)", () => {
-  it("renders Soft Design A′ list: page-1 rows, BTCPay first, pagination shown (11 > page size 8)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#296)", () => {
+  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (12 > page size 8)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();
     expect(screen.getByTestId("incident-list")).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-row-b14g-core-hardfork-recovery-2026-11-02")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-status-b14g-core-hardfork-recovery-2026-11-02")
+        .textContent
+    ).toMatch(/CONTAINED/i);
     expect(
       screen.getByTestId("incident-row-btcpay-server-hot-wallet-sweeps-2026-11-01")
     ).toBeTruthy();
@@ -61,10 +68,10 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285)", (
     expect(
       screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
     ).toBeTruthy();
-    expect(screen.getByTestId("incident-row-polymarket-debugbear-rum-2026-10-29")).toBeTruthy();
-    // Soft Design A′: 11 > page size 8 → page 1 shows 8; remaining on page 2
+    // Soft Design A′: 12 > page size 8 → page 1 shows 8; polymarket+older on page 2
+    expect(screen.queryByTestId("incident-row-polymarket-debugbear-rum-2026-10-29")).toBeNull();
     expect(screen.queryByTestId("incident-row-hifi-finance-governance-2026-10-28")).toBeNull();
-    expect(screen.getByText(/11 reports/i)).toBeTruthy();
+    expect(screen.getByText(/12 reports/i)).toBeTruthy();
     expect(screen.getByTestId("incident-pagination")).toBeTruthy();
   });
 
