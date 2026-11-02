@@ -20,8 +20,8 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#296)", () => {
-  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (12 > page size 8)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291/#296)", () => {
+  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (12 > page size 8; Soft ACK #291 BTCPay ACTIVE Update)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();

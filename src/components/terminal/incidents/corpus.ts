@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #296 b14g / Core hard-fork recovery corpus Update + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
+ * @description Soft ACK #296 b14g / Core hard-fork recovery corpus Update + Soft ACK #291 BTCPay hot-wallet sweeps version-scope IR Update + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
  * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-02 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,7 +9,7 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #296 prepends b14g / Core recovery Update; Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #296 prepends b14g / Core recovery Update; Soft ACK #291 Updates Soft ID btcpay-server-hot-wallet-sweeps-2026-11-01 (ACTIVE version-scoped); Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * List order: occurredAt descending. Do not invent facts or unsourced size metrics. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
@@ -276,14 +276,14 @@ export const incidents: Incident[] = [
     occurredAt: "2026-11-01T22:25:56.000Z",
     status: "ACTIVE",
     amountSummary:
-      "Loss total and instance count undisclosed; multiple self-hosted instances reported swept",
+      "Loss total and instance count undisclosed; multiple self-hosted instances reported swept; SlowMist listed with unknown amount",
     chains: ["Bitcoin (self-hosted BTCPay Server hot wallets)"],
     background: {
       protocolType: "merchant infra",
       notes: [
         {
-          text: "BTCPay Server is open-source self-hosted Bitcoin payment processor software; this report covers hot-wallet sweeps on operator-run instances.",
-          sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs"]
+          text: "BTCPay Server is open-source self-hosted Bitcoin payment processor software. This report covers unauthorized hot-wallet sweeps on operator-run instances and the official version-scope IR that targets builds 2.4.1 (Jul 23, 2026) or older.",
+          sourceIds: ["btcpay-x-alert", "btcpay-x-ir", "btcpay-wallet-docs"]
         }
       ]
     },
@@ -292,6 +292,21 @@ export const incidents: Incident[] = [
         id: "btcpay-x-alert",
         title: "BTCPay Server (@BtcpayServer) — emergency alert: hot wallets swept; shut down with ./btcpay-down.sh",
         url: "https://x.com/BtcpayServer/status/2117020340815819262"
+      },
+      {
+        id: "btcpay-x-ir",
+        title: "BTCPay Server (@BtcpayServer) — IR: attack vector targets 2.4.1 or older; no credible drains on 2.4.7",
+        url: "https://x.com/BtcpayServer/status/2117106238123123008"
+      },
+      {
+        id: "btcpay-x-hosts",
+        title: "BTCPay Server (@BtcpayServer) — hosts may auto-shut older instances; thanks LunaNode",
+        url: "https://x.com/BtcpayServer/status/2117106240098611681"
+      },
+      {
+        id: "dorier-prelim",
+        title: "Nicolas Dorier (@NicolasDorier) — founder preliminary: admin login; reports before 2.4.2; blog promised",
+        url: "https://x.com/NicolasDorier/status/2117051298633900041"
       },
       {
         id: "btcpay-wallet-docs",
@@ -310,7 +325,7 @@ export const incidents: Incident[] = [
       },
       {
         id: "btcpay-release-247",
-        title: "BTCPay GitHub release v2.4.7 — Anthropic OSS Scanner findings (adjacent; link to Nov 1 sweeps unconfirmed)",
+        title: "BTCPay GitHub release v2.4.7 — Anthropic OSS Scanner findings (adjacent; not confirmed as this vector’s patch)",
         url: "https://github.com/btcpayserver/btcpayserver/releases/tag/v2.4.7"
       },
       {
@@ -324,8 +339,13 @@ export const incidents: Incident[] = [
         url: "https://thedefiant.io/news/hacks/btcpay-server-urges-shutdown-after-reports-of-hot-wallet-sweeps"
       },
       {
+        id: "tokenpost-btcpay",
+        title: "TokenPost — BTCPay founder older-versions framing restatement",
+        url: "https://www.tokenpost.com/news/technology/46072"
+      },
+      {
         id: "slowmist-home",
-        title: "SlowMist Hacked — no BTCPay hot-wallet-sweep row this Eng pass",
+        title: "SlowMist Hacked — BTCPay Server listed 2026-11-01; amount -; method Unknown",
         url: "https://hacked.slowmist.io/en/"
       }
     ],
@@ -335,16 +355,20 @@ export const incidents: Incident[] = [
         title: "What happened / how",
         claims: [
           {
-            text: "Official @BtcpayServer: the project is receiving reports that unauthorized attackers are sweeping hot wallets on running BTCPay Server instances. Operators were told to shut down with ./btcpay-down.sh and stay offline until the investigation completes. The alert is not version-scoped in the official text.",
+            text: "Official @BtcpayServer reported unauthorized attackers sweeping hot wallets on running self-hosted BTCPay Server instances and told operators to shut down with ./btcpay-down.sh until the investigation completes. That emergency shutdown instruction has not been formally rescinded in a later all-clear.",
             sourceIds: ["btcpay-x-alert", "defiant-btcpay"]
           },
           {
-            text: "This is a self-hosted merchant-software / server-side hot-wallet incident (keys or seeds stored on the operator's BTCPay box when hot-wallet mode is enabled), not a Bitcoin L1 consensus failure and not a CEX custodial drain. Per BTCPay docs, creating a hot wallet keeps the private key on the server so BTCPay can sign spends.",
+            text: "A follow-up official IR stated the attack vector targets instances running versions 2.4.1 (Jul 23, 2026) or older, with no credible reports of hot-wallet drains for operators on the latest 2.4.7 release. Operators were urged to keep BTCPay Server updated; impacted operators were asked to email security@btcpayserver.org with details and logs.",
+            sourceIds: ["btcpay-x-ir"]
+          },
+          {
+            text: "This is a self-hosted merchant-software / server-side hot-wallet incident (keys or seeds stored on the operator’s BTCPay box when hot-wallet mode is enabled), not a Bitcoin L1 consensus failure and not a CEX custodial drain. Per BTCPay docs, creating a hot wallet keeps the private key on the server so BTCPay can sign spends.",
             sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs", "btcpay-create-wallet"]
           },
           {
-            text: "Root cause is undisclosed. Do not invent method, affected versions, attacker addresses, or a USD loss total. Treat the August 2026 LND-macaroon advisory as a distinct prior incident unless later officially linked; the Oct 29 2.4.7 emergency release is adjacent context only and is not confirmed as the Nov 1 vector.",
-            sourceIds: ["btcpay-x-alert", "btcpay-advisory-242", "btcpay-release-247", "btcpay-x-247", "slowmist-home"]
+            text: "Founder @NicolasDorier (preliminary, not formal IR) said affected instances showed attacker admin login, that reports appear before 2.4.2, and that traces point to pre-2.4.2 vulnerabilities being used, with a blog post promised. Official IR wording (≤2.4.1) is the status scope used here; treat founder “before / above 2.4.2” language as aligned on older builds, not as a formal all-clear. Do not claim 2.4.7 is a confirmed patch for this vector, invent a USD or instance count, publish an exact admin-login entry path, or treat the August 2026 LND-macaroon advisory as confirmed linkage unless a later official write-up says so.",
+            sourceIds: ["dorier-prelim", "btcpay-x-ir", "btcpay-advisory-242", "btcpay-release-247", "btcpay-x-247", "tokenpost-btcpay"]
           }
         ]
       },
@@ -354,15 +378,15 @@ export const incidents: Incident[] = [
         claims: [],
         bullets: [
           {
-            text: "7–8 Aug 2026: prior LND macaroon credential incident; advisory to update to 2.4.2; official then confirmed BTCPay on-chain/hot wallets were not affected by that flaw.",
+            text: "7–8 Aug 2026: prior LND macaroon credential incident; advisory to update to 2.4.2; official then confirmed BTCPay on-chain/hot wallets were not affected by that flaw. Treat as historical / separate unless a later official post links it.",
             sourceIds: ["btcpay-advisory-242"]
           },
           {
-            text: "29 Oct 2026 ~15:57 UTC: @BtcpayServer emergency 2.4.7 (Anthropic OSS Scanner findings). Link to Nov 1 hot-wallet sweeps remains unconfirmed.",
-            sourceIds: ["btcpay-x-247", "btcpay-release-247"]
+            text: "29 Oct 2026 ~15:57 UTC: @BtcpayServer emergency 2.4.7 (Anthropic OSS Scanner findings). Official IR later noted no credible drains on 2.4.7 for this Nov event; that is not the same as confirming 2.4.7 as the patch that closed this vector.",
+            sourceIds: ["btcpay-x-247", "btcpay-release-247", "btcpay-x-ir"]
           },
           {
-            text: "Undisclosed start: hot-wallet sweeps begin on some instances (official only: \"receiving reports\").",
+            text: "Undisclosed start: hot-wallet sweeps begin on some instances (official only: “receiving reports”).",
             sourceIds: ["btcpay-x-alert"]
           },
           {
@@ -370,8 +394,20 @@ export const incidents: Incident[] = [
             sourceIds: ["btcpay-x-alert"]
           },
           {
-            text: "Through this Eng pass: press restates the official alert; no newer @BtcpayServer all-clear or root-cause post found; SlowMist Hacked shows no BTCPay hot-wallet-sweep row.",
-            sourceIds: ["defiant-btcpay", "btcpay-x-alert", "slowmist-home"]
+            text: "2 Nov 2026 00:28:57 UTC (~08:28 HKT): @NicolasDorier preliminary — public servers on 2.4.7 not attacked; reports appear before 2.4.2; attacker logged in as admin; still figuring out how (founder, not formal IR).",
+            sourceIds: ["dorier-prelim", "tokenpost-btcpay"]
+          },
+          {
+            text: "2 Nov 2026 04:07:15 UTC (~12:07 HKT): @BtcpayServer IR — attack vector targets versions 2.4.1 (Jul 23, 2026) or older; no credible reports of drains on latest 2.4.7; keep updated; report to security@btcpayserver.org.",
+            sourceIds: ["btcpay-x-ir"]
+          },
+          {
+            text: "2 Nov 2026 04:07:16 UTC (~12:07 HKT): @BtcpayServer hosts reply — hosting providers may have auto-shut older instances; thanks @LunaNode and other hosts.",
+            sourceIds: ["btcpay-x-hosts"]
+          },
+          {
+            text: "Through this Update: SlowMist Hacked lists BTCPay Server (2026-11-01) with amount “-” and method Unknown; no formal all-clear, blog advisory, or new GHSA for this Nov event found; DefiLlama still shows no BTCPay row in cited sources.",
+            sourceIds: ["slowmist-home", "btcpay-x-ir", "btcpay-x-alert", "defiant-btcpay"]
           }
         ]
       },
@@ -380,16 +416,24 @@ export const incidents: Incident[] = [
         title: "Organization reactions",
         claims: [
           {
-            text: "BTCPay Server (@BtcpayServer): primary official ACK and emergency shutdown instruction; investigation ongoing; no patch version or all-clear in the Nov 1 alert.",
-            sourceIds: ["btcpay-x-alert"]
+            text: "BTCPay Server (@BtcpayServer): primary official ACK — emergency shutdown, then IR version-scope (≤2.4.1 / no credible drains on 2.4.7), host auto-shutdown thanks, and security@ intake for impacted operators. Investigation ongoing; no formal all-clear in IR text.",
+            sourceIds: ["btcpay-x-alert", "btcpay-x-ir", "btcpay-x-hosts"]
           },
           {
-            text: "SlowMist Hacked: no BTCPay hot-wallet-sweep entry found this Eng pass — do not invent a SlowMist loss row.",
+            text: "Hosting providers (e.g. LunaNode): official reply says some hosts may already have shut older instances automatically after the initial alert to keep outdated builds from being exploited.",
+            sourceIds: ["btcpay-x-hosts"]
+          },
+          {
+            text: "Nicolas Dorier (founder): preliminary admin-login and before-2.4.2 framing; blog promised. Cite as founder commentary, not a substitute for the official IR.",
+            sourceIds: ["dorier-prelim", "tokenpost-btcpay", "btcpay-x-ir"]
+          },
+          {
+            text: "SlowMist Hacked: lists BTCPay Server dated 2026-11-01 with amount “-” and method Unknown — listed, but no loss figure.",
             sourceIds: ["slowmist-home"]
           },
           {
-            text: "August 2026 LND advisory remains published historical context; official Nov 1 post does not state whether the sweeps are connected to that earlier flaw.",
-            sourceIds: ["btcpay-advisory-242", "btcpay-x-alert"]
+            text: "August 2026 LND advisory remains published historical context; official Nov IR does not publish a confirmed technical linkage to that earlier flaw.",
+            sourceIds: ["btcpay-advisory-242", "btcpay-x-ir", "dorier-prelim"]
           }
         ]
       },
@@ -398,12 +442,16 @@ export const incidents: Incident[] = [
         title: "News / security firms",
         claims: [
           {
-            text: "The Defiant restates the official emergency shutdown and notes the absence of loss, version, and patch detail — secondary press, not an independent loss ledger.",
+            text: "The Defiant restates the official emergency shutdown and notes the early absence of loss, version, and patch detail — secondary press, not an independent loss ledger.",
             sourceIds: ["defiant-btcpay", "btcpay-x-alert"]
           },
           {
-            text: "This Eng pass found no SlowMist Hacked BTCPay Nov-1 row and no confirmed DefiLlama hacks row for this event — treat as unlisted; do not invent firm method fields.",
-            sourceIds: ["slowmist-home", "btcpay-x-alert"]
+            text: "TokenPost restates founder older-version / admin-login framing around the IR window — secondary press of founder comments, not formal IR.",
+            sourceIds: ["tokenpost-btcpay", "dorier-prelim"]
+          },
+          {
+            text: "SlowMist lists the event with a blank amount and Unknown method. No confirmed DefiLlama hacks row for this event appears in cited sources — do not invent firm method or USD fields.",
+            sourceIds: ["slowmist-home", "btcpay-x-ir"]
           }
         ]
       },
@@ -412,12 +460,12 @@ export const incidents: Incident[] = [
         title: "Status",
         claims: [
           {
-            text: "Status ACTIVE — not CONTAINED and not RESOLVED: the emergency shutdown instruction remains in force, the exploit path is unidentified in public sources, no patched release or all-clear for this event was found this pass, and online or unaware operators may still be exposed.",
-            sourceIds: ["btcpay-x-alert", "defiant-btcpay"]
+            text: "Status ACTIVE (version-scoped) — not CONTAINED and not RESOLVED: official IR narrows the attack vector to versions 2.4.1 or older and reports no credible drains on latest 2.4.7, but the original ./btcpay-down.sh instruction was not formally all-cleared in IR text, the admin-login entry path is not fully published, loss totals remain undisclosed, and no blog advisory / GHSA / new incident-specific release for this Nov event was found in cited sources.",
+            sourceIds: ["btcpay-x-ir", "btcpay-x-alert", "dorier-prelim", "slowmist-home"]
           },
           {
-            text: "Containment so far is operator-side only (./btcpay-down.sh). Do not flip status until BTCPay publishes root cause, a scoped advisory or patch, and clearer guidance for previously online hot-wallet seeds.",
-            sourceIds: ["btcpay-x-alert"]
+            text: "Containment so far is partial: version scope + update urging + some host auto-shutdowns of older instances + operator-side ./btcpay-down.sh. Do not flip status until BTCPay publishes a formal all-clear or scoped advisory/patch write-up, clearer guidance for previously online hot-wallet seeds, and residual accounting.",
+            sourceIds: ["btcpay-x-ir", "btcpay-x-hosts", "btcpay-x-alert"]
           }
         ]
       },
@@ -426,8 +474,8 @@ export const incidents: Incident[] = [
         title: "Money",
         claims: [
           {
-            text: "Official loss total, affected instance count, and named merchant victims are undisclosed. Cite qualitative \"reports\" / secondary \"multiple\" language only — do not invent a dollar figure.",
-            sourceIds: ["btcpay-x-alert", "defiant-btcpay", "slowmist-home"]
+            text: "Official loss total, affected instance count, and named drained merchants are undisclosed. Cite qualitative “reports” / secondary “multiple” language only — do not invent a dollar figure.",
+            sourceIds: ["btcpay-x-alert", "btcpay-x-ir", "defiant-btcpay", "slowmist-home"]
           }
         ],
         figures: [
@@ -435,7 +483,7 @@ export const incidents: Incident[] = [
             label: "Official loss total",
             amount: "Not disclosed",
             confidence: "estimate",
-            sourceIds: ["btcpay-x-alert", "slowmist-home"]
+            sourceIds: ["btcpay-x-alert", "btcpay-x-ir", "slowmist-home"]
           },
           {
             label: "Affected instance count",
@@ -445,21 +493,27 @@ export const incidents: Incident[] = [
           },
           {
             label: "SlowMist listed loss",
-            amount: "n/a (no BTCPay row this pass)",
+            amount: "— (listed 2026-11-01; amount blank; method Unknown)",
             confidence: "estimate",
             sourceIds: ["slowmist-home"]
           },
           {
             label: "Operational impact",
-            amount: "Self-hosted payment acceptance halted while operators stay offline",
+            amount: "Self-hosted payment acceptance halted while operators stay offline; some hosts auto-shut older boxes",
             confidence: "confirmed",
-            sourceIds: ["btcpay-x-alert"]
+            sourceIds: ["btcpay-x-alert", "btcpay-x-hosts"]
           },
           {
             label: "Official containment instruction",
-            amount: "./btcpay-down.sh; remain offline until investigation completes",
+            amount: "./btcpay-down.sh; remain offline until investigation completes (not formally all-cleared in IR text)",
             confidence: "confirmed",
-            sourceIds: ["btcpay-x-alert"]
+            sourceIds: ["btcpay-x-alert", "btcpay-x-ir"]
+          },
+          {
+            label: "IR version scope",
+            amount: "Vector targets 2.4.1 (Jul 23, 2026) or older; no credible drains reported on latest 2.4.7",
+            confidence: "confirmed",
+            sourceIds: ["btcpay-x-ir"]
           }
         ]
       },
@@ -472,8 +526,8 @@ export const incidents: Incident[] = [
             sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs"]
           },
           {
-            text: "Watch-only / hardware-signed / PSBT deployments keep private keys off the server and are likely lower direct spend risk, but the official alert still instructs anyone running an instance to shut down until scope narrows.",
-            sourceIds: ["btcpay-x-alert", "btcpay-create-wallet"]
+            text: "Watch-only / hardware-signed / PSBT deployments keep private keys off the server and are likely lower direct spend risk. Official IR lowers direct drain evidence for operators already on latest 2.4.7, but the original alert still told anyone running an instance to shut down pending investigation until a formal all-clear.",
+            sourceIds: ["btcpay-x-alert", "btcpay-x-ir", "btcpay-create-wallet"]
           }
         ]
       },
@@ -482,12 +536,12 @@ export const incidents: Incident[] = [
         title: "People / market reaction",
         claims: [
           {
-            text: "Labels: BTCPay Server hot-wallet sweeps · official @BtcpayServer emergency shutdown · ./btcpay-down.sh · investigation ongoing · loss/versions undisclosed · distinct from Aug 2026 LND unless later linked · Oct 29 2.4.7 context unconfirmed · SlowMist/DefiLlama unlisted (this pass).",
-            sourceIds: ["btcpay-x-alert", "btcpay-advisory-242", "btcpay-release-247", "slowmist-home", "defiant-btcpay"]
+            text: "Labels: BTCPay Server hot-wallet sweeps · official IR vector ≤2.4.1 (Jul 23, 2026) · no credible drains on 2.4.7 (official) · admin login on affected instances (founder) · ./btcpay-down.sh (not formally all-cleared) · LunaNode / hosts auto-shutdown · SlowMist listed (amount unknown) · loss/instance count undisclosed · blog / GHSA / new release pending · pre-2.4.2 vuln traces provisional (founder).",
+            sourceIds: ["btcpay-x-ir", "btcpay-x-alert", "btcpay-x-hosts", "dorier-prelim", "slowmist-home", "btcpay-advisory-242", "defiant-btcpay"]
           },
           {
-            text: "Primary exposure: self-hosted operators with enabled hot wallets. Merchants and customers of affected stores face payment-acceptance disruption while instances stay offline; fund loss applies only if a hot wallet was swept.",
-            sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs", "defiant-btcpay"]
+            text: "Primary exposure per official IR: self-hosted operators on versions 2.4.1 or older with enabled hot wallets. Operators on latest 2.4.7 have no credible drain reports in the IR, but should keep updated. Merchants and customers of affected stores face payment-acceptance disruption while instances stay offline; fund loss applies only if a hot wallet was swept. Hosted tenants may already have been auto-shut by some providers.",
+            sourceIds: ["btcpay-x-ir", "btcpay-x-hosts", "btcpay-wallet-docs", "defiant-btcpay"]
           }
         ]
       }
