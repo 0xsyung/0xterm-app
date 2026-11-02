@@ -112,7 +112,7 @@ describe("ProChip (Design G)", () => {
     expect(onOpenStatus).toHaveBeenCalledTimes(1);
   });
 
-  it("uses theme tokens across 8 themes (no raw style phosphor)", () => {
+  it("uses theme tokens across all THEME_ORDER themes (no raw style phosphor)", () => {
     for (const key of THEME_ORDER) {
       const th = THEMES[key];
       const { unmount } = render(

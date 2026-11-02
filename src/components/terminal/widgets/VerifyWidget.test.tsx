@@ -2,7 +2,7 @@
 /**
  * @file VerifyWidget.test.tsx
  * @description VerifyWidget renders all 4 states with the w-full shell, no
- * max-w-*, tabular-nums numeric nodes, and mounts under all 8 themes (#105)
+ * max-w-*, tabular-nums numeric nodes, and mounts under all THEME_ORDER themes (#105)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -76,7 +76,7 @@ describe("VerifyWidget states", () => {
   });
 });
 
-describe("VerifyWidget mounts under all 8 themes (issue #5 theme loop)", () => {
+describe("VerifyWidget mounts under all THEME_ORDER themes (issue #5 theme loop)", () => {
   for (const t of ALL_THEMES) {
     it(`renders verified state under ${t.name}`, () => {
       const { container } = render(
