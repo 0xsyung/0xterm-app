@@ -13,8 +13,8 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285/#296)", () => {
-  it("ships b14g first by occurredAt desc; Soft ACK #296 + Soft ACK #281/#282/#284 + Soft ACK #279/#277/#275/#272/#270 hold (12 total)", () => {
+describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285/#291/#296)", () => {
+  it("ships b14g first by occurredAt desc; Soft ACK #296 + Soft ACK #291 Update + Soft ACK #281/#282/#284 + Soft ACK #279/#277/#275/#272/#270 hold (12 total)", () => {
     expect(incidents.length).toBe(12);
     expect(incidents[0]?.id).toBe("b14g-core-hardfork-recovery-2026-11-02");
     expect(getIncidentById("b14g-core-hardfork-recovery-2026-11-02")?.title).toMatch(/b14g|Core/i);
@@ -471,19 +471,27 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285/#2
     expect(collectUnsourcedClaimPaths(skr)).toEqual([]);
   });
 
-  it("Soft ACK #282 BTCPay hot-wallet sweeps ACTIVE: official alert + Aug LND distinct + prior hold", () => {
+  it("Soft ACK #291 BTCPay hot-wallet sweeps ACTIVE Update: IR ≤2.4.1 / no credible 2.4.7 drains + Soft ACK #282 hold", () => {
     const bp = getIncidentById("btcpay-server-hot-wallet-sweeps-2026-11-01")!;
     expect(bp.status).toBe("ACTIVE");
+    expect(bp.status).not.toBe("CONTAINED");
+    expect(bp.status).not.toBe("RESOLVED");
     expect(bp.amountSummary).toMatch(/undisclosed/i);
+    expect(bp.amountSummary).toMatch(/SlowMist/i);
+    expect(bp.background?.protocolType).toBe("merchant infra");
     const srcIds = new Set(bp.sources.map((s) => s.id));
     for (const id of [
       "btcpay-x-alert",
+      "btcpay-x-ir",
+      "btcpay-x-hosts",
+      "dorier-prelim",
       "btcpay-wallet-docs",
       "btcpay-create-wallet",
       "btcpay-advisory-242",
       "btcpay-release-247",
       "btcpay-x-247",
       "defiant-btcpay",
+      "tokenpost-btcpay",
       "slowmist-home"
     ]) {
       expect(srcIds.has(id), id).toBe(true);
@@ -492,20 +500,51 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285/#2
     expect(bp.sources.find((s) => s.id === "btcpay-x-alert")?.url).toContain(
       "2117020340815819262"
     );
+    expect(bp.sources.find((s) => s.id === "btcpay-x-ir")?.url).toContain(
+      "2117106238123123008"
+    );
+    expect(bp.sources.find((s) => s.id === "btcpay-x-hosts")?.url).toContain(
+      "2117106240098611681"
+    );
+    expect(bp.sources.find((s) => s.id === "dorier-prelim")?.url).toContain(
+      "2117051298633900041"
+    );
+    expect(bp.sources.find((s) => s.id === "slowmist-home")?.title).toMatch(
+      /listed|Unknown/i
+    );
     const what = bp.sections.find((s) => s.id === "what")!;
     const whatText = what.claims.map((c) => c.text).join("\n");
     expect(whatText).toMatch(/hot wallet/i);
     expect(whatText).toMatch(/btcpay-down\.sh/);
-    expect(whatText).toMatch(/LND|2\.4\.7/i);
+    expect(whatText).toMatch(/2\.4\.1/);
+    expect(whatText).toMatch(/2\.4\.7/);
+    expect(whatText).toMatch(/no credible/i);
+    expect(whatText).toMatch(/admin/i);
+    expect(whatText).toMatch(/LND|2\.4\.2/i);
     const status = bp.sections.find((s) => s.id === "status")!;
     const statusText = status.claims.map((c) => c.text).join("\n");
     expect(statusText).toMatch(/ACTIVE/i);
+    expect(statusText).toMatch(/version-scoped/i);
     expect(statusText).toMatch(/not CONTAINED|not RESOLVED/i);
+    expect(statusText).toMatch(/all-clear|btcpay-down\.sh/i);
     const money = bp.sections.find((s) => s.id === "money")!;
     expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /2\.4\.1/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /2\.4\.7/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /Unknown|blank|listed/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /LunaNode|auto-shut/i.test(f.amount))).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    const timeline = bp.sections.find((s) => s.id === "timeline")!;
+    const timelineText = (timeline.bullets ?? []).map((b) => b.text).join("\n");
+    expect(timelineText).toMatch(/2117106238123123008|2\.4\.1|IR/i);
+    expect(timelineText).toMatch(/LunaNode|auto-shut/i);
+    expect(timelineText).toMatch(/NicolasDorier|admin/i);
+    expect(incidents.filter((i) => i.id === "btcpay-server-hot-wallet-sweeps-2026-11-01")).toHaveLength(
+      1
+    );
     expect(collectUnsourcedClaimPaths(bp)).toEqual([]);
+    expect(collectOpsJargonPaths(bp)).toEqual([]);
   });
 
   it("Soft ACK #284 Threshold/tBTC CONTAINED: CVE URLs + backing Soft-cites + prior hold", () => {
