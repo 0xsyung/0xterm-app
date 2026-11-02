@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #281/#282/#284 corpus append + Soft ACK #285 Background Soft-backfill + Soft ACK #289 professional product voice (no CMS/API). Soft ACK #279/#277/#275/#272 hold.
+ * @description Soft ACK #296 b14g / Core hard-fork recovery corpus Update + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
  * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-02 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,10 +9,267 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #281/#282/#284 append three deep-dives; Soft ACK #285 backfills Background on every row; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #296 prepends b14g / Core recovery Update; Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * List order: occurredAt descending. Do not invent facts or unsourced size metrics. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
+  {
+    id: "b14g-core-hardfork-recovery-2026-11-02",
+    title: "b14g / Core — staking drain + hard-fork recovery (~70% clawed)",
+    occurredAt: "2026-11-02T07:23:40.000Z",
+    status: "CONTAINED",
+    amountSummary:
+      "97,045,563 CORE drained; 68,146,177.22 CORE (~70.2%) recovered to designated wallet; ~28.9M residual; not distributed",
+    chains: ["Core (CORE staking orders)", "Bitcoin (BTC time-locks claimed unaffected)"],
+    background: {
+      protocolType: "restaking",
+      sizeMetrics: [
+        {
+          label: "DefiLlama total TVL (approx.)",
+          value: "~$250.1M (Bitcoin ~$247.1M; Core ~$2.81M; Babylon Genesis ~$0.21M)",
+          asOf: "2026-11-02 ~08:00 UTC",
+          confidence: "estimate",
+          sourceIds: ["pwn-b14g", "bitquery-b14g"]
+        },
+        {
+          label: "CORE drained (Oct 31)",
+          value: "97,045,563 CORE (~$1.47M at ~$0.0151 pre-attack)",
+          asOf: "2026-10-31 09:29:51 UTC",
+          confidence: "confirmed",
+          sourceIds: ["bitquery-b14g", "pwn-b14g", "b14g-recovery-x"]
+        },
+        {
+          label: "CORE recovered (hard fork)",
+          value: "68,146,177.22 CORE (~70.2%)",
+          asOf: "2026-11-02 Recovery Update #1",
+          confidence: "confirmed",
+          sourceIds: ["b14g-recovery-x", "corescan-recovery", "tokenpost-b14g"]
+        }
+      ],
+      notes: [
+        {
+          text: "b14g is a Bitcoin dual-staking / restaking layer: users pair time-locked BTC with CORE deposited into per-order staking contracts on Core. This report covers the Oct 31 CORE order drain and the Nov 2 Core hard-fork recovery of idle attacker balances.",
+          sourceIds: ["pwn-b14g", "bitquery-b14g", "b14g-recovery-x"]
+        }
+      ]
+    },
+    sources: [
+      {
+        id: "b14g-recovery-x",
+        title: "b14g (@b14g_network) — Recovery Update #1: Core hard fork moves ~68.15M CORE to recovery wallet",
+        url: "https://x.com/b14g_network/status/2117155664980251068"
+      },
+      {
+        id: "corescan-recovery",
+        title: "CoreScan — designated recovery wallet 0xb85095…ac064",
+        url: "https://scan.coredao.org/address/0xb85095fE01C1d95da3B1df0998ff5eDDcC9ac064"
+      },
+      {
+        id: "bitquery-b14g",
+        title: "Bitquery — b14g hack investigation (zero-amount withdrawals; fund flow)",
+        url: "https://bitquery.io/investigations/b14g-hack"
+      },
+      {
+        id: "tokenpost-b14g",
+        title: "TokenPost — Core hard-fork recovery restatement (~70% CORE clawed)",
+        url: "https://www.tokenpost.com/news/technology/46223"
+      },
+      {
+        id: "pwn-b14g",
+        title: "pwn.watch — b14g Core staking zero-withdrawal drain (Oct 2026)",
+        url: "https://pwn.watch/i/b14g-core-staking-zero-withdrawal-drain-oct-2026"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "On 31 Oct 2026 at 09:29:51 UTC, a fresh attacker wallet submitted 99 withdrawal requests for 0 CORE against 91 b14g staking orders it had never funded. Core staking code treats a 0 amount as “withdraw the entire stake”; b14g’s contract neither rejected the zero nor checked order ownership, so 97,045,563 CORE paid out in one transaction (~$1.47M at ~$0.0151).",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "Reading: on-chain smart-contract / staking-order custody incident on Core — not a Bitcoin L1 compromise of the BTC time-locks (team claim; Bitquery did not independently verify the Bitcoin side) and not a stolen admin key. Bitquery notes the standing proxy implementation had been unchanged ~17 months.",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "Recovery Update #1 (2 Nov 2026): b14g stated a Core network hard fork performed a one-time state adjustment that moved 68,146,177.22 CORE from three attacker-controlled addresses into designated recovery wallet 0xb85095fE01C1d95da3B1df0998ff5eDDcC9ac064. Official claims: no transaction rollbacks, no new mint, CORE total supply unchanged. Recovered funds have not been distributed to users; the team warned against fake recovery sites.",
+            sourceIds: ["b14g-recovery-x", "corescan-recovery", "tokenpost-b14g"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "31 Oct 2026 ~09:00 UTC: attacker wallet A funded with ~615.62 CORE (fee) via a labeled service path (Bitquery).",
+            sourceIds: ["bitquery-b14g"]
+          },
+          {
+            text: "31 Oct 2026 09:29:51 UTC (~17:29 HKT): zero-amount drain — 97,045,563 CORE from 91 orders.",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "31 Oct 2026 09:37–10:10 UTC: ~23.4M CORE leaves wallet A toward new addresses / services / exchange deposits.",
+            sourceIds: ["bitquery-b14g"]
+          },
+          {
+            text: "31 Oct 2026 10:35:51 UTC (~18:35 HKT): b14g contracts paused (~66 minutes after the drain).",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "31 Oct evening: Bitquery recorded ~68.15M CORE still idle across wallet B and two satellite wallets; ~28.9M had reached services/exchanges. b14g claimed ~9M CORE frozen by exchange partners (off-chain; not independently verifiable on CoreScan).",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "1 Nov 2026 ~00:38 HKT: b14g Security Update (~97M drained; ~68M still on Core; ~9M frozen claim; BTC time-locks claimed unaffected; named attacker wallets A/B).",
+            sourceIds: ["pwn-b14g"]
+          },
+          {
+            text: "1 Nov 2026 ~01:24 HKT: Core DAO stated the network was secure and that it was helping freeze/trace; consensus / other staking paths claimed unaffected.",
+            sourceIds: ["pwn-b14g"]
+          },
+          {
+            text: "2 Nov 2026 ~07:23 UTC (~15:23 HKT): b14g Recovery Update #1 — Core hard fork; 68,146,177.22 CORE to recovery wallet; no user distribution yet; fake-site warning.",
+            sourceIds: ["b14g-recovery-x", "tokenpost-b14g", "corescan-recovery"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "b14g (@b14g_network): primary official ACK across Oct 31 Security Update and Nov 2 Recovery Update #1; contracts paused; coordinating with exchanges and law enforcement on residual assets; transparent distribution plan stated as forthcoming (no timeline or amounts published).",
+            sourceIds: ["b14g-recovery-x", "pwn-b14g", "tokenpost-b14g"]
+          },
+          {
+            text: "Core DAO (31 Oct): stated consensus, validators, and staking contracts operated normally and that CORE staked directly with validators or via other protocols was unaffected; helping freeze/trace.",
+            sourceIds: ["pwn-b14g"]
+          },
+          {
+            text: "Bitquery: published on-chain exploit and fund-flow analysis (zero-amount withdrawal pattern; ~70% idle stack; exchange/service paths for residual).",
+            sourceIds: ["bitquery-b14g"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "TokenPost restates the Nov 2 hard-fork recovery (~70% CORE clawed into a recovery wallet) as secondary press of the official Recovery Update.",
+            sourceIds: ["tokenpost-b14g", "b14g-recovery-x"]
+          },
+          {
+            text: "pwn.watch aggregates Oct 31 official text transcripts (b14g + Core DAO) for the zero-withdrawal drain narrative.",
+            sourceIds: ["pwn-b14g"]
+          },
+          {
+            text: "Bitquery investigation is the primary technical write-up of the zero-amount withdrawal path and post-drain fund movement.",
+            sourceIds: ["bitquery-b14g"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status CONTAINED / recovery in progress — not RESOLVED: ~70.2% of drained CORE sits in the designated recovery wallet after a claimed one-time Core hard-fork state adjustment; contracts remain paused; residual ~28.9M CORE is outstanding via exchange freezes / law enforcement paths; recovered funds have not been distributed.",
+            sourceIds: ["b14g-recovery-x", "corescan-recovery", "bitquery-b14g", "tokenpost-b14g"]
+          },
+          {
+            text: "Do not flip to RESOLVED until an official hard-fork technical note, a dated distribution plan with custody details, and residual accounting (including any verified exchange freezes) land. Users should avoid fake recovery sites.",
+            sourceIds: ["b14g-recovery-x", "tokenpost-b14g"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Drain was almost entirely CORE inside b14g orders on Core. Pre-attack CORE ≈ $0.0151 implies ≈ $1.47M USD for 97,045,563 CORE — not “$97M” (a common early misread of the coin count as dollars).",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "Recovered 68,146,177.22 CORE (~70.2%) is confirmed at the recovery address on CoreScan; residual ≈ 28.90M CORE (~29.8%) is estimate (drain − recovered). Team’s ~9M exchange-freeze claim is off-book and unverified on-chain. User distribution so far: 0.",
+            sourceIds: ["b14g-recovery-x", "corescan-recovery", "bitquery-b14g", "pwn-b14g"]
+          }
+        ],
+        figures: [
+          {
+            label: "CORE drained (Oct 31)",
+            amount: "97,045,563 CORE (~$1.47M @ $0.0151)",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            label: "CORE recovered (hard fork)",
+            amount: "68,146,177.22 CORE (~70.2%)",
+            confidence: "confirmed",
+            sourceIds: ["b14g-recovery-x", "corescan-recovery", "tokenpost-b14g"]
+          },
+          {
+            label: "Residual / outstanding",
+            amount: "~28.90M CORE (~29.8%)",
+            confidence: "estimate",
+            sourceIds: ["b14g-recovery-x", "bitquery-b14g"]
+          },
+          {
+            label: "Exchange freeze (team, 31 Oct)",
+            amount: "~9M CORE of residual path (claimed; off-book)",
+            confidence: "estimate",
+            sourceIds: ["pwn-b14g", "bitquery-b14g"]
+          },
+          {
+            label: "User distribution",
+            amount: "0 so far (official)",
+            confidence: "confirmed",
+            sourceIds: ["b14g-recovery-x", "tokenpost-b14g"]
+          },
+          {
+            label: "Recovery wallet",
+            amount: "0xb85095fE01C1d95da3B1df0998ff5eDDcC9ac064",
+            confidence: "confirmed",
+            sourceIds: ["b14g-recovery-x", "corescan-recovery"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Primary impact is CORE on the Core chain inside b14g per-order staking contracts. Named attacker wallets in Oct 31 coverage include 0xc556ed208285406d71705927f92d4f4eaea579f1 (A) and 0x27758c30f8e424fbd8ca605bf31e9496c26ce92c (B).",
+            sourceIds: ["bitquery-b14g", "pwn-b14g"]
+          },
+          {
+            text: "BTC time-locks on the Bitcoin / Babylon side are claimed unaffected by b14g; Bitquery did not independently verify that side. Dual-staking TVL is mostly Bitcoin-denominated per DefiLlama snapshots cited in secondary coverage.",
+            sourceIds: ["pwn-b14g", "bitquery-b14g"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Labels: b14g / Core · zero-amount staking withdrawal · 97,045,563 CORE drained · contracts paused · Core hard-fork state adjustment · 68,146,177.22 CORE recovered · residual ~28.9M · funds not distributed · fake recovery site warning · BTC time-locks claimed intact.",
+            sourceIds: ["b14g-recovery-x", "bitquery-b14g", "pwn-b14g", "tokenpost-b14g", "corescan-recovery"]
+          },
+          {
+            text: "Near-term user risk: phishing / fake recovery sites while recovered CORE sits undistributed. Residual ~29M CORE may already include mixed service/exchange paths; freezes are not the same as recovery. Distribution formula, eligibility, timeline, and recovery-wallet custody remain unpublished.",
+            sourceIds: ["b14g-recovery-x", "bitquery-b14g", "tokenpost-b14g"]
+          }
+        ]
+      }
+    ]
+  },
   {
     id: "btcpay-server-hot-wallet-sweeps-2026-11-01",
     title: "BTCPay Server — hot-wallet sweeps / emergency shutdown",
