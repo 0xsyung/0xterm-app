@@ -1,6 +1,7 @@
 /**
  * @file IncidentsPanel.tsx
  * @description FORENSIC REPORTS · INCIDENTS — Soft ACK #268 list → detail Soft-chrome
+ * Soft ACK #283: global rem 112.5% + detail type Soft-scale (#274 absorbed).
  * Soft Design A–B: FeedList/DigPanelShell/NewsPanel language; page size 8; BACK + Escape.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -77,7 +78,7 @@ function SourceCite({
           href={s.url}
           target="_blank"
           rel="noopener noreferrer"
-          className={`underline break-all [overflow-wrap:anywhere] ${theme.primary} ${TOUCH} inline-flex items-center text-[10px]`}
+          className={`underline break-all [overflow-wrap:anywhere] ${theme.muted} ${TOUCH} inline-flex items-center text-[10px]`}
           data-testid={`incident-source-${s.id}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -114,7 +115,7 @@ function IncidentListRow({
         >
           {incident.status}
         </span>
-        <span className={`font-bold text-[10px] md:text-[11px] ${theme.primary} [overflow-wrap:anywhere]`}>
+        <span className={`font-bold text-[11px] md:text-xs ${theme.primary} [overflow-wrap:anywhere]`}>
           {incident.title}
         </span>
       </div>
@@ -159,7 +160,7 @@ function IncidentDetail({
   );
 
   return (
-    <div className="flex flex-col gap-3 min-h-0" data-testid="incident-detail">
+    <div className="flex flex-col gap-4 min-h-0" data-testid="incident-detail">
       <div className="flex items-center gap-2 flex-wrap">
         <button
           type="button"
@@ -183,7 +184,7 @@ function IncidentDetail({
             {incident.status}
           </span>
           <h2
-            className={`uppercase text-[10px] md:text-[11px] tracking-widest font-bold ${theme.primary} [overflow-wrap:anywhere]`}
+            className={`uppercase text-xs md:text-sm tracking-widest font-bold ${theme.primary} [overflow-wrap:anywhere]`}
           >
             {incident.title}
           </h2>
@@ -211,29 +212,29 @@ function IncidentDetail({
       {sections.map((sec) => (
         <section
           key={sec.id}
-          className="flex flex-col gap-1.5"
+          className="flex flex-col gap-2"
           data-testid={`incident-section-${sec.id}`}
         >
           <h3
-            className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}
+            className={`uppercase text-[11px] md:text-xs tracking-widest font-bold ${theme.primary}`}
           >
             {sec.title}
           </h3>
           {sec.claims.map((c, i) => (
             <p
               key={`c-${i}`}
-              className={`text-[10px] md:text-[11px] ${theme.text} [overflow-wrap:anywhere] leading-relaxed`}
+              className={`text-xs md:text-sm ${theme.text} [overflow-wrap:anywhere] leading-relaxed`}
             >
               {c.text}
               <SourceCite theme={theme} ids={c.sourceIds} byId={byId} />
             </p>
           ))}
           {sec.bullets && sec.bullets.length > 0 ? (
-            <ul className="list-none flex flex-col gap-1.5 pl-0 m-0">
+            <ul className="list-none flex flex-col gap-2 pl-0 m-0">
               {sec.bullets.map((b, i) => (
                 <li
                   key={`b-${i}`}
-                  className={`text-[10px] md:text-[11px] ${theme.text} [overflow-wrap:anywhere] leading-relaxed border-l ${theme.border} pl-2`}
+                  className={`text-xs md:text-sm ${theme.text} [overflow-wrap:anywhere] leading-relaxed border-l ${theme.border} pl-2`}
                 >
                   {b.text}
                   <SourceCite theme={theme} ids={b.sourceIds} byId={byId} />
@@ -242,11 +243,11 @@ function IncidentDetail({
             </ul>
           ) : null}
           {sec.figures && sec.figures.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               {sec.figures.map((f, i) => (
                 <div
                   key={`f-${i}`}
-                  className={`px-2 py-1.5 border ${theme.border} ${theme.cardBg} ${theme.rounded} text-[10px] md:text-[11px]`}
+                  className={`px-2 py-1.5 border ${theme.border} ${theme.cardBg} ${theme.rounded} text-xs md:text-sm`}
                   data-testid={`incident-figure-${i}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -271,7 +272,7 @@ function IncidentDetail({
       ))}
 
       <section className="flex flex-col gap-1" data-testid="incident-sources-index">
-        <h3 className={`uppercase text-[10px] tracking-widest font-bold ${theme.primary}`}>
+        <h3 className={`uppercase text-[11px] md:text-xs tracking-widest font-bold ${theme.primary}`}>
           Sources
         </h3>
         <ul className="list-none flex flex-col gap-1 pl-0 m-0">
@@ -281,7 +282,7 @@ function IncidentDetail({
                 href={s.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`text-[10px] underline break-all [overflow-wrap:anywhere] ${theme.primary} ${TOUCH} py-2`}
+                className={`text-[11px] md:text-xs underline break-all [overflow-wrap:anywhere] ${theme.primary} ${TOUCH} py-2`}
               >
                 {s.title}
               </a>

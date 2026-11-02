@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  font-size: 112.5%; /* Soft ACK #283 — ~18px root when browser 16px → 1.125 rem scale */
+}
+
 html,
 body {
   height: 100%;
