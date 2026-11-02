@@ -13,7 +13,7 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272/#275/#277/#279)", () => {
+describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
   it("ships Talis first by occurredAt desc, Soft ACK #279 + Soft ACK #277/#275/#272/#270 hold (8 total)", () => {
     expect(incidents.length).toBe(8);
     expect(incidents[0]?.id).toBe("talis-protocol-injective-nft-exploit-2026-10-31");
@@ -382,11 +382,48 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279)", () => {
     expect(collectUnsourcedClaimPaths(talis)).toEqual([]);
   });
 
+  it("Soft ACK #285 Background Soft-backfill: every incident Soft-has protocolType; size Soft-metrics Soft-cite; no Soft-filler N/A", () => {
+    expect(incidents.length).toBe(8);
+    for (const inc of incidents) {
+      expect(inc.background, inc.id).toBeTruthy();
+      expect(inc.background!.protocolType.trim().length, inc.id).toBeGreaterThan(0);
+      for (const m of inc.background!.sizeMetrics ?? []) {
+        expect(m.sourceIds.length, `${inc.id}:${m.label}`).toBeGreaterThan(0);
+        expect(/\bn\/?a\b/i.test(m.value)).toBe(false);
+      }
+      for (const n of inc.background!.notes ?? []) {
+        expect(n.sourceIds.length, `${inc.id}:note`).toBeGreaterThan(0);
+      }
+      expect(collectUnsourcedClaimPaths(inc), inc.id).toEqual([]);
+    }
+    // Soft-spot Soft-check Soft-protocol Soft-types Soft-on Soft-known Soft-rows
+    expect(getIncidentById("talis-protocol-injective-nft-exploit-2026-10-31")?.background?.protocolType).toBe(
+      "NFT marketplace"
+    );
+    expect(getIncidentById("binance-hot-wallet-2026-10-30")?.background?.protocolType).toBe("CEX");
+    expect(getIncidentById("zklink-nova-bridge-2026-10-28")?.background?.protocolType).toBe("bridge");
+    expect(getIncidentById("vergex-account-drain-2026-10-31")?.background?.protocolType).toBe(
+      "AI trading"
+    );
+  });
+
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {
     const base = getIncidentById("binance-hot-wallet-2026-10-30")!;
     const bad: typeof base = {
       ...base,
       id: "bad",
+      background: {
+        protocolType: "other",
+        sizeMetrics: [
+          {
+            label: "TVL",
+            value: "$1",
+            confidence: "estimate",
+            sourceIds: ["missing-tvl"]
+          }
+        ],
+        notes: [{ text: "unsourced note", sourceIds: [] }]
+      },
       sections: [
         {
           id: "what",
@@ -405,6 +442,8 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279)", () => {
       ]
     };
     const paths = collectUnsourcedClaimPaths(bad);
-    expect(paths.length).toBe(3);
+    expect(paths.length).toBe(5);
+    expect(paths.some((p) => p.includes("background.sizeMetrics"))).toBe(true);
+    expect(paths.some((p) => p.includes("background.notes"))).toBe(true);
   });
 });

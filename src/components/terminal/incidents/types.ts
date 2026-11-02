@@ -34,6 +34,36 @@ export type MoneyFigure = {
   sourceIds: string[];
 };
 
+/** Soft ACK #285 — FORENSIC detail Background Soft-block (protocol context Soft-before eight Soft-sections). */
+export type IncidentProtocolType =
+  | "DEX"
+  | "lending"
+  | "perps"
+  | "bridge"
+  | "NFT marketplace"
+  | "CEX"
+  | "L1"
+  | "L2"
+  | "wallet"
+  | "mobile store"
+  | "merchant infra"
+  | "AI trading"
+  | "other";
+
+export type IncidentSizeMetric = {
+  label: string;
+  value: string;
+  asOf?: string;
+  sourceIds: string[];
+  confidence: MoneyConfidence;
+};
+
+export type IncidentBackground = {
+  protocolType: IncidentProtocolType | string;
+  sizeMetrics?: IncidentSizeMetric[];
+  notes?: SourcedClaim[];
+};
+
 export type IncidentSectionId =
   | "what"
   | "timeline"
@@ -64,6 +94,8 @@ export type Incident = {
   /** Optional Soft-nice amount chip on list/detail header. */
   amountSummary?: string;
   chains: string[];
+  /** Soft ACK #285 — detail-only Background Soft-block Soft-before eight Soft-sections. */
+  background?: IncidentBackground;
   sources: IncidentSource[];
   sections: IncidentSection[];
 };
