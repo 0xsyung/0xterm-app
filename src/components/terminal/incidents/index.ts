@@ -10,7 +10,9 @@ export {
   getIncidentById,
   pageIncidents,
   incidentSourceMap,
-  collectUnsourcedClaimPaths
+  collectUnsourcedClaimPaths,
+  collectOpsJargonPaths,
+  FORENSIC_OPS_JARGON_PATTERNS
 } from "./corpus";
 export type {
   Incident,
