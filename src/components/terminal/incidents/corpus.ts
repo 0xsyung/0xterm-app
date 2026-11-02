@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #285 Background Soft-backfill + Soft ACK #289 professional product voice (no CMS/API). Soft ACK #279/#277/#275/#272 hold.
+ * @description Soft ACK #281/#282/#284 corpus append + Soft ACK #285 Background Soft-backfill + Soft ACK #289 professional product voice (no CMS/API). Soft ACK #279/#277/#275/#272 hold.
  * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-02 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,10 +9,452 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #285 backfills Background on every row; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #281/#282/#284 append three deep-dives; Soft ACK #285 backfills Background on every row; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * List order: occurredAt descending. Do not invent facts or unsourced size metrics. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
+  {
+    id: "btcpay-server-hot-wallet-sweeps-2026-11-01",
+    title: "BTCPay Server — hot-wallet sweeps / emergency shutdown",
+    occurredAt: "2026-11-01T22:25:56.000Z",
+    status: "ACTIVE",
+    amountSummary:
+      "Loss total and instance count undisclosed; multiple self-hosted instances reported swept",
+    chains: ["Bitcoin (self-hosted BTCPay Server hot wallets)"],
+    background: {
+      protocolType: "merchant infra",
+      notes: [
+        {
+          text: "BTCPay Server is open-source self-hosted Bitcoin payment processor software; this report covers hot-wallet sweeps on operator-run instances.",
+          sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs"]
+        }
+      ]
+    },
+    sources: [
+      {
+        id: "btcpay-x-alert",
+        title: "BTCPay Server (@BtcpayServer) — emergency alert: hot wallets swept; shut down with ./btcpay-down.sh",
+        url: "https://x.com/BtcpayServer/status/2117020340815819262"
+      },
+      {
+        id: "btcpay-wallet-docs",
+        title: "BTCPay Wallet docs — hot-wallet architecture (keys on server)",
+        url: "https://docs.btcpayserver.org/Wallet/"
+      },
+      {
+        id: "btcpay-create-wallet",
+        title: "BTCPay Create a wallet docs — hot wallet stores private key on the server",
+        url: "https://docs.btcpayserver.org/CreateWallet/"
+      },
+      {
+        id: "btcpay-advisory-242",
+        title: "BTCPay Security Advisory 2.4.2 — Aug 2026 LND macaroon incident; hot wallets declared unaffected then",
+        url: "https://blog.btcpayserver.org/security-advisory-btcpay-server-2-4-2/"
+      },
+      {
+        id: "btcpay-release-247",
+        title: "BTCPay GitHub release v2.4.7 — Anthropic OSS Scanner findings (adjacent; link to Nov 1 sweeps unconfirmed)",
+        url: "https://github.com/btcpayserver/btcpayserver/releases/tag/v2.4.7"
+      },
+      {
+        id: "btcpay-x-247",
+        title: "BTCPay (@BtcpayServer) — emergency 2.4.7 announcement (29 Oct; link to Nov 1 sweeps unconfirmed)",
+        url: "https://x.com/BtcpayServer/status/2115835402536079674"
+      },
+      {
+        id: "defiant-btcpay",
+        title: "The Defiant — BTCPay urges shutdown after reports of hot-wallet sweeps",
+        url: "https://thedefiant.io/news/hacks/btcpay-server-urges-shutdown-after-reports-of-hot-wallet-sweeps"
+      },
+      {
+        id: "slowmist-home",
+        title: "SlowMist Hacked — no BTCPay hot-wallet-sweep row this Eng pass",
+        url: "https://hacked.slowmist.io/en/"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "Official @BtcpayServer: the project is receiving reports that unauthorized attackers are sweeping hot wallets on running BTCPay Server instances. Operators were told to shut down with ./btcpay-down.sh and stay offline until the investigation completes. The alert is not version-scoped in the official text.",
+            sourceIds: ["btcpay-x-alert", "defiant-btcpay"]
+          },
+          {
+            text: "This is a self-hosted merchant-software / server-side hot-wallet incident (keys or seeds stored on the operator's BTCPay box when hot-wallet mode is enabled), not a Bitcoin L1 consensus failure and not a CEX custodial drain. Per BTCPay docs, creating a hot wallet keeps the private key on the server so BTCPay can sign spends.",
+            sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs", "btcpay-create-wallet"]
+          },
+          {
+            text: "Root cause is undisclosed. Do not invent method, affected versions, attacker addresses, or a USD loss total. Treat the August 2026 LND-macaroon advisory as a distinct prior incident unless later officially linked; the Oct 29 2.4.7 emergency release is adjacent context only and is not confirmed as the Nov 1 vector.",
+            sourceIds: ["btcpay-x-alert", "btcpay-advisory-242", "btcpay-release-247", "btcpay-x-247", "slowmist-home"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "7–8 Aug 2026: prior LND macaroon credential incident; advisory to update to 2.4.2; official then confirmed BTCPay on-chain/hot wallets were not affected by that flaw.",
+            sourceIds: ["btcpay-advisory-242"]
+          },
+          {
+            text: "29 Oct 2026 ~15:57 UTC: @BtcpayServer emergency 2.4.7 (Anthropic OSS Scanner findings). Link to Nov 1 hot-wallet sweeps remains unconfirmed.",
+            sourceIds: ["btcpay-x-247", "btcpay-release-247"]
+          },
+          {
+            text: "Undisclosed start: hot-wallet sweeps begin on some instances (official only: \"receiving reports\").",
+            sourceIds: ["btcpay-x-alert"]
+          },
+          {
+            text: "1 Nov 2026 22:25:56 UTC (~06:26 HKT 2 Nov): @BtcpayServer emergency alert — hot wallets being swept; shut down with ./btcpay-down.sh until investigation completes.",
+            sourceIds: ["btcpay-x-alert"]
+          },
+          {
+            text: "Through this Eng pass: press restates the official alert; no newer @BtcpayServer all-clear or root-cause post found; SlowMist Hacked shows no BTCPay hot-wallet-sweep row.",
+            sourceIds: ["defiant-btcpay", "btcpay-x-alert", "slowmist-home"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "BTCPay Server (@BtcpayServer): primary official ACK and emergency shutdown instruction; investigation ongoing; no patch version or all-clear in the Nov 1 alert.",
+            sourceIds: ["btcpay-x-alert"]
+          },
+          {
+            text: "SlowMist Hacked: no BTCPay hot-wallet-sweep entry found this Eng pass — do not invent a SlowMist loss row.",
+            sourceIds: ["slowmist-home"]
+          },
+          {
+            text: "August 2026 LND advisory remains published historical context; official Nov 1 post does not state whether the sweeps are connected to that earlier flaw.",
+            sourceIds: ["btcpay-advisory-242", "btcpay-x-alert"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "The Defiant restates the official emergency shutdown and notes the absence of loss, version, and patch detail — secondary press, not an independent loss ledger.",
+            sourceIds: ["defiant-btcpay", "btcpay-x-alert"]
+          },
+          {
+            text: "This Eng pass found no SlowMist Hacked BTCPay Nov-1 row and no confirmed DefiLlama hacks row for this event — treat as unlisted; do not invent firm method fields.",
+            sourceIds: ["slowmist-home", "btcpay-x-alert"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status ACTIVE — not CONTAINED and not RESOLVED: the emergency shutdown instruction remains in force, the exploit path is unidentified in public sources, no patched release or all-clear for this event was found this pass, and online or unaware operators may still be exposed.",
+            sourceIds: ["btcpay-x-alert", "defiant-btcpay"]
+          },
+          {
+            text: "Containment so far is operator-side only (./btcpay-down.sh). Do not flip status until BTCPay publishes root cause, a scoped advisory or patch, and clearer guidance for previously online hot-wallet seeds.",
+            sourceIds: ["btcpay-x-alert"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Official loss total, affected instance count, and named merchant victims are undisclosed. Cite qualitative \"reports\" / secondary \"multiple\" language only — do not invent a dollar figure.",
+            sourceIds: ["btcpay-x-alert", "defiant-btcpay", "slowmist-home"]
+          }
+        ],
+        figures: [
+          {
+            label: "Official loss total",
+            amount: "Not disclosed",
+            confidence: "estimate",
+            sourceIds: ["btcpay-x-alert", "slowmist-home"]
+          },
+          {
+            label: "Affected instance count",
+            amount: "Not disclosed (\"reports\" / press \"multiple\")",
+            confidence: "estimate",
+            sourceIds: ["btcpay-x-alert", "defiant-btcpay"]
+          },
+          {
+            label: "SlowMist listed loss",
+            amount: "n/a (no BTCPay row this pass)",
+            confidence: "estimate",
+            sourceIds: ["slowmist-home"]
+          },
+          {
+            label: "Operational impact",
+            amount: "Self-hosted payment acceptance halted while operators stay offline",
+            confidence: "confirmed",
+            sourceIds: ["btcpay-x-alert"]
+          },
+          {
+            label: "Official containment instruction",
+            amount: "./btcpay-down.sh; remain offline until investigation completes",
+            confidence: "confirmed",
+            sourceIds: ["btcpay-x-alert"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Impact is framed as Bitcoin funds held in self-hosted BTCPay Server hot wallets — not a Bitcoin L1 consensus compromise.",
+            sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs"]
+          },
+          {
+            text: "Watch-only / hardware-signed / PSBT deployments keep private keys off the server and are likely lower direct spend risk, but the official alert still instructs anyone running an instance to shut down until scope narrows.",
+            sourceIds: ["btcpay-x-alert", "btcpay-create-wallet"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Labels: BTCPay Server hot-wallet sweeps · official @BtcpayServer emergency shutdown · ./btcpay-down.sh · investigation ongoing · loss/versions undisclosed · distinct from Aug 2026 LND unless later linked · Oct 29 2.4.7 context unconfirmed · SlowMist/DefiLlama unlisted (this pass).",
+            sourceIds: ["btcpay-x-alert", "btcpay-advisory-242", "btcpay-release-247", "slowmist-home", "defiant-btcpay"]
+          },
+          {
+            text: "Primary exposure: self-hosted operators with enabled hot wallets. Merchants and customers of affected stores face payment-acceptance disruption while instances stay offline; fund loss applies only if a hot wallet was swept.",
+            sourceIds: ["btcpay-x-alert", "btcpay-wallet-docs", "defiant-btcpay"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "solana-mobile-skr-claim-dapp-store-phishing-2026-11-01",
+    title: "Solana Mobile — “SKR Claim” dApp Store Spotlight seed-phrase phishing",
+    occurredAt: "2026-11-01T18:34:40.000Z",
+    status: "CONTAINED",
+    amountSummary:
+      "USD loss undisclosed; install / victim counts undisclosed; seed-phrase phishing via curated Spotlight/Quests",
+    chains: ["Solana Mobile dApp Store (Seeker ecosystem; not an L1 contract exploit)"],
+    background: {
+      protocolType: "mobile store",
+      notes: [
+        {
+          text: "Solana Mobile operates the Solana dApp Store (Seeker ecosystem); this report covers a curated Spotlight/Quests seed-phrase phishing path via a malicious third-party app.",
+          sourceIds: ["solanamobile-x"]
+        }
+      ]
+    },
+    sources: [
+      {
+        id: "solanamobile-x",
+        title: "Solana Mobile (@solanamobile) — official disclosure: SKR Claim Spotlight phishing; portal access; unpublished-link patch",
+        url: "https://x.com/solanamobile/status/2116962140301266959"
+      },
+      {
+        id: "cryptobriefing-skr",
+        title: "CryptoBriefing — long-form; Seed Vault/on-chain “not compromised” press attribution + migrate-funds advice",
+        url: "https://cryptobriefing.com/solana-mobile-patches-bug-malicious-app-dapp-portal/"
+      },
+      {
+        id: "defiant-skr",
+        title: "The Defiant — Solana Mobile says fake SKR Claim app reached Store Spotlight",
+        url: "https://thedefiant.io/news/hacks/solana-mobile-says-fake-skr-claim-app-reached-store-spotlight"
+      },
+      {
+        id: "panews-skr",
+        title: "PANews — Solana Mobile dApp Store malicious SKR Claim restatement",
+        url: "https://www.panews.io/articles/01a19877-acd7-739b-adf0-78d8b5ecdd9b"
+      },
+      {
+        id: "chaincatcher-skr",
+        title: "ChainCatcher — flash restatement of official Solana Mobile disclosure",
+        url: "https://www.chaincatcher.com/en/article/2300847"
+      },
+      {
+        id: "slowmist-home",
+        title: "SlowMist Hacked — no SKR Claim / Solana Mobile dApp Store row this Eng pass",
+        url: "https://hacked.slowmist.io/en/"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "Official @solanamobile: on 1 Nov 2026 a malicious third-party app named “SKR Claim” was submitted to the Solana dApp Store. After unauthorized access to the dApp Publishing Portal, the App Spotlight and Quests UIs were updated so the app appeared in curated surfaces. The app requested user seed phrases.",
+            sourceIds: ["solanamobile-x", "defiant-skr", "panews-skr"]
+          },
+          {
+            text: "Official says the app was live on dApp Spotlight for one hour, then removed from the Store, and is currently being removed from devices where it was installed. Engineers identified and patched a bug that allowed linking to apps that were not fully published. Solana Mobile states it will never ask for a seed phrase, crypto, or wallet-connect to claim airdrops.",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            text: "This is a mobile dApp Store / publishing-portal + curated-placement phishing incident (seed harvest), not an on-chain smart-contract exploit. The official note_tweet does not assert Seed Vault hardware compromise. CryptoBriefing attributes a company confirmation that device security, Seed Vault, and on-chain systems were not compromised — treat that as press-only until a primary source is found.",
+            sourceIds: ["solanamobile-x", "cryptobriefing-skr"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "1 Nov 2026 afternoon UTC (exact Spotlight start unconfirmed): unauthorized access to the dApp Publishing Portal; App Spotlight + Quests UI updated; malicious “SKR Claim” surfaced and requested seed phrases. Official duration: live on Spotlight for one hour before Store removal.",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            text: "1 Nov 2026 18:34:40 UTC (~02:34 HKT 2 Nov): @solanamobile disclosure note_tweet posts full incident ACK, unpublished-link patch, and anti-phishing reminder.",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            text: "~18:46 UTC 1 Nov onward: CryptoBriefing, The Defiant, PANews, ChainCatcher and other outlets restate or expand on the official note; CryptoBriefing adds Seed Vault/on-chain non-compromise and migrate-funds advice (press attribution).",
+            sourceIds: ["cryptobriefing-skr", "defiant-skr", "panews-skr", "chaincatcher-skr"]
+          },
+          {
+            text: "Through this Eng pass: no newer @solanamobile post found after the disclosure; SlowMist Hacked shows no SKR Claim / Solana Mobile row; no official blog post-mortem located.",
+            sourceIds: ["solanamobile-x", "slowmist-home"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "Solana Mobile (@solanamobile): primary official ACK — Store removal, device wipe in progress, unpublished-app linking bug patched, and anti-phishing reminder.",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            text: "SlowMist Hacked: no SKR Claim / Solana Mobile dApp Store entry found this Eng pass — do not invent a SlowMist loss row.",
+            sourceIds: ["slowmist-home"]
+          },
+          {
+            text: "Attacker identity and Publishing Portal access method remain undisclosed in the official note.",
+            sourceIds: ["solanamobile-x"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "The Defiant, PANews, and ChainCatcher largely restate official facts (Spotlight placement, seed-phrase request, ~1 hour exposure, removal/patch) — secondary press, not an independent victim ledger.",
+            sourceIds: ["defiant-skr", "panews-skr", "chaincatcher-skr", "solanamobile-x"]
+          },
+          {
+            text: "CryptoBriefing expands with Seed Vault / device / on-chain “not compromised,” a broader security review, and migrate-funds guidance for users who entered seeds — cite as secondary; do not elevate those claims to official until a primary source appears.",
+            sourceIds: ["cryptobriefing-skr", "solanamobile-x"]
+          },
+          {
+            text: "This Eng pass found no SlowMist or DefiLlama SKR Claim row and no PeckShield/BlockSec/CertiK write-up naming the app.",
+            sourceIds: ["slowmist-home", "solanamobile-x"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status CONTAINED — not RESOLVED: curated Spotlight/Quests placement is claimed stopped and the unpublished-link bug is claimed patched, but device wipe is still “currently being removed,” portal access root-cause is unexplained, install/victim/USD figures are undisclosed, and no post-mortem has published.",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            text: "Not ACTIVE: no evidence of ongoing curated Spotlight placement this pass. Residual risk remains for any user who entered a seed phrase, and for unfinished wipe plus unexplained portal access.",
+            sourceIds: ["solanamobile-x", "cryptobriefing-skr"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Official disclosure gives no USD, SOL, install, or seed-enter victim counts. SlowMist and DefiLlama show no matching loss row this pass — do not invent a dollar figure.",
+            sourceIds: ["solanamobile-x", "slowmist-home", "defiant-skr"]
+          }
+        ],
+        figures: [
+          {
+            label: "Spotlight exposure (official)",
+            amount: "~1 hour",
+            confidence: "confirmed",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            label: "USD / token cash loss",
+            amount: "Not disclosed",
+            confidence: "estimate",
+            sourceIds: ["solanamobile-x", "slowmist-home"]
+          },
+          {
+            label: "Install / seed-enter victims",
+            amount: "Not disclosed",
+            confidence: "estimate",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            label: "SlowMist listed loss",
+            amount: "n/a (no entry this pass)",
+            confidence: "estimate",
+            sourceIds: ["slowmist-home"]
+          },
+          {
+            label: "Store placement / patch",
+            amount: "Listing removed; unpublished-link bug patched",
+            confidence: "confirmed",
+            sourceIds: ["solanamobile-x"]
+          },
+          {
+            label: "Device wipe",
+            amount: "In progress (“currently being removed”)",
+            confidence: "confirmed",
+            sourceIds: ["solanamobile-x"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Surface is the Solana Mobile dApp Store (Seeker-primary ecosystem). Official framing is store/portal-layer phishing, not a Solana L1 contract exploit.",
+            sourceIds: ["solanamobile-x", "defiant-skr"]
+          },
+          {
+            text: "Official note_tweet does not assert Seed Vault hardware or on-chain system compromise; press non-compromise claims remain secondary until primary-sourced.",
+            sourceIds: ["solanamobile-x", "cryptobriefing-skr"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Labels: Solana Mobile dApp Store · SKR Claim seed-phrase phishing · App Spotlight / Quests · dApp Publishing Portal unauthorized access · unpublished-app linking bug patched · ~1 hour exposure · device wipe in progress · USD / victims undisclosed · SlowMist/DefiLlama unlisted (this pass).",
+            sourceIds: ["solanamobile-x", "slowmist-home", "defiant-skr"]
+          },
+          {
+            text: "Highest residual risk: users who entered a seed into “SKR Claim.” Users who only saw the listing without installing or entering a seed have lower direct exposure. Official guidance: Solana Mobile will never ask for seed phrase, crypto, or wallet-connect to claim airdrops.",
+            sourceIds: ["solanamobile-x", "cryptobriefing-skr"]
+          }
+        ]
+      }
+    ]
+  },
   {
     id: "talis-protocol-injective-nft-exploit-2026-10-31",
     title: "Talis Protocol — Injective NFT marketplace / auction exploit (~5,700 NFTs)",
@@ -829,6 +1271,264 @@ export const incidents: Incident[] = [
     ]
   },
 
+  {
+    id: "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
+    title: "Threshold / tBTC — mint+redeem pause (CVE-2026-98432 precaution)",
+    occurredAt: "2026-10-30T22:35:51.000Z",
+    status: "CONTAINED",
+    amountSummary:
+      "Bridge BTC claimed intact (~4,320 BTC wallets vs ~4,185 tBTC); no unauthorized mint/BTC move claimed; separate ~0.5 ETH operator fee drain; no SlowMist/DefiLlama row",
+    chains: [
+      "Bitcoin↔Ethereum tBTC bridge (Threshold)",
+      "Operator Linux hosts",
+      "Aave V3 Ethereum Core (side freeze)"
+    ],
+    background: {
+      protocolType: "bridge",
+      sizeMetrics: [
+        {
+          label: "Bridge BTC wallets",
+          value: "~4,320 BTC",
+          asOf: "2026-10-31",
+          confidence: "confirmed",
+          sourceIds: ["threshold-x-contained"]
+        },
+        {
+          label: "Circulating tBTC",
+          value: "~4,185 tBTC",
+          asOf: "2026-10-31",
+          confidence: "confirmed",
+          sourceIds: ["threshold-x-contained"]
+        }
+      ],
+      notes: [
+        {
+          text: "Threshold Network operates the tBTC Bitcoin↔Ethereum bridge; this report covers a precautionary mint+redeem pause while operators responded to Linux kernel CVE-2026-98432.",
+          sourceIds: ["threshold-x-pause", "threshold-x-cve"]
+        }
+      ]
+    },
+    sources: [
+      {
+        id: "threshold-x-pause",
+        title: "Threshold (@TheTNetwork) — mint + new BTC redemptions paused as precaution",
+        url: "https://x.com/TheTNetwork/status/2116298061626368495"
+      },
+      {
+        id: "threshold-x-contained",
+        title: "Threshold (@TheTNetwork) — ~4,320 BTC vs ~4,185 tBTC; “contained”; no unauthorized mint",
+        url: "https://x.com/TheTNetwork/status/2116588948881375583"
+      },
+      {
+        id: "threshold-x-cve",
+        title: "Threshold (@TheTNetwork) — CVE-2026-98432 named; operators patched/offline; ~0.5 ETH fee drain side",
+        url: "https://x.com/TheTNetwork/status/2116965471157203243"
+      },
+      {
+        id: "tbtc-project-echo",
+        title: "tBTC (@tBTC_project) — echoes Threshold CVE update",
+        url: "https://x.com/tBTC_project/status/2117002540080582776"
+      },
+      {
+        id: "redhat-rhsb",
+        title: "Red Hat RHSB-2026-016 — CVE-2026-98432 Linux kernel IPv4 TCP use-after-free",
+        url: "https://access.redhat.com/security/vulnerabilities/RHSB-2026-016"
+      },
+      {
+        id: "aave-x-freeze",
+        title: "Aave (@aave) — freezes tBTC on V3 Ethereum Core",
+        url: "https://x.com/aave/status/2116479695424192605"
+      },
+      {
+        id: "llamarisk-forum",
+        title: "LlamaRisk Aave forum — tBTC mint & redeem pause / Aave response",
+        url: "https://governance.aave.com/t/tbtc-mint-redeem-pause-aaves-response/25965"
+      },
+      {
+        id: "defiant-threshold",
+        title: "The Defiant — Threshold says tBTC operators patched or went offline over Linux flaw",
+        url: "https://thedefiant.io/news/security/threshold-says-tbtc-operators-patched-or-went-offline-over-linux-flaw"
+      },
+      {
+        id: "slowmist-home",
+        title: "SlowMist Hacked — no Threshold / tBTC row this Eng pass",
+        url: "https://hacked.slowmist.io/en/"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "Official @TheTNetwork: starting 30 Oct 2026 22:35 UTC, new tBTC minting and new Bitcoin redemption requests through the Threshold app were paused — first as unnamed “security maintenance,” then (1 Nov UTC) as a precaution against Linux kernel CVE-2026-98432. Holding and transferring tBTC on Ethereum / L2s is claimed unaffected.",
+            sourceIds: ["threshold-x-pause", "threshold-x-cve", "defiant-threshold"]
+          },
+          {
+            text: "Official claims every tBTC node operator is patched or offline, there is no evidence the CVE was exploited against any tBTC node, no unauthorized minting or BTC movement, and full backing (~4,320 BTC in bridge wallets vs ~4,185 tBTC circulating). Separately, one operator reported ~0.5 ETH drained from its Ethereum fee-paying account (not bridge BTC signing keys); that node was already offline.",
+            sourceIds: ["threshold-x-contained", "threshold-x-cve"]
+          },
+          {
+            text: "This is a precautionary bridge operational pause + operator-infra CVE response, not a proven on-chain tBTC smart-contract exploit and not a confirmed bridge BTC theft. CVE-2026-98432 is a Linux kernel IPv4 TCP use-after-free / remote code-execution class flaw (Red Hat Critical). Aave froze tBTC on V3 Ethereum Core as a proactive DeFi-market step.",
+            sourceIds: ["threshold-x-cve", "redhat-rhsb", "aave-x-freeze", "llamarisk-forum"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "~30 Oct 2026: Red Hat RHSB-2026-016 public date for CVE-2026-98432 (Critical IPv4 TCP use-after-free / RCE class).",
+            sourceIds: ["redhat-rhsb"]
+          },
+          {
+            text: "30 Oct 2026 22:35:51 UTC (~06:35 HKT 31 Oct): @TheTNetwork pauses mint + new BTC redemptions; hold/transfer OK; CVE not yet named.",
+            sourceIds: ["threshold-x-pause"]
+          },
+          {
+            text: "31 Oct 2026 ~10:01 UTC: Aave guardian freezes tBTC on V3 Ethereum Core (LlamaRisk recommendation); @aave public note ~10:37 UTC.",
+            sourceIds: ["aave-x-freeze", "llamarisk-forum"]
+          },
+          {
+            text: "31 Oct 2026 17:51:44 UTC (~01:51 HKT 1 Nov): @TheTNetwork mid-update — ~4,320 BTC vs ~4,185 tBTC; “contained”; no unauthorized mint; resume after full remediation.",
+            sourceIds: ["threshold-x-contained"]
+          },
+          {
+            text: "1 Nov 2026 18:47:54 UTC (~02:47 HKT 2 Nov): @TheTNetwork names CVE-2026-98432; all operators patched or offline; no tBTC-node exploit evidence; ~0.5 ETH fee-account side drain; majority signing required; next update promised within 24h.",
+            sourceIds: ["threshold-x-cve"]
+          },
+          {
+            text: "1 Nov 2026 ~21:15 UTC: @tBTC_project echoes the CVE update. Through this Eng pass: no resume post; SlowMist/DefiLlama still unlisted.",
+            sourceIds: ["tbtc-project-echo", "slowmist-home", "threshold-x-cve"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "Threshold Network (@TheTNetwork): primary official ACK across pause, backing/“contained,” and CVE-named updates; bridge resume gated on maintenance complete and patched nodes online.",
+            sourceIds: ["threshold-x-pause", "threshold-x-contained", "threshold-x-cve"]
+          },
+          {
+            text: "Aave / LlamaRisk: proactive freeze of tBTC on V3 Ethereum Core — blocks new deposits and new borrow power; repay/withdraw/liquidations continue.",
+            sourceIds: ["aave-x-freeze", "llamarisk-forum"]
+          },
+          {
+            text: "SlowMist Hacked: no Threshold / tBTC entry found this Eng pass — do not invent a SlowMist loss row.",
+            sourceIds: ["slowmist-home"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "The Defiant restates the CVE precaution, operator patch/offline claim, and independently checks explorer wallet BTC (~4,320.33) versus circulating tBTC — secondary support for the official backing claim.",
+            sourceIds: ["defiant-threshold", "threshold-x-contained"]
+          },
+          {
+            text: "Red Hat RHSB-2026-016 is the primary CVE vendor bulletin for CVE-2026-98432. This Eng pass found no SlowMist or DefiLlama Threshold/tBTC hack row.",
+            sourceIds: ["redhat-rhsb", "slowmist-home"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status CONTAINED — not RESOLVED: official frames a precautionary pause with claimed intact backing and no evidenced tBTC-node exploit, but mint+redeem remain paused, bridge has not resumed, Aave Ethereum Core freeze is still on, and the promised post-CVE update window was still open at brief compile.",
+            sourceIds: ["threshold-x-contained", "threshold-x-cve", "aave-x-freeze"]
+          },
+          {
+            text: "Not ACTIVE: no evidence this pass of an ongoing bridge BTC drain, unauthorized mint, or active CVE exploitation of tBTC nodes; transfers are claimed still working.",
+            sourceIds: ["threshold-x-pause", "threshold-x-cve"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Official claims ~4,320 BTC in bridge wallets versus ~4,185 tBTC circulating, with no unauthorized mint or BTC movement. Bridge BTC USD hack loss is not claimed. Only disclosed cash loss in the CVE update is the separate ~0.5 ETH operator fee-account drain.",
+            sourceIds: ["threshold-x-contained", "threshold-x-cve", "defiant-threshold", "slowmist-home"]
+          }
+        ],
+        figures: [
+          {
+            label: "Bridge BTC claimed in wallets (official)",
+            amount: "~4,320 BTC (Defiant independent check ~4,320.33)",
+            confidence: "confirmed",
+            sourceIds: ["threshold-x-contained", "defiant-threshold"]
+          },
+          {
+            label: "Circulating tBTC (official)",
+            amount: "~4,185 tBTC",
+            confidence: "confirmed",
+            sourceIds: ["threshold-x-contained"]
+          },
+          {
+            label: "Unauthorized mint / BTC move",
+            amount: "None claimed",
+            confidence: "confirmed",
+            sourceIds: ["threshold-x-contained", "threshold-x-cve"]
+          },
+          {
+            label: "Bridge BTC USD hack loss",
+            amount: "$0 claimed (no SlowMist/DefiLlama row)",
+            confidence: "estimate",
+            sourceIds: ["threshold-x-cve", "slowmist-home"]
+          },
+          {
+            label: "Operator fee-account side loss",
+            amount: "~0.5 ETH",
+            confidence: "confirmed",
+            sourceIds: ["threshold-x-cve"]
+          },
+          {
+            label: "Mint/redeem availability",
+            amount: "Paused (still, this pass)",
+            confidence: "confirmed",
+            sourceIds: ["threshold-x-pause", "threshold-x-cve"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Surface is the Bitcoin↔Ethereum tBTC bridge operated by Threshold, plus operator Linux hosts exposed to CVE-2026-98432. Official mechanism is precautionary / infrastructure — not a proven tBTC protocol bug.",
+            sourceIds: ["threshold-x-cve", "redhat-rhsb"]
+          },
+          {
+            text: "Aave V3 Ethereum Core tBTC reserve was frozen as a secondary DeFi response. Official signing model: majority of independent operators required to move bridge BTC.",
+            sourceIds: ["aave-x-freeze", "llamarisk-forum", "threshold-x-cve"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Labels: Threshold Network / tBTC · mint + redeem pause · CVE-2026-98432 Linux kernel precaution · operators patched or offline · no tBTC-node exploit evidence claimed · ~4,320 BTC vs ~4,185 tBTC backed · hold/transfer OK · Aave Ethereum Core freeze side · ~0.5 ETH operator fee drain side · SlowMist/DefiLlama unlisted (this pass).",
+            sourceIds: ["threshold-x-cve", "threshold-x-contained", "aave-x-freeze", "slowmist-home", "defiant-threshold"]
+          },
+          {
+            text: "Users wanting to mint tBTC or open new Bitcoin redemptions are blocked; official warns not to re-send to prior deposit addresses. Holders transferring on Ethereum / L2s are claimed unaffected. Aave Ethereum Core suppliers/borrowers face freeze of new supply and new borrow power.",
+            sourceIds: ["threshold-x-pause", "aave-x-freeze", "llamarisk-forum"]
+          }
+        ]
+      }
+    ]
+  },
   {
     id: "binance-hot-wallet-2026-10-30",
     title: "Binance hot-wallet drain — potential security issue",
