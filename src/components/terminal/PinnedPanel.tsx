@@ -25,6 +25,7 @@ import NewsWidget from "./widgets/NewsWidget";
 import FeedbackWidget, { type FeedbackSubmitResult } from "./widgets/FeedbackWidget";
 import { SUPPORTED_CHAINS } from "./constants";
 import type { PinnedManifest, ThemeConfig } from "./types";
+import { btnClass } from "./ui/buttonClasses";
 
 const noopSubmit = async (): Promise<FeedbackSubmitResult> => ({ ok: false });
 
@@ -92,7 +93,7 @@ export default function PinnedPanel({
                     onClick={() => onRefresh(p.id)}
                     title="Refresh now (resets countdown)"
                     disabled={isRefreshing}
-                    className={`uppercase text-[10px] cursor-pointer ${theme.primary} ${isRefreshing ? "opacity-40 cursor-default" : ""}`}
+                    className={btnClass({ theme, variant: "ghost", size: "sm", className: theme.primary })}
                   >
                     {isRefreshing ? "…" : "↻"}
                   </button>
@@ -110,7 +111,7 @@ export default function PinnedPanel({
                   type="button"
                   onClick={() => onMinimize(p.id)}
                   title={minimized ? "Expand" : "Minimize"}
-                  className={`uppercase text-[10px] cursor-pointer ${theme.primary}`}
+                  className={btnClass({ theme, variant: "ghost", size: "sm", className: theme.primary })}
                 >
                   {minimized ? "+" : "-"}
                 </button>
@@ -118,7 +119,7 @@ export default function PinnedPanel({
                   type="button"
                   onClick={() => onUnpin(p.id)}
                   title="Unpin"
-                  className={`uppercase text-[10px] cursor-pointer ${theme.primary}`}
+                  className={btnClass({ theme, variant: "ghost", size: "sm", className: theme.primary })}
                 >
                   ✕
                 </button>

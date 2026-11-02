@@ -11,6 +11,7 @@
 
 import { useMemo, useState } from "react";
 import type { ThemeConfig } from "../types";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 import { DigPanelShell } from "../dig/panels/DigPanelShell";
 import {
   incidents as defaultIncidents,
@@ -24,8 +25,7 @@ import {
   type MoneyConfidence
 } from "./types";
 
-const TOUCH =
-  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+const TOUCH = BTN_TOUCH;
 const TAP_ROW =
   "pointer-coarse:min-h-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px] min-h-[44px] w-full text-left";
 
@@ -166,7 +166,7 @@ function IncidentDetail({
         <button
           type="button"
           onClick={onBack}
-          className={`uppercase tracking-widest text-[10px] font-bold border ${theme.border} px-2.5 py-1.5 cursor-pointer ${theme.primary} ${TOUCH}`}
+          className={btnClass({ theme, variant: "secondary", size: "sm", className: theme.primary })}
           data-testid="incident-back"
         >
           BACK
@@ -435,9 +435,14 @@ export default function IncidentsPanel({
                   type="button"
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={safePage <= 0}
-                  className={`uppercase text-[10px] underline cursor-pointer ${theme.primary} ${TOUCH} ${
-                    safePage <= 0 ? "opacity-40 cursor-default" : ""
-                  }`}
+                  className={btnClass({
+                    theme,
+                    variant: "ghost",
+                    size: "sm",
+                    className: `${theme.primary} underline ${
+                      safePage <= 0 ? "opacity-40 cursor-default" : ""
+                    }`
+                  })}
                   data-testid="incident-prev"
                 >
                   ‹ prev
@@ -446,9 +451,14 @@ export default function IncidentsPanel({
                   type="button"
                   onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
                   disabled={safePage >= pageCount - 1}
-                  className={`uppercase text-[10px] underline cursor-pointer ${theme.primary} ${TOUCH} ${
-                    safePage >= pageCount - 1 ? "opacity-40 cursor-default" : ""
-                  }`}
+                  className={btnClass({
+                    theme,
+                    variant: "ghost",
+                    size: "sm",
+                    className: `${theme.primary} underline ${
+                      safePage >= pageCount - 1 ? "opacity-40 cursor-default" : ""
+                    }`
+                  })}
                   data-testid="incident-next"
                 >
                   next ›

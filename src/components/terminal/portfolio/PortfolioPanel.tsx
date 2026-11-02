@@ -8,6 +8,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ThemeConfig } from "../types";
+import {
+  BTN_TOUCH,
+  btnClass,
+  btnPrimaryFillStyle
+} from "../ui/buttonClasses";
 import PortfolioWidget, {
   type PortfolioGroup,
   type PortfolioHolding,
@@ -126,8 +131,7 @@ export default function PortfolioPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   const hasSnapshot =
     !!data?.snapshot && Object.keys(data.snapshot).length > 0;
@@ -249,10 +253,13 @@ export default function PortfolioPanel({
         type="button"
         onClick={() => void fetchView()}
         aria-disabled={running || !isConnected}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer ${
-          running || !isConnected ? "opacity-40" : ""
-        } ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
+        className={btnClass({
+          theme,
+          variant: "primary",
+          size: "md",
+          className: running || !isConnected ? "opacity-40" : ""
+        })}
+        style={btnPrimaryFillStyle(theme)}
         data-testid="portfolio-refresh"
       >
         {running ? "…" : "REFRESH"}
@@ -336,12 +343,17 @@ export default function PortfolioPanel({
             aria-disabled={
               !isConnected || baselineBusy || !label.trim() || running
             }
-            className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer ${
-              !isConnected || baselineBusy || !label.trim() || running
-                ? "opacity-40"
-                : ""
-            } ${touch}`}
-            style={{ background: theme.phosphor, color: "#000000" }}
+            className={btnClass({
+              theme,
+              variant: "primary",
+              size: "lg",
+              block: true,
+              className:
+                !isConnected || baselineBusy || !label.trim() || running
+                  ? "opacity-40"
+                  : ""
+            })}
+            style={btnPrimaryFillStyle(theme)}
             data-testid="portfolio-record-snapshot"
           >
             {baselineBusy ? "…" : "RECORD SNAPSHOT"}
@@ -352,9 +364,13 @@ export default function PortfolioPanel({
               type="button"
               onClick={() => void handleReset()}
               disabled={!isConnected || baselineBusy || running}
-              className={`w-full uppercase tracking-widest text-[10px] font-bold border ${theme.border} bg-transparent cursor-pointer ${theme.warn || theme.primary} ${
-                !isConnected || baselineBusy || running ? "opacity-40" : ""
-              } ${touch}`}
+              className={btnClass({
+                theme,
+                variant: "warn",
+                size: "md",
+                className:
+                  !isConnected || baselineBusy || running ? "opacity-40" : ""
+              })}
               data-testid="portfolio-reset-baseline"
             >
               {confirmReset ? "CONFIRM RESET BASELINE" : "RESET BASELINE"}

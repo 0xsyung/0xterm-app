@@ -8,6 +8,7 @@
 
 import type { ThemeConfig } from "../types";
 import type { WorkspaceAction, WorkspacePanelId } from "./WorkspaceTile";
+import { btnChipActiveStyle, btnChipClass } from "../ui/buttonClasses";
 
 /**
  * Always-visible tool button row for the active sub-tab. Clicking a panel
@@ -35,9 +36,6 @@ export function WorkspaceToolTabs({
   onCommand: (cmd: string) => void;
   onOpenPanel?: (panel: WorkspacePanelId) => void;
 }) {
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
-
   const stick =
     activeTool != null
       ? "relative z-auto"
@@ -62,14 +60,8 @@ export function WorkspaceToolTabs({
               }
               onCommand(a.cmd);
             }}
-            className={`flex items-center px-2.5 py-1.5 border uppercase tracking-widest text-[10px] cursor-pointer ${touch} ${
-              active
-                ? "border-transparent font-bold"
-                : `${theme.border} ${theme.muted} bg-transparent`
-            }`}
-            style={
-              active ? { background: theme.phosphor, color: "#000000" } : undefined
-            }
+            className={btnChipClass(theme, active, "md")}
+            style={active ? btnChipActiveStyle(theme) : undefined}
           >
             <span className={active ? undefined : theme.primary}>{a.label}</span>
           </button>

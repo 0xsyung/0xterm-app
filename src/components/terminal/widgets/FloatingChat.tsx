@@ -26,6 +26,7 @@ import {
   computeFloatingChatPanelLayout,
   fallbackTopChromeHeight
 } from "./floatingChatLayout";
+import { BTN_TOUCH } from "../ui/buttonClasses";
 
 function errMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "message" in err) {
@@ -360,7 +361,7 @@ export default function FloatingChat({
               type="button"
               aria-label="Collapse chat"
               onClick={() => setExpanded(false)}
-              className={`inline-flex items-center justify-center w-8 h-8 pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px] border ${theme.border} ${theme.muted} cursor-pointer ${radius}`}
+              className={`btn-base btn-ghost btn-sm inline-flex items-center justify-center w-8 h-8 ${BTN_TOUCH} border ${theme.border} ${theme.muted} cursor-pointer ${radius}`}
             >
               ×
             </button>
@@ -451,7 +452,7 @@ export default function FloatingChat({
           }
           aria-expanded={false}
           onClick={() => setExpanded(true)}
-          className={`absolute z-[20] inline-flex items-center justify-center border ${theme.border} ${theme.cardBg} cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px] ${radius} [@media(hover:hover)]:hover:[border-color:var(--phosphor)]`}
+          className={`btn-base btn-secondary absolute z-[20] inline-flex items-center justify-center border ${theme.border} ${theme.cardBg} cursor-pointer ${BTN_TOUCH} ${radius} [@media(hover:hover)]:hover:[border-color:var(--phosphor)]`}
           style={{
             bottom: bubbleBottom,
             right: rightPx,

@@ -9,6 +9,7 @@ import type { Address } from "viem";
 import type { ThemeConfig } from "../types";
 import { formatGas } from "../dig/gas";
 import { truncateAddress, truncateHex } from "../dig/encode";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 
 export default function DigConfirmWidget({
   theme,
@@ -29,8 +30,7 @@ export default function DigConfirmWidget({
 }) {
   const [busy, setBusy] = useState(false);
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   return (
     <div
@@ -68,7 +68,7 @@ export default function DigConfirmWidget({
         <button
           type="button"
           disabled={busy}
-          className={`px-3 py-1 border ${theme.border} ${theme.primary} font-bold text-[10px] ${touch}`}
+          className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
           onClick={async () => {
             if (busy) return;
             setBusy(true);
@@ -84,7 +84,7 @@ export default function DigConfirmWidget({
         <button
           type="button"
           disabled={busy}
-          className={`px-3 py-1 border ${theme.border} ${theme.muted} text-[10px] ${touch}`}
+          className={btnClass({ theme, variant: "secondary", size: "md" })}
           onClick={onCancel}
         >
           CANCEL

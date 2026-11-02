@@ -29,6 +29,7 @@ import {
 } from "../mixer/constants";
 import { ackPrivacyWarn } from "../mixer/privacy";
 import { formatViemError } from "../../../lib/viemError";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 
 type Status =
   | "checking_approval"
@@ -73,8 +74,7 @@ export default function MixerDepositWidget({
   const { sendTransactionAsync } = useSendTransaction();
   const { writeContractAsync } = useWriteContract();
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   useEffect(() => {
     async function check() {
@@ -284,7 +284,7 @@ export default function MixerDepositWidget({
                   status === "approving" ||
                   status === "waiting_approval_confirmation"
                 }
-                className={`px-3 py-1 border ${theme.border} ${theme.primary} font-bold text-[10px] ${touch}`}
+                className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
                 onClick={handleApprove}
               >
                 {status === "approving" ||
@@ -302,7 +302,7 @@ export default function MixerDepositWidget({
               disabled={
                 status === "depositing" || status === "waiting_deposit"
               }
-              className={`px-3 py-1 border ${theme.border} ${theme.primary} font-bold text-[10px] ${touch}`}
+              className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
               onClick={handleDeposit}
             >
               {status === "depositing" || status === "waiting_deposit"
@@ -321,7 +321,7 @@ export default function MixerDepositWidget({
               status === "waiting_deposit" ||
               status === "approving"
             }
-            className={`px-3 py-1 border ${theme.border} ${theme.muted} text-[10px] ${touch}`}
+            className={btnClass({ theme, variant: "secondary", size: "md" })}
             onClick={handleCancel}
           >
             CANCEL

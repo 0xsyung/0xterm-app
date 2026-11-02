@@ -8,11 +8,11 @@
 
 import { useEffect, useState } from "react";
 import type { ThemeConfig } from "../types";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 import { PRO_MAX_PERIODS, PRO_REFUSE } from "./constants";
 import { clampPeriods, formatEthAmount, purchaseCost } from "./buy";
 
-const TOUCH =
-  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
+const TOUCH = BTN_TOUCH;
 
 export default function ProBuyPanel({
   theme,
@@ -71,7 +71,7 @@ export default function ProBuyPanel({
   };
 
   const fieldBtn = `inline-flex items-center justify-center w-8 h-8 border ${theme.border} ${theme.primary} bg-transparent cursor-pointer ${TOUCH} disabled:opacity-40`;
-  const primaryBtn = `cursor-pointer uppercase tracking-widest text-[10px] px-2.5 py-1.5 border ${theme.border} ${theme.primary} ${theme.cardBg || "bg-transparent"} ${TOUCH} disabled:opacity-40`;
+  const primaryBtn = btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` });
 
   return (
     <div
@@ -181,7 +181,7 @@ export default function ProBuyPanel({
         <button
           type="button"
           data-testid="pro-buy-dismiss"
-          className={`cursor-pointer uppercase tracking-widest text-[10px] px-2.5 py-1.5 border ${theme.border} ${theme.muted} bg-transparent ${TOUCH}`}
+          className={btnClass({ theme, variant: "secondary", size: "md" })}
           onClick={onClose}
         >
           Esc

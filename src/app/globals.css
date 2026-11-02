@@ -72,3 +72,16 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Soft ACK #294 — structural button token markers (Tailwind utilities compose layout).
+   Soft Design Soft-locks: btn-hug default; btn-block Soft Design F / form-primary only. */
+.btn-base { }
+.btn-hug { }
+.btn-block { }
+.btn-primary { }
+.btn-secondary { }
+.btn-ghost { }
+.btn-warn { }
+.btn-sm { }
+.btn-md { }
+.btn-lg { }

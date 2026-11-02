@@ -9,6 +9,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { isAddress } from "viem";
 import type { ThemeConfig } from "../types";
+import {
+  BTN_TOUCH,
+  btnClass,
+  btnPrimaryFillStyle
+} from "../ui/buttonClasses";
 import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "../widgets/floatingChatLayout";
 
 export type BalanceSurface = "invest" | "forensic";
@@ -154,8 +159,7 @@ export default function BalancePanel({
     void lookup();
   };
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   return (
     <div
@@ -219,10 +223,14 @@ export default function BalancePanel({
         type="button"
         onClick={handleLookupClick}
         aria-disabled={!canLookup}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer ${
-          canLookup ? "" : "opacity-40"
-        } ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
+        className={btnClass({
+          theme,
+          variant: "primary",
+          size: "lg",
+          block: true,
+          className: canLookup ? "" : "opacity-40"
+        })}
+        style={btnPrimaryFillStyle(theme)}
         data-testid="balance-lookup"
       >
         {running ? "…" : "LOOKUP"}

@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ThemeConfig } from "../types";
 import { saveDigSource } from "../dig/idb";
+import { btnClass } from "../ui/buttonClasses";
 
 export default function DigEditorWidget({
   theme,
@@ -145,7 +146,7 @@ export default function DigEditorWidget({
         )}
         <button
           type="button"
-          className={`uppercase text-[10px] px-3 border ${theme.border} ${theme.primary} cursor-pointer min-h-[44px] min-w-[44px] pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] w-full max-md:min-h-[44px]`}
+          className={btnClass({ theme, variant: "primary", size: "lg", block: true, className: theme.primary })}
           style={
             embedded
               ? { background: theme.phosphor, color: "#000000", borderColor: "transparent" }
@@ -199,7 +200,7 @@ export default function DigEditorWidget({
         <button
           type="button"
           title="Close"
-          className={`ml-auto uppercase text-[10px] cursor-pointer ${theme.primary} min-h-[44px] min-w-[44px] flex items-center justify-center`}
+          className={btnClass({ theme, variant: "ghost", size: "md", className: `ml-auto ${theme.primary}` })}
           onClick={() => onClose?.()}
         >
           Esc

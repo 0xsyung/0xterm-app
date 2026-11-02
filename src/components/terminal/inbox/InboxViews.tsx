@@ -16,6 +16,7 @@ import {
   formatChannelLabel,
   type ChatChannel,
 } from "../chatChannels";
+import { BTN_TOUCH } from "../ui/buttonClasses";
 
 export type InboxSenderSummary = {
   peer: Address;
@@ -71,7 +72,7 @@ export function InboxThreadList({
             key={s.peer}
             type="button"
             onClick={() => onOpenThread(s.peer)}
-            className={`w-full text-left px-2 py-2 border ${theme.border} ${theme.text} cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] hover:opacity-90 ${radius}`}
+            className={`btn-base btn-block ${BTN_TOUCH} w-full justify-start text-left px-2 py-2 h-auto border ${theme.border} ${theme.text} cursor-pointer hover:opacity-90 ${radius}`}
           >
             <span className="font-bold">{s.label || short}</span>
             <span className={`ml-2 ${theme.muted}`}>
@@ -486,7 +487,7 @@ export function InboxGroupList({
             key={g.address}
             type="button"
             onClick={() => onOpenGroup(g.address)}
-            className={`w-full text-left px-2 py-2 border ${theme.border} ${theme.text} cursor-pointer pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px] hover:opacity-90 ${radius}`}
+            className={`btn-base btn-block ${BTN_TOUCH} w-full justify-start text-left px-2 py-2 h-auto border ${theme.border} ${theme.text} cursor-pointer hover:opacity-90 ${radius}`}
           >
             <span
               className={`mr-2 uppercase text-[10px] tracking-widest ${theme.muted}`}

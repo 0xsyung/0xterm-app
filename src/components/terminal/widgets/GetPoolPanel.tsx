@@ -9,6 +9,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { ThemeConfig } from "../types";
 import {
+  BTN_TOUCH,
+  btnChipActiveStyle,
+  btnChipClass,
+  btnClass,
+  btnPrimaryFillStyle
+} from "../ui/buttonClasses";
+import {
   SWAP_FEE_TIERS,
   DEFAULT_SWAP_FEE
 } from "./SwapPanel";
@@ -145,14 +152,8 @@ export default function GetPoolPanel({
     }
   };
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
-  const pill = (active: boolean) =>
-    `inline-flex items-center justify-center px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${touch} ${
-      active
-        ? "border-transparent font-bold"
-        : `${theme.border} ${theme.muted} bg-transparent`
-    }`;
+  const touch = BTN_TOUCH;
+  const pill = (active: boolean) => btnChipClass(theme, active, "sm");
 
   const tokenChips = (
     rowTestId: string,
@@ -168,11 +169,7 @@ export default function GetPoolPanel({
             type="button"
             onClick={() => setValue(s)}
             className={pill(active)}
-            style={
-              active
-                ? { background: theme.phosphor, color: "#000000" }
-                : undefined
-            }
+            style={active ? btnChipActiveStyle(theme) : undefined}
           >
             {s}
           </button>
@@ -257,11 +254,7 @@ export default function GetPoolPanel({
                   type="button"
                   onClick={() => setFeeTier(f)}
                   className={pill(active)}
-                  style={
-                    active
-                      ? { background: theme.phosphor, color: "#000000" }
-                      : undefined
-                  }
+                  style={active ? btnChipActiveStyle(theme) : undefined}
                   aria-pressed={active}
                 >
                   {f}
@@ -276,8 +269,13 @@ export default function GetPoolPanel({
         type="button"
         onClick={() => void run()}
         disabled={!canRun}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
+        className={btnClass({
+          theme,
+          variant: "primary",
+          size: "lg",
+          block: true
+        })}
+        style={btnPrimaryFillStyle(theme)}
         data-testid="getpool-lookup"
       >
         {running ? "…" : "LOOKUP"}

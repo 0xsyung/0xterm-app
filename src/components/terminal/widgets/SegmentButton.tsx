@@ -7,6 +7,7 @@
 "use client";
 
 import type { ThemeConfig } from "../types";
+import { BTN_TOUCH } from "../ui/buttonClasses";
 import { formatBadgeCount } from "../socialUnread";
 
 export function SegmentButton({
@@ -33,12 +34,12 @@ export function SegmentButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`relative inline-flex items-center justify-center gap-1.5 shrink-0 uppercase tracking-widest cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] ${radius} ${
-        quiet ? "px-3 max-md:px-2 text-[10px]" : "px-3 text-[11px]"
+      className={`btn-base btn-hug relative inline-flex items-center justify-center gap-2 shrink-0 w-auto max-w-full cursor-pointer ${BTN_TOUCH} ${radius} ${
+        quiet ? "btn-sm h-8 px-3 max-md:px-2 text-[10px]" : "btn-md h-9 px-4 text-[11px]"
       } ${
         active
-          ? "border border-transparent font-bold"
-          : `border ${theme.border} ${theme.muted} bg-transparent`
+          ? "btn-primary border border-transparent font-bold"
+          : `btn-secondary border ${theme.border} ${theme.muted} bg-transparent`
       }`}
       style={
         active

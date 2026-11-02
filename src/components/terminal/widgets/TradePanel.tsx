@@ -8,6 +8,13 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { DexProtocol, ThemeConfig } from "../types";
+import {
+  BTN_TOUCH,
+  btnChipActiveStyle,
+  btnChipClass,
+  btnClass,
+  btnPrimaryFillStyle
+} from "../ui/buttonClasses";
 import PriceCard, { type PriceCardData } from "./PriceCard";
 import PinButton from "./PinButton";
 import {
@@ -275,14 +282,8 @@ export default function TradePanel({
     else setSlippage(NaN);
   };
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
-  const pill = (active: boolean) =>
-    `inline-flex items-center justify-center px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border ${touch} ${
-      active
-        ? "border-transparent font-bold"
-        : `${theme.border} ${theme.muted} bg-transparent`
-    }`;
+  const touch = BTN_TOUCH;
+  const pill = (active: boolean) => btnChipClass(theme, active, "sm");
   const sectionLabel = (text: string) => (
     <div
       className={`uppercase text-[9px] tracking-widest ${theme.muted} pt-2 border-t ${theme.border}`}
@@ -306,11 +307,7 @@ export default function TradePanel({
             type="button"
             onClick={() => setValue(s)}
             className={pill(active)}
-            style={
-              active
-                ? { background: theme.phosphor, color: "#000000" }
-                : undefined
-            }
+            style={active ? btnChipActiveStyle(theme) : undefined}
           >
             {s}
           </button>
@@ -410,11 +407,7 @@ export default function TradePanel({
                   type="button"
                   onClick={() => setFeeTier(f)}
                   className={pill(active)}
-                  style={
-                    active
-                      ? { background: theme.phosphor, color: "#000000" }
-                      : undefined
-                  }
+                  style={active ? btnChipActiveStyle(theme) : undefined}
                   aria-pressed={active}
                 >
                   {f}
@@ -459,11 +452,7 @@ export default function TradePanel({
                   if (s === "pool") setPriceError(null);
                 }}
                 className={pill(active)}
-                style={
-                  active
-                    ? { background: theme.phosphor, color: "#000000" }
-                    : undefined
-                }
+                style={active ? btnChipActiveStyle(theme) : undefined}
                 aria-pressed={active}
               >
                 {s === "pool" ? "ON-CHAIN" : "API"}
@@ -494,11 +483,7 @@ export default function TradePanel({
                     type="button"
                     onClick={() => pickDex(d.id)}
                     className={pill(active)}
-                    style={
-                      active
-                        ? { background: theme.phosphor, color: "#000000" }
-                        : undefined
-                    }
+                    style={active ? btnChipActiveStyle(theme) : undefined}
                     aria-pressed={active}
                     data-testid={`trade-dex-option-${d.id}`}
                   >
@@ -515,8 +500,13 @@ export default function TradePanel({
         type="button"
         onClick={() => void runPrice()}
         disabled={!canRunPrice}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
+        className={btnClass({
+          theme,
+          variant: "primary",
+          size: "lg",
+          block: true
+        })}
+        style={btnPrimaryFillStyle(theme)}
         data-testid="trade-run-price"
       >
         {priceRunning ? "…" : "RUN PRICE"}
@@ -543,8 +533,11 @@ export default function TradePanel({
             setSource("pool");
             setPriceError(null);
           }}
-          className={`w-full uppercase tracking-widest text-[10px] font-bold border cursor-pointer ${theme.border} ${touch}`}
-          style={{ background: theme.phosphor, color: "#000000" }}
+          className={btnClass({
+            theme,
+            variant: "secondary",
+            size: "md"
+          })}
           data-testid="trade-use-on-chain"
         >
           USE ON-CHAIN
@@ -627,11 +620,7 @@ export default function TradePanel({
                     setSlippageInput(String(s));
                   }}
                   className={pill(active)}
-                  style={
-                    active
-                      ? { background: theme.phosphor, color: "#000000" }
-                      : undefined
-                  }
+                  style={active ? btnChipActiveStyle(theme) : undefined}
                   aria-pressed={active}
                 >
                   {s}
@@ -646,8 +635,13 @@ export default function TradePanel({
         type="button"
         onClick={() => void runSwap()}
         disabled={!canRunSwapBtn}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
+        className={btnClass({
+          theme,
+          variant: "primary",
+          size: "lg",
+          block: true
+        })}
+        style={btnPrimaryFillStyle(theme)}
         data-testid="trade-run-swap"
       >
         {swapRunning ? "…" : "RUN SWAP"}

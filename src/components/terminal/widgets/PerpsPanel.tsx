@@ -78,6 +78,7 @@ import {
   INVEST_PANEL_CHAT_GUTTER_CLASS
 } from "./floatingChatLayout";
 import { hlEvmChainId, hlSignatureChainId } from "../hyperliquid/config";
+import { btnClass, btnPrimaryFillStyle } from "../ui/buttonClasses";
 
 const FILL_FG = "#000000";
 
@@ -899,7 +900,7 @@ export default function PerpsPanel({
 
   const labelCls = `uppercase text-[9px] tracking-widest ${theme.muted}`;
   const inputCls = `w-full border ${theme.border} ${theme.bg} ${theme.text} font-mono text-[12px] px-2 py-1.5 outline-none max-md:min-h-[44px]`;
-  const ctaCls = `w-full uppercase tracking-widest text-[10px] font-bold border-transparent max-md:min-h-[44px] py-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed`;
+  const ctaCls = btnClass({ theme, variant: "primary", size: "lg", block: true }); // Soft Design F CONNECT/SIGN
 
   const isUnified =
     abstraction === "unifiedAccount" || abstraction === "portfolioMargin";
@@ -955,7 +956,7 @@ export default function PerpsPanel({
                     disabled={busy === "agent"}
                     onClick={() => void connectAgent()}
                     className={ctaCls}
-                    style={{ background: theme.phosphor, color: FILL_FG }}
+                    style={btnPrimaryFillStyle(theme)}
                   >
                     {busy === "agent" ? "SIGNING…" : PERPS_COPY.connectCta}
                   </button>
@@ -985,7 +986,7 @@ export default function PerpsPanel({
                         type="button"
                         data-testid="perps-switch-wallet"
                         onClick={() => onUnlockWalletPicker()}
-                        className={`inline-flex items-center justify-center px-2.5 py-1.5 border ${theme.border} uppercase tracking-widest text-[10px] cursor-pointer max-md:min-h-[44px] ${theme.muted} bg-transparent`}
+                        className={btnClass({ theme, variant: "secondary", size: "md" })}
                       >
                         {HL_CONNECT_SWITCH_WALLET_CTA}
                       </button>
@@ -1017,7 +1018,7 @@ export default function PerpsPanel({
                     disabled={busy === "builder"}
                     onClick={() => void approveBuilder()}
                     className={ctaCls}
-                    style={{ background: theme.phosphor, color: FILL_FG }}
+                    style={btnPrimaryFillStyle(theme)}
                   >
                     {busy === "builder" ? "SIGNING…" : PERPS_COPY.approveFeeCta}
                   </button>
@@ -1048,7 +1049,7 @@ export default function PerpsPanel({
                         type="button"
                         data-testid="perps-builder-switch-wallet"
                         onClick={() => onUnlockWalletPicker()}
-                        className={`inline-flex items-center justify-center px-2.5 py-1.5 border ${theme.border} uppercase tracking-widest text-[10px] cursor-pointer max-md:min-h-[44px] ${theme.muted} bg-transparent`}
+                        className={btnClass({ theme, variant: "secondary", size: "md" })}
                       >
                         {HL_CONNECT_SWITCH_WALLET_CTA}
                       </button>
@@ -1265,7 +1266,7 @@ export default function PerpsPanel({
                 disabled={!!busy}
                 onClick={() => void submitOrder()}
                 className={ctaCls}
-                style={{ background: theme.phosphor, color: FILL_FG }}
+                style={btnPrimaryFillStyle(theme)}
               >
                 {busy === "order"
                   ? "SUBMITTING…"
@@ -1403,7 +1404,7 @@ export default function PerpsPanel({
                     }
                     onClick={() => void handleDeposit()}
                     className={ctaCls}
-                    style={{ background: theme.phosphor, color: FILL_FG }}
+                    style={btnPrimaryFillStyle(theme)}
                   >
                     {busy === "deposit" ? "DEPOSITING…" : "DEPOSIT"}
                   </button>
@@ -1436,7 +1437,7 @@ export default function PerpsPanel({
                     disabled={!!busy}
                     onClick={() => void handleWithdraw()}
                     className={ctaCls}
-                    style={{ background: theme.phosphor, color: FILL_FG }}
+                    style={btnPrimaryFillStyle(theme)}
                   >
                     {busy === "withdraw" ? "WITHDRAWING…" : "WITHDRAW"}
                   </button>
@@ -1463,7 +1464,7 @@ export default function PerpsPanel({
                     disabled={!!busy}
                     onClick={() => void handleClassTransfer(transferTab === "toPerps")}
                     className={ctaCls}
-                    style={{ background: theme.phosphor, color: FILL_FG }}
+                    style={btnPrimaryFillStyle(theme)}
                   >
                     {busy === transferTab
                       ? "TRANSFERRING…"

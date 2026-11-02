@@ -48,6 +48,7 @@ import { SUPPORTED_CHAINS } from "../constants";
 import { POLY_CTF_EXCHANGE, fetchBook, midpointFromBook } from "../poly";
 import PinButton from "./PinButton";
 import { proGateOrError } from "../pro/preflight";
+import { btnClass } from "../ui/buttonClasses";
 
 type Phase =
   | "idle"
@@ -728,7 +729,7 @@ export default function PlanRunWidget({
             multicall to{" "}
             <button
               type="button"
-              className={`normal-case underline ${theme.primary}`}
+              className={btnClass({ theme, variant: "ghost", size: "sm", className: `normal-case underline ${theme.primary}` })}
               title={checksumTo}
               onClick={() => {
                 void navigator.clipboard?.writeText(checksumTo);
@@ -760,14 +761,14 @@ export default function PlanRunWidget({
           <div className="flex gap-2 pt-1">
             <button
               type="button"
-              className={`px-3 py-1 border ${theme.border} ${theme.primary} ${theme.rounded}`}
+              className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
               onClick={() => void onPackConfirm()}
             >
               Confirm pack
             </button>
             <button
               type="button"
-              className={`px-3 py-1 border ${theme.border} ${theme.muted} ${theme.rounded}`}
+              className={btnClass({ theme, variant: "secondary", size: "md" })}
               onClick={onPackReject}
             >
               Reject

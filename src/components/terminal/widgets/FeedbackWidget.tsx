@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import type { ThemeConfig } from "../types";
 import PinButton from "./PinButton";
 import { redactSecrets, requireFeedbackConfirm } from "../../../lib/redactSecrets";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 
 export type FeedbackDraft = {
   text: string;
@@ -94,8 +95,7 @@ export default function FeedbackWidget({
     await fire();
   };
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   return (
     <div
@@ -117,7 +117,7 @@ export default function FeedbackWidget({
           {!pinned && (
             <button
               type="button"
-              className={`px-2 py-0.5 border ${theme.border} ${theme.muted} ${touch}`}
+              className={btnClass({ theme, variant: "secondary", size: "sm" })}
               onClick={() => {
                 setError(null);
                 setSecretGate(false);
@@ -200,7 +200,7 @@ export default function FeedbackWidget({
         {!pinned && (
           <button
             type="button"
-            className={`px-3 py-1 border ${theme.border} ${theme.primary} font-bold text-[10px] ${touch}`}
+            className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
             disabled={sending}
             onClick={() => void send()}
           >

@@ -17,6 +17,7 @@ import { formatLocalHms } from "./localTime";
 import type { BindingsState, FKey } from "./keybindings";
 import { FKEYS, defaultBindings, resolveBinding } from "./keybindings";
 import ProChip from "./pro/ProChip";
+import { BTN_TOUCH, btnClass } from "./ui/buttonClasses";
 
 function formatClock(d: Date) {
   return formatLocalHms(d);
@@ -30,8 +31,7 @@ export function truncateAddress(addr: string): string {
 
 const FILL_FG = "#000000";
 
-const TOUCH =
-  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
+const TOUCH = BTN_TOUCH;
 
 /**
  * Left strip: INVEST · DEV · FORENSIC · SOCIAL (no separator between the
@@ -78,10 +78,10 @@ function NavStrip({
               onModeChange?.(m);
               onPrimaryTabChange?.("terminal");
             }}
-            className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
+            className={`btn-base btn-hug btn-md relative inline-flex items-center justify-center gap-2 shrink-0 w-auto max-w-full h-9 px-4 cursor-pointer ${TOUCH} text-[10px] ${radius} ${
               active
-                ? "border border-transparent font-bold"
-                : `border ${theme.border} ${theme.muted} bg-transparent`
+                ? "btn-primary border border-transparent font-bold"
+                : `btn-secondary border ${theme.border} ${theme.muted} bg-transparent`
             }`}
             style={
               active
@@ -125,10 +125,10 @@ function SocialTab({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
+      className={`btn-base btn-hug btn-md relative inline-flex items-center justify-center gap-2 shrink-0 w-auto max-w-full h-9 px-4 cursor-pointer ${TOUCH} text-[10px] ${radius} ${
         active
-          ? "border border-transparent font-bold"
-          : `border ${theme.border} ${theme.muted} bg-transparent`
+          ? "btn-primary border border-transparent font-bold"
+          : `btn-secondary border ${theme.border} ${theme.muted} bg-transparent`
       }`}
       style={active ? { background: theme.phosphor, color: FILL_FG } : undefined}
     >
@@ -167,10 +167,10 @@ function SettingsTab({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={`relative inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest cursor-pointer ${TOUCH} text-[10px] shrink-0 ${radius} ${
+      className={`btn-base btn-hug btn-md relative inline-flex items-center justify-center gap-2 shrink-0 w-auto max-w-full h-9 px-4 cursor-pointer ${TOUCH} text-[10px] ${radius} ${
         active
-          ? "border border-transparent font-bold"
-          : `border ${theme.border} ${theme.muted} bg-transparent`
+          ? "btn-primary border border-transparent font-bold"
+          : `btn-secondary border ${theme.border} ${theme.muted} bg-transparent`
       }`}
       style={active ? { background: theme.phosphor, color: FILL_FG } : undefined}
     >
@@ -212,11 +212,14 @@ function NetworkControl({
           onOpenNetworkSettings?.();
         }
       }}
-      className={`inline-flex items-center justify-center gap-1 px-2.5 uppercase tracking-widest text-[10px] cursor-pointer border transition-[border-color] duration-150 ${TOUCH} ${
-        chain
-          ? `${theme.border} ${theme.primary} bg-transparent`
-          : `${theme.border} ${theme.muted} bg-transparent`
-      }`}
+      className={btnClass({
+        theme,
+        variant: "secondary",
+        size: "md",
+        className: `transition-[border-color] duration-150 ${
+          chain ? theme.primary : theme.muted
+        }`
+      })}
       style={networkFlash ? { borderColor: theme.phosphor } : undefined}
     >
       <span className="truncate max-w-[7rem]">{label}</span>
@@ -249,11 +252,14 @@ function ConnectControl({
       data-testid={testId}
       aria-label={aria}
       onClick={() => onWalletOpen?.()}
-      className={`inline-flex items-center justify-center gap-1 px-2.5 tracking-widest text-[10px] cursor-pointer border font-mono tabular-nums ${TOUCH} ${theme.border} ${theme.primary} bg-transparent ${
-        connected
-          ? "normal-case max-w-[11ch] truncate"
-          : "uppercase"
-      }`}
+      className={btnClass({
+        theme,
+        variant: "secondary",
+        size: "md",
+        className: `font-mono tabular-nums ${theme.primary} ${
+          connected ? "normal-case max-w-[11ch] truncate" : ""
+        }`
+      })}
     >
       <span className={connected ? "truncate" : undefined}>{label}</span>
     </button>
@@ -432,7 +438,7 @@ export default function TerminalHeader({
               key={k.id}
               type="button"
               onClick={k.run}
-              className="cursor-pointer bg-transparent border-0 p-0 uppercase text-[10px] tracking-widest max-md:min-h-[44px] max-md:flex max-md:items-center"
+              className="btn-base btn-ghost btn-sm h-8 px-3 inline-flex items-center justify-start gap-2 w-auto max-w-full cursor-pointer bg-transparent border-0 p-0 text-[10px] max-md:min-h-[44px]"
               title={k.label}
             >
               {k.id} {k.label}

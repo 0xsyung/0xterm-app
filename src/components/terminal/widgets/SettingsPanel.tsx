@@ -48,6 +48,7 @@ import {
   PERPS_COPY,
   truncateAddr
 } from "../hyperliquid";
+import { btnClass } from "../ui/buttonClasses";
 
 const FILL_FG = "#000000";
 
@@ -112,9 +113,12 @@ function PhosphorChip({
       title={title}
       data-testid={dataTestId}
       onClick={onClick}
-      className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] rounded-none font-bold disabled:opacity-40 disabled:cursor-not-allowed border ${
-        warn ? theme.warn : "border-transparent"
-      }`}
+      className={btnClass({
+        theme,
+        variant: warn ? "warn" : "primary",
+        size: "sm",
+        className: warn ? "" : "border-transparent"
+      })}
       style={
         warn ? undefined : { background: theme.phosphor, color: FILL_FG }
       }
@@ -143,7 +147,7 @@ function GhostChip({
       disabled={disabled}
       title={title}
       onClick={onClick}
-      className={`inline-flex items-center justify-center px-2 py-0.5 uppercase tracking-widest text-[10px] cursor-pointer pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] rounded-none border ${theme.border} ${theme.muted} bg-transparent disabled:opacity-40`}
+      className={btnClass({ theme, variant: "ghost", size: "sm" })}
     >
       {label}
     </button>
