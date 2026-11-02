@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  collectOpsJargonPaths,
   collectUnsourcedClaimPaths,
   getIncidentById,
   incidentSourceMap,
@@ -55,6 +56,13 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279)", () => {
       }
       const bad = collectUnsourcedClaimPaths(inc);
       expect(bad, bad.join(", ")).toEqual([]);
+    }
+  });
+
+  it("Soft ACK #289: rendered FORENSIC corpus fields carry no Soft-/ops jargon", () => {
+    for (const inc of incidents) {
+      const bad = collectOpsJargonPaths(inc);
+      expect(bad, `${inc.id}: ${bad.join("; ")}`).toEqual([]);
     }
   });
 
@@ -145,7 +153,8 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279)", () => {
     expect(whatText).toMatch(/DevOps/i);
     expect(whatText).toMatch(/service container/i);
     expect(whatText).toMatch(/no evidence of any wallet private-key leak/i);
-    expect(whatText).toMatch(/Earlier analyst take|Soft-demoted|Soft-labeled/i);
+    expect(whatText).toMatch(/Earlier analyst take/i);
+    expect(whatText).toMatch(/demoted relative to Binance/i);
     const money = binance.sections.find((s) => s.id === "money")!;
     const moneyText = [
       ...(money.claims?.map((c) => c.text) ?? []),
