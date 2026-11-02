@@ -16,6 +16,8 @@ export type ThemeMode =
   | 'dos'
   | 'teletype'
   | 'void'
+  | 'lighter'
+  | 'hyperliquid'
 
 export type LogEntry = {
   id: string

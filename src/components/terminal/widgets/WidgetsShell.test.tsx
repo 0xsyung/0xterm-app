@@ -145,7 +145,7 @@ describe("numeric nodes use tabular-nums (issue #5 type)", () => {
   });
 });
 
-describe("widgets mount under all 8 themes (issue #5 theme loop)", () => {
+describe("widgets mount under all THEME_ORDER themes (issue #5 theme loop)", () => {
   for (const t of ALL_THEMES) {
     it(`HelpManual + PriceCard + BalanceWidget render under ${t.name}`, () => {
       render(<HelpManual theme={t} />);
@@ -160,7 +160,7 @@ describe("widgets mount under all 8 themes (issue #5 theme loop)", () => {
   }
 });
 
-describe("sim widgets mount under all 8 themes (issue #18)", () => {
+describe("sim widgets mount under all THEME_ORDER themes (issue #18)", () => {
   for (const t of ALL_THEMES) {
     it(`SimWidget + TraceWidget render under ${t.name}`, () => {
       render(

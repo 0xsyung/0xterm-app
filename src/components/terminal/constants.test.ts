@@ -74,8 +74,8 @@ describe("isKnownThemeInput", () => {
 });
 
 describe("THEME_ORDER", () => {
-  it("has 8 themes matching the THEMES map keys", () => {
-    expect(THEME_ORDER).toHaveLength(8);
+  it("has 10 themes matching the THEMES map keys", () => {
+    expect(THEME_ORDER).toHaveLength(10);
     expect(THEME_ORDER.every((k) => k in THEMES)).toBe(true);
     expect(Object.keys(THEMES).sort()).toEqual([...THEME_ORDER].sort());
   });
@@ -87,6 +87,91 @@ describe("THEME_ORDER", () => {
       expect(t.muted).toBeTypeOf("string");
       expect(t.phosphor).toBeTypeOf("string");
     }
+  });
+});
+
+describe("Soft ACK #292 Lighter Soft Design Soft-locks", () => {
+  const t = THEMES.lighter;
+
+  it("is appended in THEME_ORDER and resolves by key", () => {
+    expect(THEME_ORDER).toContain("lighter");
+    expect(resolveThemeKey("lighter")).toBe("lighter");
+    expect(resolveThemeKey("LIGHTER")).toBe("lighter");
+    expect(isKnownThemeInput("lighter")).toBe(true);
+  });
+
+  it("matches Soft Design ThemeConfig Soft-lock table exactly", () => {
+    expect(t).toEqual({
+      name: "Lighter",
+      bg: "bg-[#0F0F0F]",
+      cardBg: "bg-[#16161c]/94",
+      text: "text-[#E8E8ED]",
+      primary: "text-[#4CBB90]",
+      border: "border-[#4CBB90]/35",
+      glow: "shadow-[0_0_0_1px_rgba(76,187,144,0.14)]",
+      font: "font-plex tracking-tight",
+      rounded: "rounded-md",
+      promptSymbol: "›",
+      hasScanlines: false,
+      hasGrid: false,
+      warn: "text-[#F0A060] border-[#F0A060]/50 bg-[#F0A060]/10",
+      muted: "text-white/40",
+      phosphor: "#4CBB90",
+      scanlineAlpha: "0",
+      gridColor: "transparent"
+    });
+  });
+
+  it("Soft FAIL Soft-guard — no logo mark strings in theme chrome tokens", () => {
+    const blob = JSON.stringify(t).toLowerCase();
+    expect(blob).not.toMatch(/logo|wordmark|brand-kit|lighter\.xyz/);
+  });
+});
+
+describe("Soft ACK #293 Hyperliquid Soft Design Soft-locks", () => {
+  const t = THEMES.hyperliquid;
+
+  it("is appended in THEME_ORDER and resolves by key + hl alias", () => {
+    expect(THEME_ORDER).toContain("hyperliquid");
+    expect(resolveThemeKey("hyperliquid")).toBe("hyperliquid");
+    expect(resolveThemeKey("HYPERLIQUID")).toBe("hyperliquid");
+    expect(resolveThemeKey("hl")).toBe("hyperliquid");
+    expect(resolveThemeKey("HL")).toBe("hyperliquid");
+    expect(THEME_ALIASES.hl).toBe("hyperliquid");
+    expect(isKnownThemeInput("hl")).toBe(true);
+  });
+
+  it("matches Soft Design ThemeConfig Soft-lock table exactly", () => {
+    expect(t).toEqual({
+      name: "Hyperliquid",
+      bg: "bg-[#0F1A1F]",
+      cardBg: "bg-[#142428]/95",
+      text: "text-[#D7E6E3]",
+      primary: "text-[#51D4C3]",
+      border: "border-[#51D4C3]/35",
+      glow: "shadow-[0_0_0_1px_rgba(81,212,195,0.14)]",
+      font: "font-plex tracking-tight",
+      rounded: "rounded-md",
+      promptSymbol: "›",
+      hasScanlines: false,
+      hasGrid: true,
+      warn: "text-[#F0A060] border-[#F0A060]/50 bg-[#F0A060]/10",
+      muted: "text-white/40",
+      phosphor: "#51D4C3",
+      scanlineAlpha: "0",
+      gridColor: "#1C3338"
+    });
+  });
+
+  it("stays distinct from Soft ACK #292 Lighter palette", () => {
+    expect(t.phosphor).not.toBe(THEMES.lighter.phosphor);
+    expect(t.bg).not.toBe(THEMES.lighter.bg);
+    expect(t.primary).not.toBe(THEMES.lighter.primary);
+  });
+
+  it("Soft FAIL Soft-guard — no logo mark strings in theme chrome tokens", () => {
+    const blob = JSON.stringify(t).toLowerCase();
+    expect(blob).not.toMatch(/logo|wordmark|brand-kit|app\.hyperliquid/);
   });
 });
 

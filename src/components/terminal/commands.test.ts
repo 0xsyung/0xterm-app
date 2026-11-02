@@ -227,8 +227,8 @@ describe("buildThemeLog", () => {
     expect(res.text).toBe("[✓] Theme switched to Amber");
   });
 
-  it("cycles prev and wraps around the end", () => {
-    const deps = themeDeps({ currentThemeKey: "void" });
+  it("cycles next and wraps around the end", () => {
+    const deps = themeDeps({ currentThemeKey: "hyperliquid" });
     const res = buildThemeLog(["theme", "next"], deps);
     expect(deps.handleThemeSwitch).toHaveBeenCalledWith("matrix");
     expect(res.text).toBe("[✓] Theme switched to Matrix");
@@ -237,7 +237,7 @@ describe("buildThemeLog", () => {
   it("wraps prev from the first theme to the last", () => {
     const deps = themeDeps({ currentThemeKey: "matrix" });
     const res = buildThemeLog(["theme", "prev"], deps);
-    expect(deps.handleThemeSwitch).toHaveBeenCalledWith("void");
-    expect(res.text).toBe("[✓] Theme switched to Void");
+    expect(deps.handleThemeSwitch).toHaveBeenCalledWith("hyperliquid");
+    expect(res.text).toBe("[✓] Theme switched to Hyperliquid");
   });
 });

@@ -173,6 +173,46 @@ export const THEMES: Record<ThemeMode, ThemeConfig> = {
     phosphor: '#8eb4ff',
     scanlineAlpha: '0',
     gridColor: 'transparent'
+  },
+  // Soft ACK #292 — V1 Soft-ref skin (inspired palette only; no logo marks)
+  lighter: {
+    name: 'Lighter',
+    bg: 'bg-[#0F0F0F]',
+    cardBg: 'bg-[#16161c]/94',
+    text: 'text-[#E8E8ED]',
+    primary: 'text-[#4CBB90]',
+    border: 'border-[#4CBB90]/35',
+    glow: 'shadow-[0_0_0_1px_rgba(76,187,144,0.14)]',
+    font: 'font-plex tracking-tight',
+    rounded: 'rounded-md',
+    promptSymbol: '›',
+    hasScanlines: false,
+    hasGrid: false,
+    warn: 'text-[#F0A060] border-[#F0A060]/50 bg-[#F0A060]/10',
+    muted: 'text-white/40',
+    phosphor: '#4CBB90',
+    scanlineAlpha: '0',
+    gridColor: 'transparent'
+  },
+  // Soft ACK #293 — V1 Soft-ref skin (inspired palette only; no logo marks; distinct from #292)
+  hyperliquid: {
+    name: 'Hyperliquid',
+    bg: 'bg-[#0F1A1F]',
+    cardBg: 'bg-[#142428]/95',
+    text: 'text-[#D7E6E3]',
+    primary: 'text-[#51D4C3]',
+    border: 'border-[#51D4C3]/35',
+    glow: 'shadow-[0_0_0_1px_rgba(81,212,195,0.14)]',
+    font: 'font-plex tracking-tight',
+    rounded: 'rounded-md',
+    promptSymbol: '›',
+    hasScanlines: false,
+    hasGrid: true,
+    warn: 'text-[#F0A060] border-[#F0A060]/50 bg-[#F0A060]/10',
+    muted: 'text-white/40',
+    phosphor: '#51D4C3',
+    scanlineAlpha: '0',
+    gridColor: '#1C3338'
   }
 }
 
@@ -184,7 +224,9 @@ export const THEME_ORDER: ThemeMode[] = [
   'macintosh',
   'dos',
   'teletype',
-  'void'
+  'void',
+  'lighter',
+  'hyperliquid'
 ]
 
 export const THEME_ALIASES: Record<string, ThemeMode> = {
@@ -201,7 +243,9 @@ export const THEME_ALIASES: Record<string, ThemeMode> = {
   gruvbox: 'bloomberg',
   ristretto: 'macintosh',
   rosePine: 'void',
-  kanagawa: 'void'
+  kanagawa: 'void',
+  // Soft ACK #293 — short alias
+  hl: 'hyperliquid'
 }
 
 // Single canonical header metrics — the Bloomberg terminal bar. Themes never
