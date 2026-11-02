@@ -20,7 +20,7 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277/#279)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279/#283)", () => {
   it("renders Soft Design A′ list: 8 rows, Talis first, pagination hidden (≤ page size 8)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
@@ -154,6 +154,30 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279)", () => {
     const cite = screen.getAllByTestId(/incident-source-/)[0];
     fireEvent.click(cite);
     expect(screen.getByTestId("incident-detail")).toBeTruthy();
+  });
+
+  it("Soft ACK #283 detail type Soft-scale Soft-locks (≥ text-xs body; muted source chips)", () => {
+    render(<IncidentsPanel theme={theme} onClose={vi.fn()} />);
+    fireEvent.click(
+      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+    );
+    const what = screen.getByTestId("incident-section-what");
+    const claim = what.querySelector("p");
+    expect(claim?.className).toMatch(/\btext-xs\b/);
+    expect(claim?.className).toMatch(/\bmd:text-sm\b/);
+    expect(claim?.className.includes("text-[10px]")).toBe(false);
+    const h3 = what.querySelector("h3");
+    expect(h3?.className.includes("text-[11px]")).toBe(true);
+    expect(h3?.className).toMatch(/\bmd:text-xs\b/);
+    const title = screen.getByTestId("incident-detail").querySelector("h2");
+    expect(title?.className).toMatch(/\btext-xs\b/);
+    expect(title?.className).toMatch(/\bmd:text-sm\b/);
+    const cite = screen.getAllByTestId(/incident-source-/)[0];
+    expect(cite.className.includes("text-[10px]")).toBe(true);
+    // Soft-lock: inline [source] chips use theme.muted (matrix muted may Soft-share phosphor hex + /opacity)
+    expect(cite.className).toContain(theme.muted);
+    const detail = screen.getByTestId("incident-detail");
+    expect(detail.className).toMatch(/\bgap-4\b/);
   });
 
   it("DigPanelShell Escape path clears detail via smart onClose", () => {
