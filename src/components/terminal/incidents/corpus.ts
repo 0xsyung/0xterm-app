@@ -1718,6 +1718,17 @@ export function collectOpsJargonPaths(incident: Incident): string[] {
     check(`sources[${i}].title`, s.title);
     check(`sources[${i}].url`, s.url);
   });
+  if (incident.background) {
+    check("background.protocolType", String(incident.background.protocolType));
+    incident.background.sizeMetrics?.forEach((m, mi) => {
+      check(`background.sizeMetrics[${mi}].label`, m.label);
+      check(`background.sizeMetrics[${mi}].value`, m.value);
+      check(`background.sizeMetrics[${mi}].asOf`, m.asOf);
+    });
+    incident.background.notes?.forEach((n, ni) => {
+      check(`background.notes[${ni}].text`, n.text);
+    });
+  }
   incident.sections.forEach((sec, si) => {
     check(`sections[${si}].title`, sec.title);
     sec.claims.forEach((c, ci) => check(`sections[${si}].claims[${ci}].text`, c.text));
@@ -1729,3 +1740,4 @@ export function collectOpsJargonPaths(incident: Incident): string[] {
   });
   return bad;
 }
+
