@@ -22,6 +22,9 @@ export type {
   SourcedClaim,
   MoneyFigure,
   MoneyConfidence,
-  IncidentSectionId
+  IncidentSectionId,
+  IncidentBackground,
+  IncidentProtocolType,
+  IncidentSizeMetric
 } from "./types";
 export { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";

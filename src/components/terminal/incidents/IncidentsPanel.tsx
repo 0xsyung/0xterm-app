@@ -2,6 +2,7 @@
  * @file IncidentsPanel.tsx
  * @description FORENSIC REPORTS · INCIDENTS — Soft ACK #268 list → detail Soft-chrome
  * Soft ACK #283: global rem 112.5% + detail type Soft-scale (#274 absorbed).
+ * Soft ACK #285: detail Background Soft-block Soft-before eight Soft-sections.
  * Soft Design A–B: FeedList/DigPanelShell/NewsPanel language; page size 8; BACK + Escape.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -208,6 +209,66 @@ function IncidentDetail({
           ))}
         </div>
       </header>
+
+      {incident.background ? (
+        <section
+          className="flex flex-col gap-1.5"
+          data-testid="incident-section-background"
+        >
+          <h3
+            className={`uppercase text-[11px] md:text-xs tracking-widest font-bold ${theme.primary}`}
+          >
+            BACKGROUND
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            <span
+              className={`text-[10px] px-1.5 py-0.5 border uppercase tracking-wider ${theme.border} ${theme.primary}`}
+              data-testid="incident-background-protocol-type"
+            >
+              {incident.background.protocolType}
+            </span>
+          </div>
+          {incident.background.sizeMetrics && incident.background.sizeMetrics.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              {incident.background.sizeMetrics.map((m, i) => (
+                <div
+                  key={`bg-m-${i}`}
+                  className={`px-2 py-1.5 border ${theme.border} ${theme.cardBg} ${theme.rounded} text-xs md:text-sm`}
+                  data-testid={`incident-background-metric-${i}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={theme.muted}>{m.label}</span>
+                    <span
+                      className={`uppercase text-[9px] tracking-wider px-1 border ${theme.border} ${
+                        m.confidence === "confirmed" ? theme.primary : theme.warn || theme.muted
+                      }`}
+                    >
+                      {confidenceLabel(m.confidence)}
+                    </span>
+                    {m.asOf ? (
+                      <span className={`text-[10px] tabular-nums ${theme.muted}`}>{m.asOf}</span>
+                    ) : null}
+                  </div>
+                  <div className={`${theme.text} [overflow-wrap:anywhere] mt-0.5`}>
+                    {m.value}
+                    <SourceCite theme={theme} ids={m.sourceIds} byId={byId} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {incident.background.notes?.map((n, i) => (
+            <p
+              key={`bg-n-${i}`}
+              className={`text-xs md:text-sm ${theme.text} [overflow-wrap:anywhere] leading-relaxed`}
+              data-testid={`incident-background-note-${i}`}
+            >
+              {n.text}
+              <SourceCite theme={theme} ids={n.sourceIds} byId={byId} />
+            </p>
+          ))}
+        </section>
+      ) : null}
 
       {sections.map((sec) => (
         <section

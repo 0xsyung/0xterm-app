@@ -20,7 +20,7 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277/#279/#283)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279/#283/#285)", () => {
   it("renders Soft Design A′ list: 8 rows, Talis first, pagination hidden (≤ page size 8)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
@@ -84,6 +84,60 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#283)", () => {
     fireEvent.click(screen.getByTestId("incident-back"));
     expect(screen.getByTestId("incident-list")).toBeTruthy();
     expect(screen.queryByTestId("incident-detail")).toBeNull();
+  });
+
+  it("Soft ACK #285 Background Soft-renders Soft-sourced size Soft-metrics Soft-when Soft-present", () => {
+    const withMetrics: Incident[] = [
+      {
+        ...incidents[0]!,
+        id: "bg-metrics",
+        background: {
+          protocolType: "bridge",
+          sizeMetrics: [
+            {
+              label: "TVL",
+              value: "$1.0B",
+              asOf: "2026-11-01",
+              confidence: "estimate",
+              sourceIds: [incidents[0]!.sources[0]!.id]
+            }
+          ],
+          notes: [
+            {
+              text: "Example Soft-sourced Soft-size Soft-metric Soft-row.",
+              sourceIds: [incidents[0]!.sources[0]!.id]
+            }
+          ]
+        }
+      }
+    ];
+    render(<IncidentsPanel theme={theme} onClose={vi.fn()} corpus={withMetrics} />);
+    fireEvent.click(screen.getByTestId("incident-row-bg-metrics"));
+    expect(screen.getByTestId("incident-background-metric-0").textContent).toMatch(/TVL/);
+    expect(screen.getByTestId("incident-background-metric-0").textContent).toMatch(/\$1\.0B/);
+    expect(screen.getByTestId("incident-background-metric-0").textContent).toMatch(/estimate/i);
+    expect(screen.getByTestId("incident-background-note-0")).toBeTruthy();
+  });
+
+  it("Soft ACK #285 renders BACKGROUND Soft-block Soft-after header Soft-before What", () => {
+    render(<IncidentsPanel theme={theme} onClose={vi.fn()} />);
+    fireEvent.click(
+      screen.getByTestId("incident-row-talis-protocol-injective-nft-exploit-2026-10-31")
+    );
+    const detail = screen.getByTestId("incident-detail");
+    const bg = screen.getByTestId("incident-section-background");
+    const what = screen.getByTestId("incident-section-what");
+    expect(bg).toBeTruthy();
+    expect(screen.getByTestId("incident-background-protocol-type").textContent).toMatch(
+      /NFT marketplace/i
+    );
+    expect(within(bg).getByText(/BACKGROUND/i)).toBeTruthy();
+    // Soft-order Soft-lock: Background Soft-node Soft-before What Soft-in Soft-detail Soft-DOM
+    const children = Array.from(detail.children);
+    const bgIdx = children.indexOf(bg);
+    const whatIdx = children.indexOf(what);
+    expect(bgIdx).toBeGreaterThan(-1);
+    expect(whatIdx).toBeGreaterThan(bgIdx);
   });
 
   it("Escape on detail returns to list; Escape on list closes panel", () => {

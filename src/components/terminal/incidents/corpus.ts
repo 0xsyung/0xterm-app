@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #289 — in-repo incidents[] (no CMS/API). Professional product voice only in rendered copy; Soft ACK #279/#277/#275/#272 hold.
+ * @description Soft ACK #285 Background Soft-backfill + Soft ACK #289 professional product voice (no CMS/API). Soft ACK #279/#277/#275/#272 hold.
  * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-02 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,8 +9,8 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #279 Talis Protocol CONTAINED; Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
- * List order: occurredAt descending. Do not invent facts. App report bodies stay professional (no Soft-/ops jargon).
+ * Hardcoded incident corpus. Soft ACK #285 backfills Background on every row; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * List order: occurredAt descending. Do not invent facts or unsourced size metrics. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
   {
@@ -21,6 +21,15 @@ export const incidents: Incident[] = [
     amountSummary:
       "~5,700 escrowed NFTs taken and sold into open collection offers; >26,000 NFTs returned from contracts; USD undisclosed",
     chains: ["Injective", "Multi-chain Talis (paused as precaution)"],
+    background: {
+      protocolType: "NFT marketplace",
+      notes: [
+        {
+          text: "Talis Protocol operates NFT marketplace and auction contracts on Injective (other Talis chains paused as a precaution in this incident).",
+          sourceIds: ["talis-x-1", "talis-x-3"]
+        }
+      ]
+    },
     sources: [
       {
         id: "talis-x-1",
@@ -270,6 +279,15 @@ export const incidents: Incident[] = [
     amountSummary:
       "official ~$3,688.58 USDC affected and returned; earlier community max ~850 USDT/user",
     chains: ["Multi-chain (platform accounts)", "USDC"],
+    background: {
+      protocolType: "AI trading",
+      notes: [
+        {
+          text: "VergeX is an AI trading platform; this report covers an account-drain incident with funds returned and a staged restore.",
+          sourceIds: ["vergex-x-ack"]
+        }
+      ]
+    },
     sources: [
       {
         id: "vergex-x-ack",
@@ -494,6 +512,15 @@ export const incidents: Incident[] = [
     amountSummary:
       "Loss size unconfirmed; no official total (ACTIVE DNS / multi-dApp wave)",
     chains: ["BNB Chain", "Monad", "Multi-chain (frontend)"],
+    background: {
+      protocolType: "other",
+      notes: [
+        {
+          text: "Multi-dApp DNS and frontend compromise wave affecting Flap, Kintsu, Longbow and related domains; Blockaid described a StepDrainer expansion.",
+          sourceIds: ["flap-hijack", "blockaid-expand"]
+        }
+      ]
+    },
     sources: [
       {
         id: "flap-hijack",
@@ -810,6 +837,15 @@ export const incidents: Incident[] = [
     amountSummary:
       "Official est. impact ~$6.3B; verified frozen ~$3B (confirmed)",
     chains: ["Ethereum", "Bitcoin", "Tron", "Arbitrum", "Optimism", "Avalanche"],
+    background: {
+      protocolType: "CEX",
+      notes: [
+        {
+          text: "Binance is a centralized exchange; this report covers a hot-wallet / DevOps incident with official updates on method and loss estimates.",
+          sourceIds: ["binance-x-devops"]
+        }
+      ]
+    },
     sources: [
       {
         id: "bbc",
@@ -1182,6 +1218,15 @@ export const incidents: Incident[] = [
     status: "RESOLVED",
     amountSummary: "~$2.5–2.7M drained (estimate); full reimbursement pledged",
     chains: ["Polygon"],
+    background: {
+      protocolType: "other",
+      notes: [
+        {
+          text: "Polymarket is a prediction-market application; this report covers a DebugBear RUM / frontend supply-chain incident on the Polygon surface.",
+          sourceIds: ["bleeping-pm"]
+        }
+      ]
+    },
     sources: [
       { id: "bleeping-pm", title: "BleepingComputer — Polymarket halts after crypto-draining script; $2.5M traced", url: "https://www.bleepingcomputer.com/news/security/polymarket-halts-trading-after-crypto-draining-script-breach-25m-traced/" },
       { id: "theblock-pm", title: "The Block — Polymarket resumes after $2.65M exploit; third-party compromised", url: "https://www.theblock.co/news/defi/2026-10-29-polymarket-exploit-2-5-million-cancel-only-mode-432158" },
@@ -1285,6 +1330,15 @@ export const incidents: Incident[] = [
     status: "UNRESOLVED",
     amountSummary: "~$1M user collateral (estimate); 25M HIFI minted; no official post-mortem yet",
     chains: ["Ethereum"],
+    background: {
+      protocolType: "lending",
+      notes: [
+        {
+          text: "HiFi Finance is an Ethereum lending / governance protocol; this report covers a governance exploit.",
+          sourceIds: ["slowmist-hifi"]
+        }
+      ]
+    },
     sources: [
       { id: "slowmist-hifi", title: "SlowMist Hacked — Hifi Finance $1M governance attack", url: "https://hacked.slowmist.io/" },
       { id: "tcg-hifi", title: "The Crypto Guardian — Hifi Finance incident record", url: "https://thecryptoguardian.com/crypto-incidents/hifi-finance-2026-10-28/" },
@@ -1382,6 +1436,15 @@ export const incidents: Incident[] = [
     status: "CONTAINED",
     amountSummary: "~$783K–$786K Ethereum drain (estimate); contained, withdrawals disabled",
     chains: ["Ethereum", "Optimism", "Base", "Blast", "Mantle"],
+    background: {
+      protocolType: "bridge",
+      notes: [
+        {
+          text: "zkLink Nova is a multi-chain bridge / aggregated L2 surface; this report covers a bridge exploit.",
+          sourceIds: ["slowmist-zk"]
+        }
+      ]
+    },
     sources: [
       { id: "slowmist-zk", title: "SlowMist Hacked — zkLink Nova $783,100 forged batch-root", url: "https://hacked.slowmist.io/" },
       { id: "slowmist-x-zk", title: "SlowMist Team X — technical alert", url: "https://x.com/SlowMist_Team/status/2115635114638250409" },
@@ -1483,6 +1546,15 @@ export const incidents: Incident[] = [
     status: "UNRESOLVED",
     amountSummary: "1,013,353.61 USDC drained (confirmed amount); 10% bounty offered, return unconfirmed",
     chains: ["Avalanche", "Solana"],
+    background: {
+      protocolType: "lending",
+      notes: [
+        {
+          text: "TranchePool is an Avalanche/Solana lending-style protocol; this report covers an on-chain exploit path.",
+          sourceIds: ["panda-tp"]
+        }
+      ]
+    },
     sources: [
       { id: "panda-tp", title: "PandaSecurity — TranchePool midnight rollover drained $1.01M", url: "https://panda-security.vercel.app/blog/tranchepool-utc-rollover-settlement-exploit/" },
       { id: "slowmist-tp", title: "SlowMist Hacked — TranchePool $1,013,000 settlement flaw", url: "https://hacked.slowmist.io/" },
@@ -1594,13 +1666,19 @@ export function incidentSourceMap(incident: Incident): Map<string, Incident["sou
   return new Map(incident.sources.map((s) => [s.id, s]));
 }
 
-/** Soft FAIL guard (non-rendered): every claim/bullet/figure must cite ≥1 known source id. */
+/** Soft FAIL guard (non-rendered): every claim/bullet/figure/background cite must cite ≥1 known source id. */
 export function collectUnsourcedClaimPaths(incident: Incident): string[] {
   const known = new Set(incident.sources.map((s) => s.id));
   const bad: string[] = [];
   const check = (path: string, ids: string[]) => {
     if (!ids.length || ids.some((id) => !known.has(id))) bad.push(path);
   };
+  incident.background?.sizeMetrics?.forEach((m, mi) =>
+    check(`background.sizeMetrics[${mi}]`, m.sourceIds)
+  );
+  incident.background?.notes?.forEach((n, ni) =>
+    check(`background.notes[${ni}]`, n.sourceIds)
+  );
   incident.sections.forEach((sec, si) => {
     sec.claims.forEach((c, ci) => check(`sections[${si}].claims[${ci}]`, c.sourceIds));
     sec.bullets?.forEach((b, bi) => check(`sections[${si}].bullets[${bi}]`, b.sourceIds));
