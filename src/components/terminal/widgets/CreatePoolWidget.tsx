@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { useWriteContract, usePublicClient } from 'wagmi'
 import { uniV2FactoryAbi, uniV3FactoryAbi } from '../constants'
 import PinButton from './PinButton'
+import { btnClass, btnPrimaryFillStyle } from "../ui/buttonClasses";
 
 export default function CreatePoolWidget({ targetChain, activeDex, tokenA, tokenB, addrA, addrB, fee, theme, onPin, pinned }: any) {
   const { writeContractAsync } = useWriteContract()
@@ -99,7 +100,7 @@ export default function CreatePoolWidget({ targetChain, activeDex, tokenA, token
 
       <div className="pt-2 flex gap-2">
         {(status === 'ready' || status === 'error') && (
-          <button onClick={handleCreate} className={`px-4 py-1.5 min-h-[44px] border ${theme.border} bg-current/10 hover:bg-current/20 ${theme.primary} font-bold ${theme.rounded} cursor-pointer transition-all`}>
+          <button onClick={handleCreate} className={btnClass({ theme, variant: "primary", size: "lg", block: true })} style={btnPrimaryFillStyle(theme)}>
             [ CALL CREATE POOL ]
           </button>
         )}

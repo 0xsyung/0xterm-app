@@ -7,6 +7,7 @@
 "use client";
 
 import type { ThemeConfig } from "../types";
+import { btnClass } from "../ui/buttonClasses";
 
 export type WorkspacePanelId =
   | "trade"
@@ -80,7 +81,7 @@ export function WorkspaceTile({
         }
         onCommand(action.cmd);
       }}
-      className={`flex flex-col items-start gap-0.5 px-2.5 py-1.5 border ${theme.border} ${theme.cardBg} ${theme.muted} cursor-pointer uppercase tracking-widest text-[10px] pointer-coarse:min-h-[44px] [@media(hover:none)]:min-h-[44px]`}
+      className={btnClass({ theme, variant: "secondary", size: "md", className: `flex-col items-start gap-0.5 ${theme.cardBg}` })}
     >
       <span className={theme.primary}>{action.label}</span>
       <span className="opacity-70 normal-case">{action.hint}</span>

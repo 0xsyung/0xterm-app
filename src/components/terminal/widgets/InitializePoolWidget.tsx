@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useWriteContract, usePublicClient } from "wagmi";
 import { uniV3PoolAbi } from "../constants";
 import PinButton from "./PinButton";
+import { btnClass, btnPrimaryFillStyle } from "../ui/buttonClasses";
 
 export default function InitializePoolWidget({
   targetChain,
@@ -116,7 +117,7 @@ export default function InitializePoolWidget({
         {(status === "ready" || status === "error") && (
           <button
             onClick={handleInitialize}
-            className={`px-4 py-1.5 min-h-[44px] border ${theme.border} bg-current/10 hover:bg-current/20 ${theme.primary} font-bold ${theme.rounded} cursor-pointer transition-all`}
+            className={btnClass({ theme, variant: "primary", size: "lg", block: true })} style={btnPrimaryFillStyle(theme)}
           >
             [ EXECUTE INITIALIZE ]
           </button>

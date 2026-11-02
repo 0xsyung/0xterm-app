@@ -10,6 +10,11 @@
 import { useEffect, useState } from "react";
 import { isAddress } from "viem";
 import type { ThemeConfig } from "../types";
+import {
+  BTN_TOUCH,
+  btnClass,
+  btnPrimaryFillStyle
+} from "../ui/buttonClasses";
 
 export type CheckTokenArgs = { address: string };
 
@@ -139,8 +144,7 @@ export default function CheckTokenPanel({
     void run();
   };
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   return (
     <div
@@ -190,10 +194,14 @@ export default function CheckTokenPanel({
         type="button"
         onClick={handleCheckClick}
         aria-disabled={!canRun}
-        className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer ${
-          canRun ? "" : "opacity-40"
-        } ${touch}`}
-        style={{ background: theme.phosphor, color: "#000000" }}
+        className={btnClass({
+          theme,
+          variant: "primary",
+          size: "lg",
+          block: true,
+          className: canRun ? "" : "opacity-40"
+        })}
+        style={btnPrimaryFillStyle(theme)}
         data-testid="check-token-check"
       >
         {running ? "…" : "CHECK"}

@@ -9,6 +9,7 @@
 import { useEffect, type ReactNode, type RefObject } from "react";
 import type { ThemeConfig } from "../types";
 import { HEADER_TOP_OFFSET } from "../constants";
+import { BTN_TOUCH } from "../ui/buttonClasses";
 
 /**
  * Soft ACK #253 E — Syung “20% transparent” → panel background alpha 0.8
@@ -45,8 +46,7 @@ export default function ConsoleOverlay({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px] [@media(hover:none)]:min-w-[44px]";
+  const touch = BTN_TOUCH;
 
   return (
     <div

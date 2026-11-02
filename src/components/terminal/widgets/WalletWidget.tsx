@@ -35,6 +35,7 @@ import {
   type VaultSource
 } from "../../../lib/localWallet";
 import { getSignerPref, setSignerPref } from "../../../lib/localWallet/vault";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 
 export type WalletWidgetMode =
   | "status"
@@ -114,8 +115,7 @@ export default function WalletWidget({
   onVaultChange?: () => void;
 }) {
   const mode = payload.mode;
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   return (
     <div
@@ -154,7 +154,7 @@ export default function WalletWidget({
           {!pinned && mode !== "status" && (
             <button
               type="button"
-              className={`px-2 py-0.5 border ${theme.border} ${theme.muted} ${touch}`}
+              className={btnClass({ theme, variant: "secondary", size: "sm" })}
               onClick={() => onCancel?.()}
             >
               cancel
@@ -343,7 +343,7 @@ function StatusBody({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className={`px-2 py-0.5 border ${theme.border} ${theme.primary} ${touch}`}
+              className={btnClass({ theme, variant: "primary", size: "sm", className: theme.primary + " " + (theme.cardBg || "bg-transparent") })}
               onClick={() => {
                 lockVault();
                 onVaultChange?.();
@@ -354,7 +354,7 @@ function StatusBody({
             </button>
             <button
               type="button"
-              className={`px-2 py-0.5 border ${theme.border} ${theme.muted} ${touch}`}
+              className={btnClass({ theme, variant: "secondary", size: "sm" })}
               onClick={() => {
                 setSignerPref("local");
                 onVaultChange?.();
@@ -364,7 +364,7 @@ function StatusBody({
             </button>
             <button
               type="button"
-              className={`px-2 py-0.5 border ${theme.border} ${theme.muted} ${touch}`}
+              className={btnClass({ theme, variant: "secondary", size: "sm" })}
               onClick={() => {
                 setSignerPref("injected");
                 onVaultChange?.();
@@ -471,7 +471,7 @@ function CreateBody({
           <button
             type="button"
             disabled={!wrote}
-            className={`px-2 py-1 border ${theme.border} ${theme.primary} ${touch} disabled:opacity-40`}
+            className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
             onClick={() => setStep("confirm")}
           >
             continue
@@ -499,7 +499,7 @@ function CreateBody({
           />
           <button
             type="button"
-            className={`px-2 py-1 border ${theme.border} ${theme.primary} ${touch}`}
+            className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
             onClick={() => {
               if (
                 w0.trim().toLowerCase() !== parts[indices[0]!] ||
@@ -539,7 +539,7 @@ function CreateBody({
           />
           <button
             type="button"
-            className={`text-left ${theme.muted} underline`}
+            className={btnClass({ theme, variant: "ghost", size: "sm", className: "underline" })}
             onClick={() => setShowPassphrase((v) => !v)}
           >
             BIP-39 passphrase (optional, empty = none)
@@ -556,7 +556,7 @@ function CreateBody({
           <button
             type="button"
             disabled={busy}
-            className={`px-2 py-1 border ${theme.border} ${theme.primary} ${touch}`}
+            className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
             onClick={() => void submit()}
           >
             {busy ? "deriving key…" : "create"}
@@ -696,7 +696,7 @@ function ImportBody({
       />
       <button
         type="button"
-        className={`text-left ${theme.muted} underline`}
+        className={btnClass({ theme, variant: "ghost", size: "sm", className: "underline" })}
         onClick={() => setShowPassphrase((v) => !v)}
       >
         BIP-39 passphrase (optional, empty = none)
@@ -713,7 +713,7 @@ function ImportBody({
       <button
         type="button"
         disabled={busy}
-        className={`px-2 py-1 border ${theme.border} ${theme.primary} ${touch}`}
+        className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
         onClick={() => void submit()}
       >
         {busy ? "deriving key…" : "import"}
@@ -788,7 +788,7 @@ function UnlockBody({
       <button
         type="button"
         disabled={busy}
-        className={`px-2 py-1 border ${theme.border} ${theme.primary} ${touch}`}
+        className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
         onClick={() => void submit()}
       >
         {busy ? "deriving key…" : "unlock"}
@@ -853,7 +853,7 @@ function ExportBody({
       />
       <button
         type="button"
-        className={`px-2 py-1 border ${theme.border} ${theme.primary} ${touch}`}
+        className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
         onClick={() => void reveal()}
       >
         reveal
@@ -867,7 +867,7 @@ function ExportBody({
           <div className="mt-2">
             <button
               type="button"
-              className={`px-2 py-0.5 border ${theme.border} ${theme.muted} ${touch}`}
+              className={btnClass({ theme, variant: "secondary", size: "sm" })}
               onClick={() => {
                 try {
                   void navigator.clipboard?.writeText(revealed);
@@ -915,7 +915,7 @@ function NukeBody({
       />
       <button
         type="button"
-        className={`px-2 py-1 border ${theme.border} ${theme.warn} ${touch}`}
+        className={btnClass({ theme, variant: "warn", size: "md" })}
         onClick={async () => {
           if (typed !== "DELETE") {
             setErr("nuke cancelled.");
@@ -989,14 +989,14 @@ function TxConfirmBody({
         <button
           type="button"
           disabled={busy}
-          className={`px-3 py-1 border ${theme.border} ${theme.primary} ${touch}`}
+          className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
           onClick={() => void sign()}
         >
           sign
         </button>
         <button
           type="button"
-          className={`px-3 py-1 border ${theme.border} ${theme.muted} ${touch}`}
+          className={btnClass({ theme, variant: "secondary", size: "md" })}
           onClick={() => {
             onCancel?.();
             onDone?.("cancel");

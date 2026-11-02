@@ -15,9 +15,9 @@ import {
   truncateAddress,
   type FeedItem
 } from "../shareCard";
+import { BTN_TOUCH } from "../ui/buttonClasses";
 
-const TAP =
-  "pointer-coarse:min-h-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px] min-h-[44px] w-full text-left";
+const TAP = `btn-base ${BTN_TOUCH} min-h-[44px] w-full text-left justify-start`;
 
 export default function FeedList({
   items,

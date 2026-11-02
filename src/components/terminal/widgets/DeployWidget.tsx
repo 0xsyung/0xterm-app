@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useWalletClient, usePublicClient } from "wagmi";
 import { encodeFunctionData, parseAbi, isAddress, type Address, type Chain } from "viem";
 import { IMPLEMENTATION_BYTECODE } from "../implementationBytecode";
+import { btnClass, btnPrimaryFillStyle } from "../ui/buttonClasses";
 
 interface DeployWidgetProps {
   theme: any;
@@ -228,13 +229,7 @@ export default function DeployWidget({
         <button
           onClick={handleExecute}
           disabled={status !== "resolve"}
-          className={`w-full py-2 min-h-[44px] mt-2 font-bold transition-all border ${
-            status === "deploying_impl" ||
-            status === "deploying_proxy" ||
-            status === "initializing"
-              ? "opacity-50 cursor-not-allowed bg-current/5 border-transparent"
-              : `hover:bg-current/10 ${theme.border} ${theme.primary}`
-          } rounded`}
+          className={btnClass({ theme, variant: "primary", size: "lg", block: true, className: "mt-2" })} style={btnPrimaryFillStyle(theme)}
         >
           {status === "resolve" &&
             (resolvedImpl

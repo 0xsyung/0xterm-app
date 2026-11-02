@@ -20,6 +20,7 @@ import {
 import type { ThemeConfig } from "../types";
 import { WILL_LEGAL_BANNER, truncateAddr } from "../will/constants";
 import { mapWillError } from "../will/errors";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 
 export type WillActionKind =
   | "create"
@@ -129,8 +130,7 @@ export default function WillActionWidget({
   const publicClient = usePublicClient({ chainId: payload.chain.id });
   const { writeContractAsync } = useWriteContract();
 
-  const touch =
-    "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+  const touch = BTN_TOUCH;
 
   const doWrite = useCallback(
     async (args: {
@@ -404,7 +404,7 @@ export default function WillActionWidget({
             <button
               type="button"
               disabled={status === "approving"}
-              className={`px-3 py-1 border ${theme.border} ${theme.primary} font-bold text-[10px] ${touch}`}
+              className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
               onClick={() => void handleApprove()}
             >
               {status === "approving" ? "APPROVING…" : "APPROVE"}
@@ -413,7 +413,7 @@ export default function WillActionWidget({
             <button
               type="button"
               disabled={!sendEnabled}
-              className={`px-3 py-1 border ${theme.border} ${theme.primary} font-bold text-[10px] ${touch} disabled:opacity-40`}
+              className={btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` })}
               onClick={() => void handleSend()}
             >
               {status === "simulating"
@@ -426,7 +426,7 @@ export default function WillActionWidget({
           <button
             type="button"
             disabled={status === "sending" || status === "waiting"}
-            className={`px-3 py-1 border ${theme.border} ${theme.muted} text-[10px] ${touch}`}
+            className={btnClass({ theme, variant: "secondary", size: "md" })}
             onClick={() => {
               setStatus("cancelled");
               setErrorMsg("Cancelled.");

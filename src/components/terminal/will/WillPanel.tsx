@@ -11,14 +11,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ThemeConfig } from "../types";
+import { BTN_TOUCH, btnClass, btnPrimaryFillStyle } from "../ui/buttonClasses";
 import { INVEST_PANEL_CHAT_GUTTER_CLASS } from "../widgets/floatingChatLayout";
 import WillStatusWidget, {
   type WillStatusPayload
 } from "../widgets/WillStatusWidget";
 import type { FetchWillStatusResult } from "./runWill";
 
-const TOUCH =
-  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+const TOUCH = BTN_TOUCH;
 
 /** Background status poll while panel mounted + document visible (#249). */
 export const WILL_STATUS_POLL_MS = 10_000;
@@ -150,11 +150,15 @@ export default function WillPanel({
 
   const field = `w-full bg-transparent border ${theme.border} px-2 py-1.5 text-[11px] font-mono normal-case ${theme.text} ${theme.rounded} ${TOUCH}`;
   const btn = (primary?: boolean) =>
-    `cursor-pointer uppercase tracking-widest text-[10px] px-2.5 py-1.5 border ${theme.border} ${TOUCH} ${
-      primary
-        ? `${theme.primary} ${theme.cardBg}`
-        : `${theme.muted} bg-transparent`
-    } disabled:opacity-40`;
+    primary
+      ? {
+          className: btnClass({ theme, variant: "primary", size: "md" }),
+          style: btnPrimaryFillStyle(theme)
+        }
+      : {
+          className: btnClass({ theme, variant: "secondary", size: "md" }),
+          style: undefined
+        };
 
   return (
     <div
@@ -217,7 +221,7 @@ export default function WillPanel({
         <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
-            className={btn(true)}
+            {...btn(true)}
             data-testid="will-panel-heartbeat"
             onClick={() => onCommand(willHeartbeatCmd())}
           >
@@ -225,7 +229,7 @@ export default function WillPanel({
           </button>
           <button
             type="button"
-            className={btn()}
+            {...btn()}
             data-testid="will-panel-cancel"
             onClick={() => onCommand(willCancelCmd())}
           >
@@ -233,7 +237,7 @@ export default function WillPanel({
           </button>
           <button
             type="button"
-            className={btn()}
+            {...btn()}
             data-testid="will-panel-claim"
             onClick={() => onCommand(willClaimCmd())}
           >
@@ -261,7 +265,7 @@ export default function WillPanel({
           />
           <button
             type="button"
-            className={btn(true)}
+            {...btn(true)}
             disabled={!setCmd}
             data-testid="will-panel-set"
             onClick={() => setCmd && onCommand(setCmd)}
@@ -299,7 +303,7 @@ export default function WillPanel({
             />
             <button
               type="button"
-              className={btn(true)}
+              {...btn(true)}
               disabled={!depCmd}
               data-testid="will-panel-deposit"
               onClick={() => depCmd && onCommand(depCmd)}
@@ -327,7 +331,7 @@ export default function WillPanel({
             />
             <button
               type="button"
-              className={btn(true)}
+              {...btn(true)}
               disabled={!wdCmd}
               data-testid="will-panel-withdraw"
               onClick={() => wdCmd && onCommand(wdCmd)}

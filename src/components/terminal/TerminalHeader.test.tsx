@@ -223,8 +223,8 @@ describe("TerminalHeader chrome (#117/#121/#134)", () => {
     const btn = screen.getByTestId("header-connect");
     expect(btn.textContent).toBe("CONNECT");
     expect(btn.className).toMatch(/text-\[10px\]/);
-    expect(btn.className).toMatch(/uppercase/);
-    expect(btn.className).toMatch(/tracking-widest/);
+    // Soft ACK #294 Soft Design E — no tracking-widest stretch; label already CONNECT.
+    expect(btn.className).toMatch(/btn-hug|w-auto/);
     expect(btn.className).toMatch(/pointer-coarse:min-h-\[44px\]/);
     fireEvent.click(btn);
     expect(onWalletOpen).toHaveBeenCalledTimes(1);

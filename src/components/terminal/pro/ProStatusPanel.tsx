@@ -8,11 +8,11 @@
 
 import { useEffect } from "react";
 import type { ThemeConfig } from "../types";
+import { BTN_TOUCH, btnClass } from "../ui/buttonClasses";
 import type { ProStatus } from "./status";
 import { formatRemaining } from "./status";
 
-const TOUCH =
-  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] [@media(hover:none)]:min-h-[44px]";
+const TOUCH = BTN_TOUCH;
 
 export default function ProStatusPanel({
   theme,
@@ -41,7 +41,7 @@ export default function ProStatusPanel({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
-  const primaryBtn = `cursor-pointer uppercase tracking-widest text-[10px] px-2.5 py-1.5 border ${theme.border} ${theme.primary} ${theme.cardBg || "bg-transparent"} ${TOUCH}`;
+  const primaryBtn = btnClass({ theme, variant: "primary", size: "md", className: `${theme.primary} ${theme.cardBg || "bg-transparent"}` });
 
   return (
     <div
@@ -128,7 +128,7 @@ export default function ProStatusPanel({
         <button
           type="button"
           data-testid="pro-status-dismiss"
-          className={`cursor-pointer uppercase tracking-widest text-[10px] px-2.5 py-1.5 border ${theme.border} ${theme.muted} bg-transparent ${TOUCH}`}
+          className={btnClass({ theme, variant: "secondary", size: "md" })}
           onClick={onClose}
         >
           Esc

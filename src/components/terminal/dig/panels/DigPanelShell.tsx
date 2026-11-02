@@ -8,9 +8,11 @@
 
 import { useEffect, type ReactNode } from "react";
 import type { ThemeConfig } from "../../types";
-
-const TOUCH =
-  "pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] max-md:min-h-[44px] [@media(hover:none)]:min-h-[44px]";
+import {
+  BTN_TOUCH,
+  btnClass,
+  btnPrimaryFillStyle
+} from "../../ui/buttonClasses";
 
 export function DigPanelShell({
   theme,
@@ -98,10 +100,14 @@ export function DigPrimaryButton({
       onClick={onClick}
       disabled={disabled}
       aria-disabled={!!disabled}
-      className={`w-full uppercase tracking-widest text-[10px] font-bold border border-transparent cursor-pointer max-md:min-h-[44px] ${TOUCH} ${
-        disabled ? "opacity-40" : ""
-      }`}
-      style={{ background: theme.phosphor, color: "#000000" }}
+      className={btnClass({
+        theme,
+        variant: "primary",
+        size: "lg",
+        block: true,
+        className: disabled ? "opacity-40" : ""
+      })}
+      style={btnPrimaryFillStyle(theme)}
       data-testid={testId}
     >
       {label}
@@ -109,4 +115,4 @@ export function DigPrimaryButton({
   );
 }
 
-export { TOUCH as DIG_PANEL_TOUCH };
+export { BTN_TOUCH as DIG_PANEL_TOUCH };

@@ -19,6 +19,7 @@ import {
 } from "../constants";
 import PinButton from "./PinButton";
 import { proGateOrError } from "../pro/preflight";
+import { btnClass, btnPrimaryFillStyle } from "../ui/buttonClasses";
 
 export default function AddLiquidityWidget({
   userAddress,
@@ -298,7 +299,7 @@ export default function AddLiquidityWidget({
         {step === "check_approval" && (
           <button
             onClick={handleExecuteLiquidity}
-            className={`px-4 py-2 min-h-[44px] border ${theme.border} bg-current/10 hover:bg-current/20 ${theme.primary} font-bold ${theme.rounded} cursor-pointer transition-all text-center`}
+            className={btnClass({ theme, variant: "primary", size: "lg", block: true })} style={btnPrimaryFillStyle(theme)}
           >
             [ EXECUTE APPROVALS & ADD LIQUIDITY ]
           </button>
