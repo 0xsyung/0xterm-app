@@ -1,7 +1,7 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #279 — in-repo incidents[] (no CMS/API). Talis Protocol CONTAINED append; Soft ACK #277/#275/#272 hold.
- * Soft-order by occurredAt desc. Every claim Soft-cites a verified source URL. Re-verified Eng 2026-11-01 HKT.
+ * @description Soft ACK #289 — in-repo incidents[] (no CMS/API). Professional product voice only in rendered copy; Soft ACK #279/#277/#275/#272 hold.
+ * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-02 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -9,8 +9,8 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #279 appends Talis Protocol CONTAINED; Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
- * Soft-nice list order: occurredAt descending. Do not invent facts.
+ * Hardcoded incident corpus. Soft ACK #279 Talis Protocol CONTAINED; Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * List order: occurredAt descending. Do not invent facts. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
   {
@@ -54,7 +54,7 @@ export const incidents: Incident[] = [
       },
       {
         id: "chaincatcher-talis",
-        title: "ChainCatcher — press restatement of official ~5,700 NFTs / halt / return Soft-counts",
+        title: "ChainCatcher — press restatement of official ~5,700 NFTs / halt / return counts",
         url: "https://www.chaincatcher.com/en/article/2300764"
       },
       {
@@ -64,7 +64,7 @@ export const incidents: Incident[] = [
       },
       {
         id: "slowmist-home",
-        title: "SlowMist Hacked — Soft-label: no Talis Protocol row this Soft Eng pass",
+        title: "SlowMist Hacked — no Talis Protocol row listed at time of this report",
         url: "https://hacked.slowmist.io/en/"
       }
     ],
@@ -74,15 +74,15 @@ export const incidents: Incident[] = [
         title: "What happened / how",
         claims: [
           {
-            text: "Official @ProtocolTalis: on 31 Oct 2026 an attacker exploited a bug in the Talis marketplace and auction contracts on Injective. About 5,700 escrowed NFTs were taken and sold into open collection offers. Soft-read: on-chain smart-contract / marketplace-custody incident — not a DNS/frontend StepDrainer wave and not a CEX hot-wallet drain.",
+            text: "Official @ProtocolTalis: on 31 Oct 2026 an attacker exploited a bug in the Talis marketplace and auction contracts on Injective. About 5,700 escrowed NFTs were taken and sold into open collection offers. Reading: on-chain smart-contract / marketplace-custody incident — not a DNS/frontend StepDrainer wave and not a CEX hot-wallet drain.",
             sourceIds: ["talis-x-1", "chaincatcher-talis", "kucoin-talis"]
           },
           {
-            text: "Containment Soft-claimed in the same official thread: halted new listings/auctions on Injective; returned more than 26,000 NFTs still in the contracts to owners; paused new listings/auctions on other chains as a precaution; users told not to buy/list/bid until safe (open offers remain cancellable).",
+            text: "Containment claimed in the same official thread: halted new listings/auctions on Injective; returned more than 26,000 NFTs still in the contracts to owners; paused new listings/auctions on other chains as a precaution; users told not to buy/list/bid until safe (open offers remain cancellable).",
             sourceIds: ["talis-x-2", "talis-x-3"]
           },
           {
-            text: "Technical root cause beyond official “a bug” Soft-open: Soft Eng Soft-read found no SlowMist Talis row, no DefiLlama Talis Protocol hacks entry Soft-cited this pass, and no Soft-cited PeckShield/BlockSec/CertiK exploit write-up. Do not invent method, attacker addresses, or USD.",
+            text: "Technical root cause beyond official “a bug” remains open: this report found no SlowMist Talis row, no DefiLlama Talis Protocol hacks entry cited here, and no PeckShield/BlockSec/CertiK exploit write-up cited here. Do not invent method, attacker addresses, or USD.",
             sourceIds: ["talis-x-1", "talis-x-4", "slowmist-home"]
           }
         ]
@@ -93,11 +93,11 @@ export const incidents: Incident[] = [
         claims: [],
         bullets: [
           {
-            text: "31 Oct 2026 (exact hour Soft-undisclosed): official Soft-labels exploit “Earlier today, Oct 31” — ~5,700 escrowed NFTs taken and sold into open collection offers on Injective.",
+            text: "31 Oct 2026 (exact hour undisclosed): official labels the exploit “Earlier today, Oct 31” — ~5,700 escrowed NFTs taken and sold into open collection offers on Injective.",
             sourceIds: ["talis-x-1"]
           },
           {
-            text: "22:50:05 UTC 31 Oct (≈06:50 HKT 1 Nov): @ProtocolTalis 1/ disclosure thread starts — marketplace + auction contract bug Soft-ACK.",
+            text: "22:50:05 UTC 31 Oct (≈06:50 HKT 1 Nov): @ProtocolTalis 1/ disclosure thread starts — marketplace + auction contract bug acknowledgment.",
             sourceIds: ["talis-x-1"]
           },
           {
@@ -117,7 +117,7 @@ export const incidents: Incident[] = [
             sourceIds: ["talis-x-5", "talis-x-6"]
           },
           {
-            text: "Afternoon Soft Eng Soft-re-verify (~22:20 HKT 1 Nov): press flashes Soft-restate official Soft-counts; SlowMist Hacked Soft-label still no Talis row this pass; no Soft-cited newer @ProtocolTalis post after the thread.",
+            text: "Afternoon re-verify (~22:20 HKT 1 Nov): press flashes restate official counts; SlowMist Hacked still shows no Talis row; no newer @ProtocolTalis post after the thread cited here.",
             sourceIds: ["chaincatcher-talis", "kucoin-talis", "slowmist-home", "talis-x-1"]
           }
         ]
@@ -127,15 +127,15 @@ export const incidents: Incident[] = [
         title: "Organization reactions",
         claims: [
           {
-            text: "Talis Protocol (@ProtocolTalis): primary official ACK + containment + restitution-plan promise + post-mortem Soft-commitment across the 6-part thread.",
+            text: "Talis Protocol (@ProtocolTalis): primary official acknowledgment + containment + restitution-plan promise + post-mortem commitment across the 6-part thread.",
             sourceIds: ["talis-x-1", "talis-x-2", "talis-x-3", "talis-x-4", "talis-x-5", "talis-x-6"]
           },
           {
-            text: "SlowMist Hacked: Soft-label absence — Soft Eng Soft-re-verify Soft-found no Talis Protocol entry Soft-cited this pass (do not invent a SlowMist loss row).",
+            text: "SlowMist Hacked: no Talis Protocol entry found in this report’s sources (do not invent a SlowMist loss row).",
             sourceIds: ["slowmist-home"]
           },
           {
-            text: "Injective L1 / unrelated protocols: Soft Eng Soft-read Soft-found no Soft-cited @injective official incident Soft-post Soft-claiming chain-level compromise in this pass — Soft-label exploit framed as Talis Injective contracts.",
+            text: "Injective L1 / unrelated protocols: no @injective official incident post claiming chain-level compromise is cited here — the exploit is framed as Talis Injective contracts.",
             sourceIds: ["talis-x-1", "talis-x-3"]
           }
         ]
@@ -145,15 +145,15 @@ export const incidents: Incident[] = [
         title: "News / security firms",
         claims: [
           {
-            text: "ChainCatcher Soft-restates official Soft-counts (~5,700 taken; halt; returns) — Soft-cite as secondary press, not an independent loss ledger.",
+            text: "ChainCatcher restates official counts (~5,700 taken; halt; returns) — cite as secondary press, not an independent loss ledger.",
             sourceIds: ["chaincatcher-talis", "talis-x-1"]
           },
           {
-            text: "KuCoin flash Soft-restates the same official Soft-facts (5,700 NFTs stolen on Injective Talis market) — Soft-label press Soft-amplify.",
+            text: "KuCoin flash restates the same official facts (5,700 NFTs stolen on Injective Talis market) — press amplification.",
             sourceIds: ["kucoin-talis", "talis-x-1"]
           },
           {
-            text: "Soft Eng Soft-read: no Soft-cited DefiLlama Talis Protocol hacks Soft-row and no Soft-cited SlowMist Talis Soft-row this pass — Soft-label unlisted; do not invent firm Soft-method Soft-fields.",
+            text: "No DefiLlama Talis Protocol hacks row and no SlowMist Talis row cited here — treated as unlisted; do not invent firm method fields.",
             sourceIds: ["slowmist-home", "talis-x-1"]
           }
         ]
@@ -163,15 +163,15 @@ export const incidents: Incident[] = [
         title: "Status",
         claims: [
           {
-            text: "Status CONTAINED — not RESOLVED: official Soft-claims exploit path stopped via Injective halt + escrow Soft-return + other-chain pause, but patched contracts remain in pre-deploy review only, restitution Soft-plan Soft-unpublished, affected-NFT Soft-list Soft-pending, and post-mortem Soft-pending.",
+            text: "Status CONTAINED — not RESOLVED: official claims exploit path stopped via Injective halt + escrow return + other-chain pause, but patched contracts remain in pre-deploy review only, restitution plan unpublished, affected-NFT list pending, and post-mortem pending.",
             sourceIds: ["talis-x-2", "talis-x-3", "talis-x-4", "talis-x-5", "talis-x-6"]
           },
           {
-            text: "Soft-label residual until live patch Soft-confirmed, restitution Soft-executed, and Soft-method Soft-post-mortem Soft-lands — do not flip to RESOLVED on pause Soft-alone.",
+            text: "Residual risk remains until a live patch is confirmed, restitution is executed, and a method post-mortem lands — do not flip to RESOLVED on pause alone.",
             sourceIds: ["talis-x-4", "talis-x-5", "talis-x-6"]
           },
           {
-            text: "Stolen ~5,700 NFT ownership Soft-open; offer makers Soft-impacted with Soft-promised Soft-make-whole Soft-intent Soft-only.",
+            text: "Stolen ~5,700 NFT ownership remains open; offer makers are impacted with a promised make-whole intent only.",
             sourceIds: ["talis-x-1", "talis-x-5"]
           }
         ]
@@ -181,7 +181,7 @@ export const incidents: Incident[] = [
         title: "Money",
         claims: [
           {
-            text: "Soft-read: Soft-cite NFT Soft-counts Soft-from official Soft-only. ~5,700 taken ≠ >26,000 returned (remaining escrow returned is not the stolen set). USD / INJ cash loss undisclosed — do not invent a dollar figure.",
+            text: "Cite NFT counts from official sources only. ~5,700 taken ≠ >26,000 returned (remaining escrow returned is not the stolen set). USD / INJ cash loss undisclosed — do not invent a dollar figure.",
             sourceIds: ["talis-x-1", "talis-x-2", "chaincatcher-talis", "kucoin-talis", "slowmist-home"]
           }
         ],
@@ -218,7 +218,7 @@ export const incidents: Incident[] = [
           },
           {
             label: "Restitution",
-            amount: "Plan Soft-promised; Soft-not Soft-executed Soft-in Soft-this Soft-pass",
+            amount: "Plan promised; not executed as of this report",
             confidence: "estimate",
             sourceIds: ["talis-x-5"]
           }
@@ -229,7 +229,7 @@ export const incidents: Incident[] = [
         title: "Chains / assets",
         claims: [
           {
-            text: "Exploit Soft-framed officially as Talis marketplace + auction contracts on Injective. Asset impact Soft-cited as escrowed NFTs (no official USDC / INJ cash figure).",
+            text: "Exploit framed officially as Talis marketplace + auction contracts on Injective. Asset impact cited as escrowed NFTs (no official USDC / INJ cash figure).",
             sourceIds: ["talis-x-1", "talis-x-2"]
           },
           {
@@ -237,7 +237,7 @@ export const incidents: Incident[] = [
             sourceIds: ["talis-x-3"]
           },
           {
-            text: "Product Soft-context only: injective.talis.art / talis.art Soft-label adjacency; do not equate to root cause without confirmation.",
+            text: "Product context only: injective.talis.art / talis.art adjacency; do not equate to root cause without confirmation.",
             sourceIds: ["talis-x-1", "chaincatcher-talis"]
           }
         ]
@@ -247,7 +247,7 @@ export const incidents: Incident[] = [
         title: "People / market reaction",
         claims: [
           {
-            text: "Soft ACK labels: Injective NFT marketplace exploit · official @ProtocolTalis ACK · ~5,700 escrowed NFTs · >26,000 NFTs returned · USD undisclosed · patch pre-deploy review · restitution forthcoming · SlowMist/DefiLlama unlisted (this pass).",
+            text: "Summary: Injective NFT marketplace exploit · official @ProtocolTalis acknowledgment · ~5,700 escrowed NFTs · >26,000 NFTs returned · USD undisclosed · patch pre-deploy review · restitution forthcoming · SlowMist/DefiLlama unlisted (this report).",
             sourceIds: ["talis-x-1", "talis-x-2", "talis-x-4", "talis-x-5", "slowmist-home", "kucoin-talis"]
           },
           {
@@ -255,7 +255,7 @@ export const incidents: Incident[] = [
             sourceIds: ["talis-x-1", "talis-x-2", "talis-x-3", "talis-x-5"]
           },
           {
-            text: "Users Soft-advised: don’t buy / list / bid until team confirms safe; cancel open offers OK; don’t buy affected NFTs once list publishes; never trust DM / wallet-connect claim Soft-requests.",
+            text: "Users advised: don’t buy / list / bid until team confirms safe; cancel open offers OK; don’t buy affected NFTs once list publishes; never trust DM / wallet-connect claim requests.",
             sourceIds: ["talis-x-3", "talis-x-5", "talis-x-6"]
           }
         ]
@@ -288,7 +288,7 @@ export const incidents: Incident[] = [
       },
       {
         id: "odaily-early",
-        title: "Odaily — early Tintin community Soft-label (~850 USDT max / 72h); official silent at press",
+        title: "Odaily — early Tintin community claim (~850 USDT max / 72h); official silent at press",
         url: "https://x.com/OdailyChina/status/2116541915634229416"
       },
       {
@@ -308,7 +308,7 @@ export const incidents: Incident[] = [
         title: "What happened / how",
         claims: [
           {
-            text: "Users of VergeX (AI trading / agent platform) reported consecutive withdrawal-verification / OTP emails with no user action, then unauthorized transfers out of platform accounts. Soft-read: account / withdrawal-authorization incident — not a public smart-contract exploit and not a DNS/frontend StepDrainer wave.",
+            text: "Users of VergeX (AI trading / agent platform) reported consecutive withdrawal-verification / OTP emails with no user action, then unauthorized transfers out of platform accounts. Reading: account / withdrawal-authorization incident — not a public smart-contract exploit and not a DNS/frontend StepDrainer wave.",
             sourceIds: ["vergex-x-ack", "techflow-early", "odaily-early", "slowmist-vergex"]
           },
           {
@@ -316,7 +316,7 @@ export const incidents: Incident[] = [
             sourceIds: ["vergex-x-ack", "tintin-sync", "slowmist-vergex"]
           },
           {
-            text: "Attack method remains Unknown (SlowMist + no official technical root-cause). Soft-label community speculation that the drain touched VergeX account / withdrawal-auth path vs Trade-only exchange API alone is unconfirmed.",
+            text: "Attack method remains Unknown (SlowMist + no official technical root-cause). Community speculation that the drain touched VergeX account / withdrawal-auth path vs Trade-only exchange API alone is unconfirmed.",
             sourceIds: ["slowmist-vergex", "vergex-x-ack"]
           }
         ]
@@ -327,11 +327,11 @@ export const incidents: Incident[] = [
         claims: [],
         bullets: [
           {
-            text: "~13:56 UTC 31 Oct 2026 (≈21:56 HKT): Soft-label community window — consecutive withdrawal verification emails, then unauthorized transfers (TechFlow / Odaily restating community).",
+            text: "~13:56 UTC 31 Oct 2026 (≈21:56 HKT): community-reported window — consecutive withdrawal verification emails, then unauthorized transfers (TechFlow / Odaily restating community).",
             sourceIds: ["techflow-early", "odaily-early"]
           },
           {
-            text: "~14:39–14:44 UTC (≈22:39–22:44 HKT): Press Soft-cites Tintin community Soft-label — few users; max ~850 USDT each; refunds within 72h; @vergex_ai still silent at publish.",
+            text: "~14:39–14:44 UTC (≈22:39–22:44 HKT): Press cites Tintin community claim — few users; max ~850 USDT each; refunds within 72h; @vergex_ai still silent at publish.",
             sourceIds: ["techflow-early", "odaily-early"]
           },
           {
@@ -347,7 +347,7 @@ export const incidents: Incident[] = [
             sourceIds: ["tintin-refund", "odaily-early"]
           },
           {
-            text: "Overnight / Soft Eng re-verify (~00:45–01:00 HKT 1 Nov): SlowMist lists VergeX $3,688.58 / method Unknown / returned / staged restore; no Soft-cited official withdrawal-reopen post.",
+            text: "Overnight re-verify (~00:45–01:00 HKT 1 Nov): SlowMist lists VergeX $3,688.58 / method Unknown / returned / staged restore; no official withdrawal-reopen post cited here.",
             sourceIds: ["slowmist-vergex", "vergex-x-ack"]
           }
         ]
@@ -361,7 +361,7 @@ export const incidents: Incident[] = [
             sourceIds: ["vergex-x-ack"]
           },
           {
-            text: "Tintin (@Tintinx2021): early community Soft-label (few users / ~850 USDT max / 72h refund) via press; later X sync matching official USDC total and refund-complete replies.",
+            text: "Tintin (@Tintinx2021): early community claim (few users / ~850 USDT max / 72h refund) via press; later X sync matching official USDC total and refund-complete replies.",
             sourceIds: ["odaily-early", "techflow-early", "tintin-sync", "tintin-refund"]
           },
           {
@@ -375,15 +375,15 @@ export const incidents: Incident[] = [
         title: "News / security firms",
         claims: [
           {
-            text: "TechFlow (datePublished ~14:39 UTC): community drain Soft-window ~21:56 HKT; Tintin Soft-label few users / ~850 USDT max / 72h; official X silent at publish — Soft-label early estimate vs later official total.",
+            text: "TechFlow (datePublished ~14:39 UTC): community drain window ~21:56 HKT; Tintin claim few users / ~850 USDT max / 72h; official X silent at publish — early estimate vs later official total.",
             sourceIds: ["techflow-early"]
           },
           {
-            text: "Odaily X restates the same early Tintin Soft-label (≈22:44 HKT) with screenshots Soft-cited in press — Soft-label community screenshots alone are not a loss ledger.",
+            text: "Odaily X restates the same early Tintin claim (≈22:44 HKT) with screenshots cited in press — community screenshots alone are not a loss ledger.",
             sourceIds: ["odaily-early"]
           },
           {
-            text: "SlowMist Hacked restates official $3,688.58 and Unknown method; Soft Eng Soft-read: no DefiLlama VergeX hacks entry Soft-cited this pass.",
+            text: "SlowMist Hacked restates official $3,688.58 and Unknown method; no DefiLlama VergeX hacks entry cited here.",
             sourceIds: ["slowmist-vergex"]
           }
         ]
@@ -397,11 +397,11 @@ export const incidents: Incident[] = [
             sourceIds: ["vergex-x-ack", "slowmist-vergex", "tintin-refund"]
           },
           {
-            text: "Soft-label residual platform risk until root cause, confirmed withdrawal reopen, and post-mortem land — do not flip to RESOLVED on refunds alone.",
+            text: "Residual platform risk remains until root cause, confirmed withdrawal reopen, and post-mortem land — do not flip to RESOLVED on refunds alone.",
             sourceIds: ["vergex-x-ack", "slowmist-vergex"]
           },
           {
-            text: "Other users Soft-claimed unaffected (official + Tintin).",
+            text: "Other users claimed unaffected (official + Tintin).",
             sourceIds: ["vergex-x-ack", "tintin-sync", "tintin-refund"]
           }
         ]
@@ -411,7 +411,7 @@ export const incidents: Incident[] = [
         title: "Money",
         claims: [
           {
-            text: "Soft-read: official total 3,688.58 USDC supersedes earlier Tintin-via-press ~850 USDT max / user Soft-label for the aggregate. Do not invent a USDT↔USDC conversion narrative.",
+            text: "Official total 3,688.58 USDC supersedes earlier Tintin-via-press ~850 USDT max / user claim for the aggregate. Do not invent a USDT↔USDC conversion narrative.",
             sourceIds: ["vergex-x-ack", "odaily-early", "techflow-early", "slowmist-vergex"]
           }
         ],
@@ -429,7 +429,7 @@ export const incidents: Incident[] = [
             sourceIds: ["slowmist-vergex"]
           },
           {
-            label: "Early Tintin Soft-label max / user (via TechFlow / Odaily)",
+            label: "Early Tintin claim max / user (via TechFlow / Odaily)",
             amount: "~850 USDT (pre-official total)",
             confidence: "estimate",
             sourceIds: ["techflow-early", "odaily-early"]
@@ -453,15 +453,15 @@ export const incidents: Incident[] = [
         title: "Chains / assets",
         claims: [
           {
-            text: "Asset Soft-cited officially as USDC (3,688.58). Early press Soft-label used USDT for the per-user max — Soft-label unit difference only; aggregate Soft-cites official USDC.",
+            text: "Asset cited officially as USDC (3,688.58). Early press used USDT for the per-user max — unit difference only; aggregate cites official USDC.",
             sourceIds: ["vergex-x-ack", "techflow-early", "odaily-early"]
           },
           {
-            text: "Soft-read: account / withdrawal-authorization path on VergeX platform accounts — no Soft-cited official claim of on-chain protocol / Hyperliquid exploit in this pass.",
+            text: "Account / withdrawal-authorization path on VergeX platform accounts — no official claim of on-chain protocol / Hyperliquid exploit cited here.",
             sourceIds: ["vergex-x-ack", "slowmist-vergex", "techflow-early"]
           },
           {
-            text: "Product Soft-context only: vergex.trade risk disclosure Soft-positions non-custodial exchange/API trading — Soft-label adjacency; do not equate to root cause without confirmation.",
+            text: "Product context only: vergex.trade risk disclosure positions non-custodial exchange/API trading — adjacency; do not equate to root cause without confirmation.",
             sourceIds: ["vergex-x-ack"]
           }
         ]
@@ -471,15 +471,15 @@ export const incidents: Incident[] = [
         title: "People / market reaction",
         claims: [
           {
-            text: "Soft ACK labels: AI trading platform account drain · official @vergex_ai ACK · SlowMist listed · ~$3,688.58 USDC · funds returned (official) · attack method unknown · withdrawals staged restore · Tintin community then official.",
+            text: "Summary: AI trading platform account drain · official @vergex_ai acknowledgment · SlowMist listed · ~$3,688.58 USDC · funds returned (official) · attack method unknown · withdrawals staged restore · Tintin community then official.",
             sourceIds: ["vergex-x-ack", "slowmist-vergex", "techflow-early", "odaily-early", "tintin-refund"]
           },
           {
-            text: "Affected scope Soft-claimed as a few / some users; others Soft-claimed unaffected. Exact user count and any residual disputes Soft-open.",
+            text: "Affected scope claimed as a few / some users; others claimed unaffected. Exact user count and any residual disputes remain open.",
             sourceIds: ["vergex-x-ack", "techflow-early", "tintin-refund"]
           },
           {
-            text: "Users Soft-advised by official to log in and check balances; withdrawal reopen TBD via official X + community — Soft-label residual until reopen confirmed.",
+            text: "Users advised by official to log in and check balances; withdrawal reopen TBD via official X + community — residual until reopen confirmed.",
             sourceIds: ["vergex-x-ack", "tintin-sync"]
           }
         ]
@@ -562,7 +562,7 @@ export const incidents: Incident[] = [
       },
       {
         id: "kucoin-flap",
-        title: "KuCoin — Flap DNS hijack flash; Soft-label Liquidated collector + attacker IP press",
+        title: "KuCoin — Flap DNS hijack flash; Liquidated collector + attacker IP press claims",
         url: "https://www.kucoin.com/news/flash/flap-official-website-hit-by-dns-hijacking-team-warns-users-not-to-access"
       },
       {
@@ -577,7 +577,7 @@ export const incidents: Incident[] = [
         title: "What happened / how",
         claims: [
           {
-            text: "Attackers compromised domain / registrar control so official hostnames served unauthorized phishing / clone frontends. Soft-read: DNS + frontend / registrar wave — not a confirmed smart-contract or vault drain.",
+            text: "Attackers compromised domain / registrar control so official hostnames served unauthorized phishing / clone frontends. Reading: DNS + frontend / registrar wave — not a confirmed smart-contract or vault drain.",
             sourceIds: ["flap-hijack", "kintsu-hijack", "kintsu-vercel", "blockaid-trio", "longbow-restore"]
           },
           {
@@ -604,7 +604,7 @@ export const incidents: Incident[] = [
         claims: [],
         bullets: [
           {
-            text: "~00:35 UTC 31 Oct 2026 (≈08:35 HKT): Soft-label researcher window for flap.sh NS / SOA cutover (not Flap official).",
+            text: "~00:35 UTC 31 Oct 2026 (≈08:35 HKT): researcher-reported window for flap.sh NS / SOA cutover (not Flap official).",
             sourceIds: ["kucoin-flap", "crypto-news"]
           },
           {
@@ -654,11 +654,11 @@ export const incidents: Incident[] = [
         title: "Organization reactions",
         claims: [
           {
-            text: "Flap: ACK → migrate to flap.cool → later declare both flap.sh and flap.cool OK to use; Soft-label root cause still investigating at migrate time.",
+            text: "Flap: acknowledgment → migrate to flap.cool → later declare both flap.sh and flap.cool OK to use; root cause still investigating at migrate time.",
             sourceIds: ["flap-hijack", "flap-migrate", "flap-restore", "tokenpost-flap"]
           },
           {
-            text: "Kintsu: registrar hijack ACK; revoke guidance; Vercel Domains escalation; remitted to own infra — Soft-explicit stay-cautious / no public all-clear in Soft-cited posts.",
+            text: "Kintsu: registrar hijack acknowledgment; revoke guidance; Vercel Domains escalation; remitted to own infra — explicitly stay-cautious / no public all-clear in cited posts.",
             sourceIds: ["kintsu-hijack", "kintsu-vercel", "kintsu-restore-1", "kintsu-restore-2"]
           },
           {
@@ -684,7 +684,7 @@ export const incidents: Incident[] = [
             sourceIds: ["blockaid-expand", "crypto-news"]
           },
           {
-            text: "KuCoin flash restates Flap official ACK and Soft-labels researcher claims (Liquidated-cited collector address claiming BNB theft via forged wallet page; Soft-label attacker IP 31.56.52.52 from KOL press).",
+            text: "KuCoin flash restates Flap official acknowledgment and researcher claims (Liquidated-cited collector address claiming BNB theft via forged wallet page; attacker IP 31.56.52.52 from KOL press).",
             sourceIds: ["kucoin-flap"]
           },
           {
@@ -692,7 +692,7 @@ export const incidents: Incident[] = [
             sourceIds: ["tokenpost-flap"]
           },
           {
-            text: "StonkBrokers status contested: appeared in Blockaid initial alert and some circulating screenshots, then dropped from Blockaid public edit — no @ClutchMarkets official incident ACK Soft-cited here.",
+            text: "StonkBrokers status contested: appeared in Blockaid initial alert and some circulating screenshots, then dropped from Blockaid public edit — no @ClutchMarkets official incident acknowledgment cited here.",
             sourceIds: ["blockaid-trio", "blockaid-narrow", "crypto-news"]
           }
         ]
@@ -706,11 +706,11 @@ export const incidents: Incident[] = [
             sourceIds: ["flap-restore", "blockaid-expand", "kintsu-restore-2", "longbow-restore"]
           },
           {
-            text: "Flap chip: remitted / OK-to-use (flap.sh + flap.cool) per official restore; Soft-label root cause still open from migrate-post context.",
+            text: "Flap chip: remitted / OK-to-use (flap.sh + flap.cool) per official restore; root cause still open from migrate-post context.",
             sourceIds: ["flap-restore", "flap-migrate", "tokenpost-flap"]
           },
           {
-            text: "Kintsu chip: remitted to own infra but no all-clear in Soft-cited updates (stay cautious / working with registrar).",
+            text: "Kintsu chip: remitted to own infra but no all-clear in cited updates (stay cautious / working with registrar).",
             sourceIds: ["kintsu-restore-1", "kintsu-restore-2"]
           },
           {
@@ -718,7 +718,7 @@ export const incidents: Incident[] = [
             sourceIds: ["longbow-restore"]
           },
           {
-            text: "Residual Soft-label risk on Blockaid expanded domains listed as actively serving Step Drainer at alert time (pickle / fluxbeam / shprd / apexdefi among others) until project all-clears land — do not flip wave to RESOLVED on Flap alone.",
+            text: "Residual risk on Blockaid expanded domains listed as actively serving Step Drainer at alert time (pickle / fluxbeam / shprd / apexdefi among others) until project all-clears land — do not flip wave to RESOLVED on Flap alone.",
             sourceIds: ["blockaid-expand", "crypto-news"]
           }
         ]
@@ -728,7 +728,7 @@ export const incidents: Incident[] = [
         title: "Money",
         claims: [
           {
-            text: "Soft-read: no official Flap / Kintsu / Blockaid aggregate USD stolen total found in Soft-cited sources. Soft-label researcher collector claims separately from confirmed protocol loss.",
+            text: "No official Flap / Kintsu / Blockaid aggregate USD stolen total found in cited sources. Treat researcher collector claims separately from confirmed protocol loss.",
             sourceIds: ["blockaid-expand", "crypto-news", "kucoin-flap", "flap-hijack", "kintsu-hijack"]
           }
         ],
@@ -746,7 +746,7 @@ export const incidents: Incident[] = [
             sourceIds: ["blockaid-expand", "crypto-news"]
           },
           {
-            label: "Soft-label researcher collector (Liquidated via KuCoin flash)",
+            label: "Researcher collector claim (Liquidated via KuCoin flash)",
             amount: "0x24497068cA4166ca32a04ae530ce00Cf79755bD5 (BNB size unstated)",
             confidence: "estimate",
             sourceIds: ["kucoin-flap"]
@@ -764,15 +764,15 @@ export const incidents: Incident[] = [
         title: "Chains / assets",
         claims: [
           {
-            text: "Attack path is DNS / frontend / registrar — users who connect or sign on hijacked hostnames risk wallet-drainer / approval flows (Blockaid Step Drainer Soft-label).",
+            text: "Attack path is DNS / frontend / registrar — users who connect or sign on hijacked hostnames risk wallet-drainer / approval flows (Blockaid Step Drainer label).",
             sourceIds: ["blockaid-expand", "kintsu-vercel", "flap-hijack", "crypto-news"]
           },
           {
-            text: "Press / researcher Soft-cite BNB / BSC for Flap phishing drains (Soft-label — not an official Flap total); Kintsu is described in press as Monad liquid-staking (sMON) context.",
+            text: "Press / researcher cite BNB / BSC for Flap phishing drains (not an official Flap total); Kintsu is described in press as Monad liquid-staking (sMON) context.",
             sourceIds: ["kucoin-flap", "crypto-news"]
           },
           {
-            text: "Soft-label attacker IP 31.56.52.52 appears in KuCoin / KOL press restating Flap hijack IOCs — treat as researcher / press until independent firm corroborates each claim.",
+            text: "Attacker IP 31.56.52.52 appears in KuCoin / KOL press restating Flap hijack IOCs — treat as researcher / press until independent firm corroborates each claim.",
             sourceIds: ["kucoin-flap"]
           },
           {
@@ -786,15 +786,15 @@ export const incidents: Incident[] = [
         title: "People / market reaction",
         claims: [
           {
-            text: "Soft ACK labels: active DNS hijack · multi-dApp frontend · Flap + Kintsu official ACK · Blockaid StepDrainer wave · Vercel Domains vector · loss unconfirmed · StonkBrokers contested · residual risk on unrestored domains.",
+            text: "Summary: active DNS hijack · multi-dApp frontend · Flap + Kintsu official acknowledgment · Blockaid StepDrainer wave · Vercel Domains vector · loss unconfirmed · StonkBrokers contested · residual risk on unrestored domains.",
             sourceIds: ["flap-hijack", "kintsu-hijack", "blockaid-expand", "kintsu-vercel", "blockaid-narrow", "crypto-news"]
           },
           {
-            text: "Users who visited unauthorized redirects and connected / signed during the hijack window remain Soft-label residual risk (Kintsu revoke guidance explicit for the ~00:00 UTC window).",
+            text: "Users who visited unauthorized redirects and connected / signed during the hijack window remain residual risk (Kintsu revoke guidance explicit for the ~00:00 UTC window).",
             sourceIds: ["kintsu-hijack", "kintsu-restore-1", "flap-hijack"]
           },
           {
-            text: "StonkBrokers / @ClutchMarkets remain contested without a Soft-cited official incident ACK — Soft-label not as confirmed victim-project parity with Flap / Kintsu.",
+            text: "StonkBrokers / @ClutchMarkets remain contested without a cited official incident acknowledgment — not treated as confirmed victim-project parity with Flap / Kintsu.",
             sourceIds: ["blockaid-trio", "blockaid-narrow", "crypto-news"]
           }
         ]
@@ -937,7 +937,7 @@ export const incidents: Incident[] = [
             sourceIds: ["slowmist-techflow"]
           },
           {
-            text: "Earlier analyst take (Soft-labeled; pre–official DevOps update): Blockaid's preliminary assessment pointed to compromise or misuse of signing infrastructure (\"key misuse\") rather than extraction of a raw private key — Soft-demoted relative to Binance's later official \"no private-key leak\" preliminary.",
+            text: "Earlier analyst take (pre–official DevOps update): Blockaid's preliminary assessment pointed to compromise or misuse of signing infrastructure (\"key misuse\") rather than extraction of a raw private key — demoted relative to Binance's later official \"no private-key leak\" preliminary.",
             sourceIds: ["cointelegraph-blockaid", "binance-x-devops"]
           },
           {
@@ -964,7 +964,7 @@ export const incidents: Incident[] = [
             sourceIds: ["techcrunch", "cyberdaily", "bbc", "binance-x"]
           },
           {
-            text: "Deposits and withdrawals temporarily suspended while security checks, freezes, and law-enforcement coordination continued; Binance Alpha trading also reported paused as a precaution (prior Soft PASS press cites).",
+            text: "Deposits and withdrawals temporarily suspended while security checks, freezes, and law-enforcement coordination continued; Binance Alpha trading also reported paused as a precaution (prior press cites).",
             sourceIds: ["bbc", "nbc", "cyberdaily", "aljazeera", "binance-x-cover"]
           },
           {
@@ -976,7 +976,7 @@ export const incidents: Incident[] = [
             sourceIds: ["binance-x-devops", "panews", "cyberdaily"]
           },
           {
-            text: "Same morning: Binance said Predict (PREDICT) listing will be postponed until further notice (org ops Soft-nice; no Soft-guessed market-impact claim).",
+            text: "Same morning: Binance said the Predict (PREDICT) listing is postponed until further notice.",
             sourceIds: ["binance-x-predict"]
           }
         ]
@@ -997,7 +997,7 @@ export const incidents: Incident[] = [
             ]
           },
           {
-            text: "Binance Soft-nice ops: Predict (PREDICT) listing postponed until further notice.",
+            text: "Binance: Predict (PREDICT) listing postponed until further notice.",
             sourceIds: ["binance-x-predict"]
           },
           {
@@ -1035,7 +1035,7 @@ export const incidents: Incident[] = [
             sourceIds: ["panews", "cyberdaily", "binance-x-devops"]
           },
           {
-            text: "Earlier analyst take (Soft-labeled): Blockaid published on-chain analysis of the EIP-7702 nonce-bracket delegation against Binance 14 and assessed signing-infrastructure misuse (Cointelegraph interview) — Soft-read alongside, not above, Binance's later official preliminary.",
+            text: "Earlier analyst take: Blockaid published on-chain analysis of the EIP-7702 nonce-bracket delegation against Binance 14 and assessed signing-infrastructure misuse (Cointelegraph interview) — read alongside, not above, Binance's later official preliminary.",
             sourceIds: ["cointelegraph-blockaid", "binance-x-devops"]
           },
           {
@@ -1047,7 +1047,7 @@ export const incidents: Incident[] = [
             sourceIds: ["defiant", "drk"]
           },
           {
-            text: "BleepingComputer and Bitcoin.com summarized public tracker tallies in the multi-billion range while noting Binance had not confirmed unauthorized theft totals in early coverage — Soft-distinct from Binance's later official ~$6.3B estimated impact.",
+            text: "BleepingComputer and Bitcoin.com summarized public tracker tallies in the multi-billion range while noting Binance had not confirmed unauthorized theft totals in early coverage — distinct from Binance's later official ~$6.3B estimated impact.",
             sourceIds: ["bleeping", "bitcoincom", "binance-x-devops"]
           }
         ]
@@ -1057,7 +1057,7 @@ export const incidents: Incident[] = [
         title: "Status",
         claims: [
           {
-            text: "At Soft ACK #272 tip time (30 Oct 2026 HKT): ACTIVE containment / unresolved — investigation ongoing; deposits and withdrawals still described as suspended; affected address authorisation revoked; no full official post-mortem yet.",
+            text: "As of 30 Oct 2026 HKT: ACTIVE containment / unresolved — investigation ongoing; deposits and withdrawals still described as suspended; affected address authorisation revoked; no full official post-mortem yet.",
             sourceIds: [
               "binance-x-devops",
               "binance-x-cover",
@@ -1072,7 +1072,7 @@ export const incidents: Incident[] = [
             sourceIds: ["binance-x-devops", "binance-x-freeze", "panews", "cyberdaily"]
           },
           {
-            text: "Official preliminary cause is the DevOps laptop → service container path with no evidence of wallet private-key leak; Soft-label estimate until post-mortem. Earlier Blockaid \"key misuse\" wording is Soft-demoted as a pre-update analyst take.",
+            text: "Official preliminary cause is the DevOps laptop → service container path with no evidence of wallet private-key leak; estimate until post-mortem. Earlier Blockaid \"key misuse\" wording is demoted as a pre-update analyst take.",
             sourceIds: ["binance-x-devops", "panews", "cointelegraph-blockaid"]
           }
         ]
@@ -1082,7 +1082,7 @@ export const incidents: Incident[] = [
         title: "Money",
         claims: [
           {
-            text: "Soft-read: official estimated impact (~$6.3B, Binance figure; Soft-label estimate) ≠ verified freeze (~$3B, official confirmed). Issuer/partner freezes remain Soft-firmer than public early tracker \"stolen\" tallies.",
+            text: "Official estimated impact (~$6.3B, Binance figure; estimate) ≠ verified freeze (~$3B, official confirmed). Issuer/partner freezes remain firmer than public early tracker \"stolen\" tallies.",
             sourceIds: [
               "binance-x-devops",
               "binance-x-freeze",
@@ -1099,13 +1099,13 @@ export const incidents: Incident[] = [
         figures: [
           {
             label: "Binance official estimated total impact (estimate until post-mortem)",
-            amount: "~$6.3B (official estimate — Soft-distinct from verified freeze)",
+            amount: "~$6.3B (official estimate — distinct from verified freeze)",
             confidence: "estimate",
             sourceIds: ["binance-x-devops", "panews", "cyberdaily"]
           },
           {
             label: "Binance verified funds frozen on-chain (official)",
-            amount: "~$3B (earlier Soft PASS ladder ~$2.54B → ~$3B)",
+            amount: "~$3B (earlier reported ladder ~$2.54B → ~$3B)",
             confidence: "confirmed",
             sourceIds: ["binance-x-freeze", "binance-x-devops", "panews", "cyberdaily", "aljazeera"]
           },
@@ -1129,7 +1129,7 @@ export const incidents: Incident[] = [
           },
           {
             label: "Earlier public analyst / tracker stolen tallies (pre–official ~$6.3B)",
-            amount: "~$2B–$5.8B+ (range across outlets; Soft-labeled estimate / unconfirmed)",
+            amount: "~$2B–$5.8B+ (range across outlets; estimate / unconfirmed)",
             confidence: "estimate",
             sourceIds: ["techcrunch", "bbc", "bleeping", "bitcoincom", "drk"]
           },
@@ -1249,7 +1249,7 @@ export const incidents: Incident[] = [
         id: "money",
         title: "Money",
         claims: [
-          { text: "Soft-read: on-chain/analytics tallies cluster ~$2.5–2.7M; Polymarket has not confirmed a single official loss figure. Reimbursement is a confirmed pledge, not a confirmed completed payout total.", sourceIds: ["bleeping-pm", "theblock-pm", "cnbc-pm"] }
+          { text: "On-chain/analytics tallies cluster ~$2.5–2.7M; Polymarket has not confirmed a single official loss figure. Reimbursement is a confirmed pledge, not a confirmed completed payout total.", sourceIds: ["bleeping-pm", "theblock-pm", "cnbc-pm"] }
         ],
         figures: [
           { label: "Attacker wallet POL moved (BleepingComputer)", amount: "~28.6M POL ≈ $2.57M", confidence: "estimate", sourceIds: ["bleeping-pm"] },
@@ -1349,7 +1349,7 @@ export const incidents: Incident[] = [
         id: "money",
         title: "Money",
         claims: [
-          { text: "Soft-read: ~$1M is the repeated collateral-loss estimate (SlowMist / Crypto Guardian / Spreek accounts). 25M is a token mint count, not a $25M USD loss.", sourceIds: ["slowmist-hifi", "dave-hifi", "tokenpost-hifi"] }
+          { text: "~$1M is the repeated collateral-loss estimate (SlowMist / Crypto Guardian / Spreek accounts). 25M is a token mint count, not a $25M USD loss.", sourceIds: ["slowmist-hifi", "dave-hifi", "tokenpost-hifi"] }
         ],
         figures: [
           { label: "User collateral drained (SlowMist / Crypto Guardian)", amount: "~$1,000,000", confidence: "estimate", sourceIds: ["slowmist-hifi", "tcg-hifi"] },
@@ -1445,7 +1445,7 @@ export const incidents: Incident[] = [
         id: "money",
         title: "Money",
         claims: [
-          { text: "Soft-read: firm tallies cluster ~$780K–$786K for the Ethereum drain; USD varies by price oracle/time. Token amounts (22.43 ETH, 245.74 pufETH, etc.) are on-chain confirmed.", sourceIds: ["slowmist-zk", "cryptotimes-zk", "panda-zk"] }
+          { text: "Firm tallies cluster ~$780K–$786K for the Ethereum drain; USD varies by price oracle/time. Token amounts (22.43 ETH, 245.74 pufETH, etc.) are on-chain confirmed.", sourceIds: ["slowmist-zk", "cryptotimes-zk", "panda-zk"] }
         ],
         figures: [
           { label: "SlowMist loss tally", amount: "$783,100", confidence: "estimate", sourceIds: ["slowmist-zk", "pwn-zk"] },
@@ -1545,7 +1545,7 @@ export const incidents: Incident[] = [
         id: "money",
         title: "Money",
         claims: [
-          { text: "Soft-read: drained token amount is on-chain exact (1,013,353.61 USDC). USD label ≈ same. Bounty is an offer only.", sourceIds: ["panda-tp", "slowmist-tp"] }
+          { text: "Drained token amount is on-chain exact (1,013,353.61 USDC). USD label ≈ same. Bounty is an offer only.", sourceIds: ["panda-tp", "slowmist-tp"] }
         ],
         figures: [
           { label: "USDC drained (on-chain)", amount: "1,013,353.61 USDC (entire pool)", confidence: "confirmed", sourceIds: ["panda-tp", "sentinelle-tp", "sch-tp"] },
@@ -1594,7 +1594,7 @@ export function incidentSourceMap(incident: Incident): Map<string, Incident["sou
   return new Map(incident.sources.map((s) => [s.id, s]));
 }
 
-/** Soft FAIL guard: every claim/bullet/figure must Soft-cite ≥1 known source id. */
+/** Soft FAIL guard (non-rendered): every claim/bullet/figure must cite ≥1 known source id. */
 export function collectUnsourcedClaimPaths(incident: Incident): string[] {
   const known = new Set(incident.sources.map((s) => s.id));
   const bad: string[] = [];
@@ -1605,6 +1605,49 @@ export function collectUnsourcedClaimPaths(incident: Incident): string[] {
     sec.claims.forEach((c, ci) => check(`sections[${si}].claims[${ci}]`, c.sourceIds));
     sec.bullets?.forEach((b, bi) => check(`sections[${si}].bullets[${bi}]`, b.sourceIds));
     sec.figures?.forEach((f, fi) => check(`sections[${si}].figures[${fi}]`, f.sourceIds));
+  });
+  return bad;
+}
+
+/** Soft ACK #289 — forbidden Soft-/ops substrings in user-visible FORENSIC corpus fields. */
+export const FORENSIC_OPS_JARGON_PATTERNS: RegExp[] = [
+  /\bSoft-/, // Soft-* ops compounds (Soft-label, Soft-read, Soft-nice, …)
+  /\bSoft\s+ACK\b/i,
+  /\bSoft\s+PASS\b/i,
+  /\bSoft\s+Eng\b/i,
+  /\bSoft\s+Design\b/i,
+  /\bSoft-on-behalf\b/i,
+  /\borg\s+ops\b/i,
+  /Soft ACK labels:/i
+];
+
+/** Soft FAIL guard (non-rendered): collect paths whose rendered strings carry Soft-/ops jargon. */
+export function collectOpsJargonPaths(incident: Incident): string[] {
+  const bad: string[] = [];
+  const check = (path: string, value: string | undefined) => {
+    if (!value) return;
+    for (const re of FORENSIC_OPS_JARGON_PATTERNS) {
+      if (re.test(value)) {
+        bad.push(`${path}: ${re}`);
+        break;
+      }
+    }
+  };
+  check("title", incident.title);
+  check("amountSummary", incident.amountSummary);
+  incident.chains.forEach((c, i) => check(`chains[${i}]`, c));
+  incident.sources.forEach((s, i) => {
+    check(`sources[${i}].title`, s.title);
+    check(`sources[${i}].url`, s.url);
+  });
+  incident.sections.forEach((sec, si) => {
+    check(`sections[${si}].title`, sec.title);
+    sec.claims.forEach((c, ci) => check(`sections[${si}].claims[${ci}].text`, c.text));
+    sec.bullets?.forEach((b, bi) => check(`sections[${si}].bullets[${bi}].text`, b.text));
+    sec.figures?.forEach((f, fi) => {
+      check(`sections[${si}].figures[${fi}].label`, f.label);
+      check(`sections[${si}].figures[${fi}].amount`, f.amount);
+    });
   });
   return bad;
 }
