@@ -13,12 +13,19 @@ import {
 } from "./corpus";
 import { INCIDENT_PAGE_SIZE, INCIDENT_SECTION_ORDER } from "./types";
 
-describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
-  it("ships Talis first by occurredAt desc, Soft ACK #279 + Soft ACK #277/#275/#272/#270 hold (8 total)", () => {
-    expect(incidents.length).toBe(8);
-    expect(incidents[0]?.id).toBe("talis-protocol-injective-nft-exploit-2026-10-31");
+describe("incidents corpus (#268/#270/#272/#275/#277/#279/#281/#282/#284/#285)", () => {
+  it("ships BTCPay first by occurredAt desc; Soft ACK #281/#282/#284 + Soft ACK #279/#277/#275/#272/#270 hold (11 total)", () => {
+    expect(incidents.length).toBe(11);
+    expect(incidents[0]?.id).toBe("btcpay-server-hot-wallet-sweeps-2026-11-01");
+    expect(getIncidentById("btcpay-server-hot-wallet-sweeps-2026-11-01")?.title).toMatch(/BTCPay/i);
+    expect(getIncidentById("solana-mobile-skr-claim-dapp-store-phishing-2026-11-01")?.title).toMatch(
+      /Solana Mobile|SKR Claim/i
+    );
     expect(getIncidentById("talis-protocol-injective-nft-exploit-2026-10-31")?.title).toMatch(
       /Talis|Injective/i
+    );
+    expect(getIncidentById("threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30")?.title).toMatch(
+      /Threshold|tBTC/i
     );
     expect(getIncidentById("vergex-account-drain-2026-10-31")?.title).toMatch(/VergeX/i);
     expect(getIncidentById("flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")?.title).toMatch(
@@ -26,9 +33,12 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     );
     expect(getIncidentById("binance-hot-wallet-2026-10-30")?.title).toMatch(/Binance/i);
     expect(incidents.map((i) => i.id)).toEqual([
+      "btcpay-server-hot-wallet-sweeps-2026-11-01",
+      "solana-mobile-skr-claim-dapp-store-phishing-2026-11-01",
       "talis-protocol-injective-nft-exploit-2026-10-31",
       "vergex-account-drain-2026-10-31",
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+      "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -105,11 +115,13 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     }
   });
 
-  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 8 ≤ 8 → one page)", () => {
+  it("pageIncidents uses Soft page size 8 and pages correctly (A′: 11 > 8 → pagination)", () => {
     expect(INCIDENT_PAGE_SIZE).toBe(8);
-    expect(incidents.length).toBeLessThanOrEqual(INCIDENT_PAGE_SIZE);
-    const one = pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE);
-    expect(one).toHaveLength(incidents.length);
+    expect(incidents.length).toBeGreaterThan(INCIDENT_PAGE_SIZE);
+    expect(pageIncidents(incidents, 0, INCIDENT_PAGE_SIZE)).toHaveLength(INCIDENT_PAGE_SIZE);
+    expect(pageIncidents(incidents, 1, INCIDENT_PAGE_SIZE)).toHaveLength(
+      incidents.length - INCIDENT_PAGE_SIZE
+    );
     const padded = [
       ...incidents,
       ...Array.from({ length: 10 }, (_, i) => ({
@@ -117,7 +129,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
         id: `extra-${i}`
       }))
     ];
-    expect(padded.length).toBe(18);
+    expect(padded.length).toBe(21);
     expect(pageIncidents(padded, 0, 8)).toHaveLength(8);
     expect(pageIncidents(padded, 1, 8)).toHaveLength(8);
     expect(incidentSourceMap(incidents[0]!).size).toBe(incidents[0]!.sources.length);
@@ -172,7 +184,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     const orgs = binance.sections.find((s) => s.id === "orgs")!;
     expect(orgs.claims.some((c) => /PREDICT/i.test(c.text))).toBe(true);
     // Soft Design A / Eng C: Soft ACK #272 Binance + Soft ACK #270 four backfill Soft-hold
-    expect(incidents.map((i) => i.id).slice(3)).toEqual([
+    expect(incidents.map((i) => i.id).slice(6)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -238,8 +250,8 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
-    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold (after Talis + VergeX + Flap)
-    expect(incidents.map((i) => i.id).slice(3)).toEqual([
+    // Soft Design A / Eng C: prior five Soft PASS deep-dives Soft-hold (after newer appends + Flap)
+    expect(incidents.map((i) => i.id).slice(6)).toEqual([
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -296,9 +308,10 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
     const news = vx.sections.find((s) => s.id === "news")!;
     expect(news.claims.some((c) => /Tintin|850|TechFlow|Odaily/i.test(c.text))).toBe(true);
-    // Soft Design A / Eng C: prior six Soft PASS deep-dives Soft-hold (after Talis + VergeX)
-    expect(incidents.map((i) => i.id).slice(2)).toEqual([
+    // Soft Design A / Eng C: prior six Soft PASS deep-dives Soft-hold (after newer appends + VergeX)
+    expect(incidents.map((i) => i.id).slice(4)).toEqual([
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+      "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -369,10 +382,11 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     );
     expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
     expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
-    // Soft Design A / Eng C: prior seven Soft PASS deep-dives Soft-hold
-    expect(incidents.map((i) => i.id).slice(1)).toEqual([
+    // Soft Design A / Eng C: prior seven Soft PASS deep-dives Soft-hold (after Soft ACK #281/#282 prepend)
+    expect(incidents.map((i) => i.id).slice(3)).toEqual([
       "vergex-account-drain-2026-10-31",
       "flap-kintsu-stonkbrokers-dns-frontend-2026-10-31",
+      "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30",
       "binance-hot-wallet-2026-10-30",
       "polymarket-debugbear-rum-2026-10-29",
       "hifi-finance-governance-2026-10-28",
@@ -383,7 +397,7 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
   });
 
   it("Soft ACK #285 Background Soft-backfill: every incident Soft-has protocolType; size Soft-metrics Soft-cite; no Soft-filler N/A", () => {
-    expect(incidents.length).toBe(8);
+    expect(incidents.length).toBe(11);
     for (const inc of incidents) {
       expect(inc.background, inc.id).toBeTruthy();
       expect(inc.background!.protocolType.trim().length, inc.id).toBeGreaterThan(0);
@@ -396,7 +410,6 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
       }
       expect(collectUnsourcedClaimPaths(inc), inc.id).toEqual([]);
     }
-    // Soft-spot Soft-check Soft-protocol Soft-types Soft-on Soft-known Soft-rows
     expect(getIncidentById("talis-protocol-injective-nft-exploit-2026-10-31")?.background?.protocolType).toBe(
       "NFT marketplace"
     );
@@ -405,6 +418,139 @@ describe("incidents corpus (#268/#270/#272/#275/#277/#279/#285)", () => {
     expect(getIncidentById("vergex-account-drain-2026-10-31")?.background?.protocolType).toBe(
       "AI trading"
     );
+    expect(getIncidentById("btcpay-server-hot-wallet-sweeps-2026-11-01")?.background?.protocolType).toBe(
+      "merchant infra"
+    );
+    expect(
+      getIncidentById("solana-mobile-skr-claim-dapp-store-phishing-2026-11-01")?.background?.protocolType
+    ).toBe("mobile store");
+    expect(
+      getIncidentById("threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30")?.background?.protocolType
+    ).toBe("bridge");
+  });
+
+  it("Soft ACK #281 Solana Mobile SKR Claim CONTAINED: official URLs + press Seed Vault Soft-label + prior hold", () => {
+    const skr = getIncidentById("solana-mobile-skr-claim-dapp-store-phishing-2026-11-01")!;
+    expect(skr.status).toBe("CONTAINED");
+    expect(skr.amountSummary).toMatch(/undisclosed/i);
+    const srcIds = new Set(skr.sources.map((s) => s.id));
+    for (const id of [
+      "solanamobile-x",
+      "cryptobriefing-skr",
+      "defiant-skr",
+      "panews-skr",
+      "chaincatcher-skr",
+      "slowmist-home"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(skr.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(skr.sources.find((s) => s.id === "solanamobile-x")?.url).toContain(
+      "2116962140301266959"
+    );
+    const what = skr.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/SKR Claim/i);
+    expect(whatText).toMatch(/Publishing Portal|Spotlight|seed/i);
+    expect(whatText).toMatch(/press-only|CryptoBriefing/i);
+    const status = skr.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/CONTAINED/i);
+    expect(statusText).toMatch(/not RESOLVED/i);
+    expect(statusText).toMatch(/wipe|portal|undisclosed/i);
+    const money = skr.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /1 hour/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    expect(collectUnsourcedClaimPaths(skr)).toEqual([]);
+  });
+
+  it("Soft ACK #282 BTCPay hot-wallet sweeps ACTIVE: official alert + Aug LND distinct + prior hold", () => {
+    const bp = getIncidentById("btcpay-server-hot-wallet-sweeps-2026-11-01")!;
+    expect(bp.status).toBe("ACTIVE");
+    expect(bp.amountSummary).toMatch(/undisclosed/i);
+    const srcIds = new Set(bp.sources.map((s) => s.id));
+    for (const id of [
+      "btcpay-x-alert",
+      "btcpay-wallet-docs",
+      "btcpay-create-wallet",
+      "btcpay-advisory-242",
+      "btcpay-release-247",
+      "btcpay-x-247",
+      "defiant-btcpay",
+      "slowmist-home"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(bp.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(bp.sources.find((s) => s.id === "btcpay-x-alert")?.url).toContain(
+      "2117020340815819262"
+    );
+    const what = bp.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/hot wallet/i);
+    expect(whatText).toMatch(/btcpay-down\.sh/);
+    expect(whatText).toMatch(/LND|2\.4\.7/i);
+    const status = bp.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/ACTIVE/i);
+    expect(statusText).toMatch(/not CONTAINED|not RESOLVED/i);
+    const money = bp.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /Not disclosed/i.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    expect(collectUnsourcedClaimPaths(bp)).toEqual([]);
+  });
+
+  it("Soft ACK #284 Threshold/tBTC CONTAINED: CVE URLs + backing Soft-cites + prior hold", () => {
+    const th = getIncidentById(
+      "threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30"
+    )!;
+    expect(th.status).toBe("CONTAINED");
+    expect(th.amountSummary).toMatch(/4,?320/);
+    expect(th.amountSummary).toMatch(/4,?185/);
+    const srcIds = new Set(th.sources.map((s) => s.id));
+    for (const id of [
+      "threshold-x-pause",
+      "threshold-x-contained",
+      "threshold-x-cve",
+      "tbtc-project-echo",
+      "redhat-rhsb",
+      "aave-x-freeze",
+      "llamarisk-forum",
+      "defiant-threshold",
+      "slowmist-home"
+    ]) {
+      expect(srcIds.has(id), id).toBe(true);
+      expect(th.sources.find((s) => s.id === id)?.url.startsWith("https://")).toBe(true);
+    }
+    expect(th.sources.find((s) => s.id === "threshold-x-pause")?.url).toContain(
+      "2116298061626368495"
+    );
+    expect(th.sources.find((s) => s.id === "threshold-x-contained")?.url).toContain(
+      "2116588948881375583"
+    );
+    expect(th.sources.find((s) => s.id === "threshold-x-cve")?.url).toContain(
+      "2116965471157203243"
+    );
+    const what = th.sections.find((s) => s.id === "what")!;
+    const whatText = what.claims.map((c) => c.text).join("\n");
+    expect(whatText).toMatch(/CVE-2026-98432/);
+    expect(whatText).toMatch(/mint|redeem/i);
+    expect(whatText).toMatch(/precaution/i);
+    const status = th.sections.find((s) => s.id === "status")!;
+    const statusText = status.claims.map((c) => c.text).join("\n");
+    expect(statusText).toMatch(/CONTAINED/i);
+    expect(statusText).toMatch(/not RESOLVED/i);
+    expect(statusText).toMatch(/not resumed|paused|Aave/i);
+    const money = th.sections.find((s) => s.id === "money")!;
+    expect(money.figures!.some((f) => /4,?320/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /4,?185/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => /0\.5 ETH/.test(f.amount))).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "confirmed")).toBe(true);
+    expect(money.figures!.some((f) => f.confidence === "estimate")).toBe(true);
+    expect(collectUnsourcedClaimPaths(th)).toEqual([]);
   });
 
   it("collectUnsourcedClaimPaths flags empty or unknown source ids", () => {
