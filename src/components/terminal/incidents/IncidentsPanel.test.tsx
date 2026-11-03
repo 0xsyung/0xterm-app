@@ -20,8 +20,8 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291/#296/#301)", () => {
-  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (13 > page size 8; Soft ACK #301 ZachXBT EU CEX ACTIVE)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291/#296/#301/#303)", () => {
+  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (14 > page size 8; Soft ACK #303 Mercado Bitcoin ACTIVE)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();
@@ -33,6 +33,12 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
       screen.getByTestId("incident-status-b14g-core-hardfork-recovery-2026-11-02")
         .textContent
     ).toMatch(/CONTAINED/i);
+    expect(
+      screen.getByTestId("incident-row-mercado-bitcoin-drain-2026-11-02")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-status-mercado-bitcoin-drain-2026-11-02").textContent
+    ).toMatch(/ACTIVE/i);
     expect(
       screen.getByTestId("incident-row-btcpay-server-hot-wallet-sweeps-2026-11-01")
     ).toBeTruthy();
@@ -66,16 +72,16 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
     expect(
       screen.getByTestId("incident-row-flap-kintsu-stonkbrokers-dns-frontend-2026-10-31")
     ).toBeTruthy();
+    // Soft Design A′: 14 > page size 8 → page 1 shows 8; threshold+binance+older on page 2
     expect(
-      screen.getByTestId(
+      screen.queryByTestId(
         "incident-row-threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30"
       )
-    ).toBeTruthy();
-    // Soft Design A′: 13 > page size 8 → page 1 shows 8; binance+older on page 2
+    ).toBeNull();
     expect(screen.queryByTestId("incident-row-binance-hot-wallet-2026-10-30")).toBeNull();
     expect(screen.queryByTestId("incident-row-polymarket-debugbear-rum-2026-10-29")).toBeNull();
     expect(screen.queryByTestId("incident-row-hifi-finance-governance-2026-10-28")).toBeNull();
-    expect(screen.getByText(/13 reports/i)).toBeTruthy();
+    expect(screen.getByText(/14 reports/i)).toBeTruthy();
     expect(screen.getByTestId("incident-pagination")).toBeTruthy();
   });
 
