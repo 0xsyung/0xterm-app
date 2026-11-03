@@ -53,7 +53,9 @@
     "playwright-bdd": "^9.2.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "@playwright/test": "^1.56.1",
+    "playwright-bdd": "^9.2.1"
   },
   "overrides": {
     "@coinbase/cdp-sdk": "1.52.0"

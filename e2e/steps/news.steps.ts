@@ -18,27 +18,31 @@ Given("NEWS RSS mirrors are stubbed", async ({ page }) => {
   });
 });
 
-When("the user opens the NEWS surface", async ({ page }) => {
-  await page.getByTestId("nav-strip").getByRole("tab", { name: "INVEST" }).click();
-  await expect(page.getByTestId("news-panel")).toBeVisible({ timeout: 30_000 });
+When("the user opens the News surface", async ({ page }) => {
+  const newsTab = page.getByTestId("v2-nav-news");
+  await newsTab.scrollIntoViewIfNeeded();
+  await newsTab.click();
+  await expect(page.getByTestId("v2-news")).toBeVisible({ timeout: 30_000 });
 });
 
-Then("the NEWS surface renders without crash", async ({ page }) => {
-  await expect(page.getByTestId("news-panel")).toBeVisible();
+Then("the News surface renders without crash", async ({ page }) => {
+  await expect(page.getByTestId("v2-news")).toBeVisible();
+  await expect(page.getByTestId("v2-news-loading")).toHaveCount(0, {
+    timeout: 30_000
+  });
   await expect(
-    page.getByTestId("news-reader").or(page.getByTestId("news-error"))
+    page.getByTestId("v2-news-list").or(page.getByTestId("v2-news-empty"))
   ).toBeVisible({ timeout: 30_000 });
 });
 
 Then(
   "NEWS category chips scroll horizontally so DeFi is reachable",
   async ({ page }) => {
-    const reader = page.getByTestId("news-reader");
-    await expect(reader).toBeVisible({ timeout: 30_000 });
-    const chipRow = page.getByTestId("news-category-tabs");
-    await expect(chipRow).toBeVisible();
-    await expect(chipRow.getByRole("tab", { name: "All" })).toBeVisible();
-    await expect(chipRow.getByRole("tab", { name: "DeFi" })).toBeAttached();
+    const chipRow = page.getByTestId("v2-news-category-tabs");
+    await expect(chipRow).toBeVisible({ timeout: 30_000 });
+    await expect(chipRow.getByTestId("v2-news-cat-all")).toBeVisible();
+    const defi = chipRow.getByTestId("v2-news-cat-defi");
+    await expect(defi).toBeAttached();
 
     const metrics = await chipRow.evaluate((el: HTMLElement) => ({
       scrollWidth: el.scrollWidth,
@@ -46,10 +50,24 @@ Then(
     }));
     expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth);
 
-    const defi = chipRow.getByRole("tab", { name: "DeFi" });
-    await defi.evaluate((el: HTMLElement) => {
-      el.scrollIntoView({ inline: "nearest", block: "nearest" });
-    });
+    await defi.scrollIntoViewIfNeeded();
     await expect(defi).toBeInViewport();
+    await expect(defi).toHaveText(/DeFi/i);
+  }
+);
+
+Then(
+  "primary nav chips scroll horizontally so News and Reports are reachable",
+  async ({ page }) => {
+    const nav = page.getByTestId("v2-nav-strip");
+    await expect(nav).toBeVisible();
+    for (const id of ["news", "reports"] as const) {
+      const tab = nav.getByTestId(`v2-nav-${id}`);
+      await tab.scrollIntoViewIfNeeded();
+      await expect(tab).toBeInViewport();
+      const text = (await tab.innerText()).trim().toUpperCase();
+      if (id === "reports") expect(text).toBe("REPORTS");
+      if (id === "news") expect(text).toBe("NEWS");
+    }
   }
 );
