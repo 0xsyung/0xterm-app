@@ -22,7 +22,7 @@ export const FINANCE_THEME: ThemeConfig = {
   rounded: "rounded-md",
   promptSymbol: "›",
   hasScanlines: false,
-  hasGrid: true,
+  hasGrid: false,
   warn: "text-[#f0a060] border-[#f0a060]/50 bg-[#f0a060]/10",
   muted: "text-white/40",
   phosphor: "#6ee7b7",

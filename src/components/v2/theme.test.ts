@@ -12,7 +12,7 @@ describe("V2 theme", () => {
     expect(FINANCE_THEME.name).toBe("Finance");
     expect(FINANCE_THEME.phosphor).toBe("#6ee7b7");
     expect(FINANCE_THEME.hasScanlines).toBe(false);
-    expect(FINANCE_THEME.hasGrid).toBe(true);
+    expect(FINANCE_THEME.hasGrid).toBe(false);
     expect(FINANCE_THEME.gridColor).toBe("#1f2933");
   });
 });
