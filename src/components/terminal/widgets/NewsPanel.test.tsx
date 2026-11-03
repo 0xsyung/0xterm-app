@@ -94,7 +94,8 @@ describe("NewsPanel", () => {
     const panel = screen.getByTestId("news-panel");
     expect(panel.className).toMatch(/\bw-full\b/);
     expect(panel.className).toMatch(/\bmin-h-full\b/);
-    expect(panel.className).not.toMatch(/max-w-/);
+    // #130: no width cap (max-w-md/lg/…); max-w-full is OK if present for flex shrink.
+    expect(panel.className).not.toMatch(/max-w-(?!full\b)/);
     // Shared invest CHAT gutter (#227)
     expect(panel.className).toMatch(/\bpr-16\b/);
     expect(panel.className).toMatch(/\bpb-16\b/);
