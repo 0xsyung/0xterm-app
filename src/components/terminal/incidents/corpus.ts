@@ -1,7 +1,7 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #296 b14g / Core hard-fork recovery corpus Update + Soft ACK #291 BTCPay hot-wallet sweeps version-scope IR Update + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
- * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-02 HKT.
+ * @description Soft ACK #301 ZachXBT EU CEX unauthorized-withdrawals corpus append + Soft ACK #296 b14g / Core hard-fork recovery Update + Soft ACK #291 BTCPay IR Update + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
+ * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-03 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -9,7 +9,7 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #296 prepends b14g / Core recovery Update; Soft ACK #291 Updates Soft ID btcpay-server-hot-wallet-sweeps-2026-11-01 (ACTIVE version-scoped); Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #301 appends Soft ID zachxbt-eu-cex-theft-2026-11-01 (ACTIVE; Background-first; customer-side compromise Soft-frame); Soft ACK #296 prepends b14g / Core recovery Update; Soft ACK #291 Updates Soft ID btcpay-server-hot-wallet-sweeps-2026-11-01; Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * List order: occurredAt descending. Do not invent facts or unsourced size metrics. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
@@ -761,6 +761,308 @@ export const incidents: Incident[] = [
           {
             text: "Highest residual risk: users who entered a seed into “SKR Claim.” Users who only saw the listing without installing or entering a seed have lower direct exposure. Official guidance: Solana Mobile will never ask for seed phrase, crypto, or wallet-connect to claim airdrops.",
             sourceIds: ["solanamobile-x", "cryptobriefing-skr"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "zachxbt-eu-cex-theft-2026-11-01",
+    title: "Suspected $106M+ unauthorized withdrawals from EU entity exchange accounts (Nov 1)",
+    occurredAt: "2026-11-01T12:25:00.000Z",
+    status: "ACTIVE",
+    amountSummary:
+      "Active investigation — large suspected theft from multiple exchange accounts; funds moved into ETH, instant-swap services, and Monero; victim not publicly named.",
+    chains: [
+      "Ethereum (USDC withdrawals + UniswapX ETH concentration)",
+      "Monero (Wagyu / LI.FI path; XMR side opaque)",
+      "Multi-bridge exits (~$7.10M net via six bridges/routers)"
+    ],
+    background: {
+      protocolType: "CEX",
+      sizeMetrics: [
+        {
+          label: "Suspected loss (ZachXBT)",
+          value: ">$106M",
+          asOf: "2026-11-02 ZachXBT alert",
+          confidence: "estimate",
+          sourceIds: ["zachxbt-tg", "coindesk-eu", "defiant-eu"]
+        },
+        {
+          label: "Traced USDC outflows (Bitquery)",
+          value: "$108.80M USDC from Kraken, Crypto.com, and OKX → 15 wallets",
+          asOf: "2026-11-01–02 window",
+          confidence: "confirmed",
+          sourceIds: ["bitquery-eu"]
+        },
+        {
+          label: "UniswapX stables → ETH",
+          value: "$62.98M → 27,553 ETH (~4 hours)",
+          asOf: "2026-11-01 23:44 UTC – 2026-11-02 04:02 UTC",
+          confidence: "confirmed",
+          sourceIds: ["bitquery-eu"]
+        },
+        {
+          label: "Still on Ethereum (Bitquery snapshot)",
+          value: "~$78.27M in thief-tied addresses (mostly ETH); ~$3.74M USDC freezable",
+          asOf: "2026-11-02 13:47 UTC",
+          confidence: "estimate",
+          sourceIds: ["bitquery-eu"]
+        }
+      ],
+      notes: [
+        {
+          text: "This report covers suspected unauthorized withdrawals from an unnamed European entity’s accounts at several centralized exchanges. On-chain pattern fits customer-side compromise (exchange logins and/or wallet allowlists), not an exchange hot-wallet or treasury breach.",
+          sourceIds: ["zachxbt-tg", "bitquery-eu", "coindesk-eu"]
+        }
+      ]
+    },
+    sources: [
+      {
+        id: "zachxbt-tg",
+        title: "ZachXBT (@investigations) — Telegram alert #372: suspected >$106M theft from unnamed EU entity CEX accounts",
+        url: "https://t.me/investigations/372"
+      },
+      {
+        id: "bitquery-eu",
+        title: "Bitquery — EU $106M crypto theft investigation ($108.80M USDC; Kraken / Crypto.com / OKX; residual ETH)",
+        url: "https://bitquery.io/investigations/eu-106m-crypto-theft"
+      },
+      {
+        id: "coindesk-eu",
+        title: "CoinDesk — EU entity suspected of losing $106M from crypto exchange accounts, ZachXBT says",
+        url: "https://www.coindesk.com/tech/2026/11/02/eu-entity-suspected-of-losing-usd106-million-from-crypto-exchange-accounts-zachxbt-says"
+      },
+      {
+        id: "defiant-eu",
+        title: "The Defiant — ZachXBT flags suspected $106M+ theft from EU entity",
+        url: "https://thedefiant.io/news/hacks/zachxbt-flags-suspected-106-million-plus-theft-from-eu-entity"
+      },
+      {
+        id: "techflow-eu",
+        title: "TechFlow — press restatement of ZachXBT EU-entity exchange-account theft alert",
+        url: "https://www.techflowpost.com/en-US/newsletter/142521"
+      },
+      {
+        id: "cryptotimes-eu",
+        title: "Crypto Times — ZachXBT alert restatement with published address-list transcription",
+        url: "https://www.cryptotimes.io/2026/11/02/crypto-sleuth-zachxbt-flags-106m-theft-from-eu-entitys-exchange-accounts/"
+      },
+      {
+        id: "unchained-eu",
+        title: "Unchained — $106M suspected stolen from EU entity as funds flow into Monero, ZachXBT",
+        url: "https://unchainedcrypto.com/106-million-suspected-stolen-from-eu-entity-as-funds-flow-into-monero-zachxbt/"
+      },
+      {
+        id: "theblock-x-eu",
+        title: "The Block (@TheBlockCo) — restatement of ZachXBT EU-entity theft alert",
+        url: "https://x.com/TheBlockCo/status/2117237652726706179"
+      },
+      {
+        id: "degennews-x-eu",
+        title: "DegenerateNews — restatement of ZachXBT EU-entity theft alert",
+        url: "https://x.com/DegenerateNews/status/2117234043548729471"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "On November 1–2, 2026, on-chain investigators reported that an unnamed European entity may have lost more than $100 million from accounts at several centralized exchanges. Traced withdrawals left mainly as USDC from Kraken, Crypto.com, and OKX, were largely swapped into ETH, and partly routed through instant-exchange services and toward Monero. Neither the victim nor the exchanges have publicly confirmed the loss. Related wallet addresses have been published for monitoring. Users should treat unsolicited recovery offers as high risk.",
+            sourceIds: ["zachxbt-tg", "bitquery-eu", "coindesk-eu", "defiant-eu", "cryptotimes-eu"]
+          },
+          {
+            text: "Reading: customer-side compromise of exchange accounts and/or withdrawal allowlists — not an exchange hot-wallet or treasury breach. Bitquery notes Kraken’s main paid 13 of the paid wallets (majority of volume) and that 8 of ZachXBT’s 11 published addresses look like pre-existing victim wallets previously paid by the same exchanges.",
+            sourceIds: ["bitquery-eu", "zachxbt-tg", "coindesk-eu"]
+          },
+          {
+            text: "ZachXBT stated high confidence the actor is not Lazarus Group (judgment; public indicators not detailed). Intrusion method (phishing, malware, insider, SIM/social, allowlist rewrite, etc.) remains undisclosed; chain data alone cannot decide.",
+            sourceIds: ["zachxbt-tg", "bitquery-eu", "defiant-eu", "unchained-eu"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "1 Nov 2026 ~12:25 UTC (~20:25 HKT): first large OKX withdrawal in the Bitquery-traced window.",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "1 Nov 2026 ~13:09 UTC (~21:09 HKT): Kraken withdrawals begin (~44 minutes after OKX).",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "1 Nov evening UTC through ~15:00: withdrawals build; peak evening window across the three exchanges.",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "1 Nov 2026 ~23:00 UTC (~07:00 HKT 2 Nov): prior 3 hours moved ~$73.2M (~⅔ of traced total); by ~23:10 UTC ~98% of traced withdrawals already out.",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "1 Nov 23:44 UTC – 2 Nov 04:02 UTC: UniswapX sold $62.98M stables → 27,553 ETH (~4 hours).",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "2 Nov morning UTC to ~09:09: final exchange payouts in the Bitquery window.",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "2 Nov 2026: ZachXBT Telegram @investigations #372 flags suspected >$106M loss; lists 11 Ethereum addresses; excludes Lazarus.",
+            sourceIds: ["zachxbt-tg", "cryptotimes-eu", "coindesk-eu"]
+          },
+          {
+            text: "2 Nov 2026 ~12:34–12:49 UTC (~20:34–20:49 HKT): public press restatements (TechFlow and others).",
+            sourceIds: ["techflow-eu", "coindesk-eu", "defiant-eu", "theblock-x-eu"]
+          },
+          {
+            text: "2 Nov 2026 13:47 UTC (~21:47 HKT): Bitquery snapshot — ~$78.27M still on Ethereum in thief-tied addresses; ~$3.74M USDC freezable surface.",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "Through 3 Nov ~11:30 HKT Eng pass: no public victim or named-exchange confirmation found.",
+            sourceIds: ["bitquery-eu", "coindesk-eu", "defiant-eu"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "No public confirmation from the unnamed European entity or from Kraken, Crypto.com, or OKX was found this Eng pass — treat victim identity and official loss acknowledgment as open.",
+            sourceIds: ["coindesk-eu", "defiant-eu", "bitquery-eu", "zachxbt-tg"]
+          },
+          {
+            text: "Bitquery published an independent on-chain pass ($108.80M USDC outflows; UniswapX ETH conversion; residual balances; instant-exchange and bridge paths) that corroborates the dollar-flow scale of ZachXBT’s alert.",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            text: "Circle freeze of residual thief USDC was not observed by Bitquery’s Monday check; whether KuCoin / Kyrrex / WellWallet / FixedFloat held or returned funds is unconfirmed publicly.",
+            sourceIds: ["bitquery-eu", "unchained-eu"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "ZachXBT primary alert (Telegram @investigations #372) is the originating claim: >$106M suspected from an unnamed EU entity’s multi-CEX accounts; 11 addresses published; not Lazarus (judgment).",
+            sourceIds: ["zachxbt-tg", "cryptotimes-eu"]
+          },
+          {
+            text: "CoinDesk, The Defiant, TechFlow, Crypto Times, Unchained, The Block, and DegenerateNews restate the alert; Crypto Times carries a transcription of the published address list.",
+            sourceIds: ["coindesk-eu", "defiant-eu", "techflow-eu", "cryptotimes-eu", "unchained-eu", "theblock-x-eu", "degennews-x-eu"]
+          },
+          {
+            text: "TRM / Specter flow graph was cited alongside the ZachXBT alert in press coverage (instant-exchange / Kyrrex / Wagyu paths); treat graph labels as investigator tooling, not exchange confirmation.",
+            sourceIds: ["zachxbt-tg", "unchained-eu", "defiant-eu", "bitquery-eu"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status ACTIVE — not CONTAINED and not RESOLVED: majority of traced value remains liquid (ETH / residual stables) or privacy-routed (Monero / bridges); no public freeze or recovery package for the victim; no victim or exchange confirmation; intrusion method undisclosed.",
+            sourceIds: ["bitquery-eu", "zachxbt-tg", "coindesk-eu", "unchained-eu"]
+          },
+          {
+            text: "Keep ACTIVE until (a) victim or named-exchange public confirmation with scope, (b) material freezes/returns covering residual value, (c) attribution beyond “not Lazarus,” or (d) a closed recovery / law-enforcement outcome. Treat unsolicited recovery offers as high risk.",
+            sourceIds: ["zachxbt-tg", "bitquery-eu", "coindesk-eu", "defiant-eu"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "ZachXBT’s primary claim is >$106M suspected loss. Bitquery independently traced $108.80M USDC leaving Kraken, Crypto.com, and OKX for 15 wallets over ~21 hours (1–2 Nov). Ethereum CEX mains in that pass show USDC as the withdrawal asset; USDT appears later via swaps.",
+            sourceIds: ["zachxbt-tg", "bitquery-eu", "coindesk-eu"]
+          },
+          {
+            text: "Laundering path (ZachXBT + Bitquery + TRM/Specter labels): exchange withdrawals → intermediary wallets → instant exchange / Kyrrex-tagged clusters → ETH concentration (~27k ETH class via UniswapX) → Wagyu / LI.FI Monero branch + multi-chain bridges. Monero and ETH are not issuer-freezable; residual USDC is the main Circle-freeze surface.",
+            sourceIds: ["bitquery-eu", "zachxbt-tg", "unchained-eu"]
+          }
+        ],
+        figures: [
+          {
+            label: "Suspected loss (ZachXBT)",
+            amount: ">$106M",
+            confidence: "estimate",
+            sourceIds: ["zachxbt-tg", "coindesk-eu", "defiant-eu"]
+          },
+          {
+            label: "Traced USDC outflows (Bitquery)",
+            amount: "$108.80M USDC (Kraken / Crypto.com / OKX → 15 wallets)",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            label: "UniswapX stables → ETH",
+            amount: "$62.98M → 27,553 ETH (~4 hours)",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            label: "Still on Ethereum (13:47 UTC 2 Nov)",
+            amount: "~$78.27M (mostly ETH); ~$3.74M USDC freezable",
+            confidence: "estimate",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            label: "Instant / OTC-like exits (Bitquery + labels)",
+            amount: "Kyrrex-tagged KuCoin pool ~$8.12M; WellWallet ~$250k; FixedFloat ~$1.32M; unlabelled OTC-like ~$12.91M",
+            confidence: "estimate",
+            sourceIds: ["bitquery-eu"]
+          },
+          {
+            label: "Monero path (Wagyu / LI.FI)",
+            amount: "2,642,400 USDC + 355.53 ETH via one-time order wallets (XMR side opaque)",
+            confidence: "estimate",
+            sourceIds: ["bitquery-eu", "unchained-eu"]
+          },
+          {
+            label: "Bridges / routers (net)",
+            amount: "~$7.10M via six bridges/routers (incl. LI.FI)",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-eu"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Primary traced path is Ethereum USDC withdrawals from Kraken, Crypto.com, and OKX, with aggressive conversion to ETH via UniswapX and exits via instant-exchange services, bridges, and a Monero branch. Do not describe this as an exchange treasury or hot-wallet compromise.",
+            sourceIds: ["bitquery-eu", "zachxbt-tg", "coindesk-eu"]
+          },
+          {
+            text: "ZachXBT published 11 Ethereum addresses (Crypto Times transcription): 0xADd95cD98E0288ba69785E3151E1db86adF8Dd58, 0x29e9D7715D935e0D0D4B0DD0efC952A97E551020, 0x378B4f150707C283574DC89739608D29036D57d5, 0x795a9d22F233024487161Fe6daFf73397c162621, 0x730Bcb1296758c377149d7409f98f041cf723992, 0x12D9012731eb0D54871A31Af5566Eb9ECCa351Db, 0x5A154f77852ed274Fd6F4c324a1Ee27809052FF7, 0xA1096A66f9ed58A9594A6A1ad67A5472C0907224, 0x90F0b6D51ed2FE2348A45b2C49BC441E959bc557, 0x8A97BC406180e28b11C5495fA099BF5119c6C6B0, 0xd010cba790a6ab0048da18f2fbe8e3faf463a16a. Bitquery notes 8 of 11 look pre-existing; 3 were new on 1 Nov; four additional paid wallets (+$28.00M) were missing from the public 11.",
+            sourceIds: ["cryptotimes-eu", "zachxbt-tg", "bitquery-eu"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Labels: unnamed EU entity · multi-CEX account withdrawals · >$106M suspected · $108.80M USDC traced · Kraken / Crypto.com / OKX · UniswapX → ~27.5k ETH · WellWallet / Kyrrex / FixedFloat · Wagyu Monero path · 11 published addresses · customer-side compromise framing · not Lazarus (ZachXBT judgment) · victim and exchanges unconfirmed · ACTIVE.",
+            sourceIds: ["zachxbt-tg", "bitquery-eu", "coindesk-eu", "cryptotimes-eu", "unchained-eu"]
+          },
+          {
+            text: "Near-term user risk: phishing and fake recovery solicitations while residual ETH/Monero paths remain fluid and the victim stays unnamed. Do not invent a victim legal name. Watch for Circle freezes on residual USDC, exchange holds on instant-swap credits, and any LE / compliance announcements.",
+            sourceIds: ["zachxbt-tg", "bitquery-eu", "coindesk-eu", "defiant-eu"]
           }
         ]
       }
