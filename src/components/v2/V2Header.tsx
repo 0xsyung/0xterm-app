@@ -1,6 +1,6 @@
 /**
  * @file V2Header.tsx
- * @description V2 mobile-first header — primary nav + network + Connect (#295 I)
+ * @description V2 mobile-first header — primary nav + network + Connect (#295 I/M)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -28,22 +28,20 @@ export default function V2Header({
   theme,
   nav,
   onNavChange,
-  settingsOpen,
-  onOpenSettings,
   activeChainId,
   walletAddress,
   isWalletConnected,
-  onWalletOpen
+  onWalletOpen,
+  onDisconnect
 }: {
   theme: ThemeConfig;
   nav: V2PrimaryNav;
   onNavChange: (n: V2PrimaryNav) => void;
-  settingsOpen: boolean;
-  onOpenSettings: () => void;
   activeChainId: number | null;
   walletAddress: string | null;
   isWalletConnected: boolean;
   onWalletOpen: () => void;
+  onDisconnect: () => void;
 }) {
   const [clock, setClock] = useState(() => formatLocalHms(new Date()));
   useEffect(() => {
@@ -87,45 +85,59 @@ export default function V2Header({
           className="flex items-center gap-1.5 ml-auto shrink-0 min-w-0"
           data-testid="v2-wallet-cluster"
         >
-          <button
-            type="button"
-            data-testid="v2-settings"
-            aria-pressed={settingsOpen}
-            onClick={onOpenSettings}
-            className={btnClass({
-              theme,
-              variant: settingsOpen ? "primary" : "secondary",
-              size: "md",
-              className: "uppercase tracking-widest px-3"
-            })}
-            style={
-              settingsOpen
-                ? { background: theme.phosphor, color: FILL_FG }
-                : undefined
-            }
-          >
-            Settings
-          </button>
           <span
             data-testid="v2-network-chip"
             className={`inline-flex items-center h-9 min-h-[44px] px-2.5 text-[10px] uppercase tracking-widest border ${theme.border} ${theme.muted} ${theme.rounded}`}
           >
             {netLabel}
           </span>
-          <button
-            type="button"
-            data-testid={connected ? "v2-account" : "v2-connect"}
-            aria-label={connected ? "Account" : "Connect wallet"}
-            onClick={onWalletOpen}
-            className={btnClass({
-              theme,
-              variant: "secondary",
-              size: "md",
-              className: `font-mono tabular-nums px-3 ${theme.primary}`
-            })}
-          >
-            {connected ? truncateAddress(walletAddress!) : "Connect"}
-          </button>
+          {connected ? (
+            <>
+              <button
+                type="button"
+                data-testid="v2-account"
+                aria-label="Account"
+                onClick={onWalletOpen}
+                className={btnClass({
+                  theme,
+                  variant: "secondary",
+                  size: "md",
+                  className: `font-mono tabular-nums px-3 ${theme.primary}`
+                })}
+              >
+                {truncateAddress(walletAddress!)}
+              </button>
+              <button
+                type="button"
+                data-testid="v2-disconnect"
+                aria-label="Disconnect wallet"
+                onClick={onDisconnect}
+                className={btnClass({
+                  theme,
+                  variant: "warn",
+                  size: "md",
+                  className: "uppercase tracking-widest px-3"
+                })}
+              >
+                Disconnect
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              data-testid="v2-connect"
+              aria-label="Connect wallet"
+              onClick={onWalletOpen}
+              className={btnClass({
+                theme,
+                variant: "secondary",
+                size: "md",
+                className: `font-mono tabular-nums px-3 ${theme.primary}`
+              })}
+            >
+              Connect
+            </button>
+          )}
         </div>
       </div>
 
@@ -141,7 +153,7 @@ export default function V2Header({
         className="flex flex-wrap items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:thin]"
       >
         {V2_PRIMARY_NAV.map((id) => {
-          const active = !settingsOpen && nav === id;
+          const active = nav === id;
           return (
             <button
               key={id}

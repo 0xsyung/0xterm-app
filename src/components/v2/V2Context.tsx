@@ -26,8 +26,6 @@ export type V2Prefill = {
 type V2ContextValue = {
   nav: V2PrimaryNav;
   setNav: (n: V2PrimaryNav) => void;
-  settingsOpen: boolean;
-  setSettingsOpen: (open: boolean) => void;
   moveAction: V2MoveAction | null;
   setMoveAction: (a: V2MoveAction | null) => void;
   prefill: V2Prefill;
@@ -43,14 +41,12 @@ const V2Context = createContext<V2ContextValue | null>(null);
 
 export function V2Provider({ children }: { children: ReactNode }) {
   const [nav, setNavState] = useState<V2PrimaryNav>(V2_DEFAULT_NAV);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [moveAction, setMoveAction] = useState<V2MoveAction | null>(null);
   const [prefill, setPrefill] = useState<V2Prefill>({});
   const [lastChainId, setLastChainId] = useState<number | null>(1);
 
   const setNav = useCallback((n: V2PrimaryNav) => {
     setNavState(n);
-    setSettingsOpen(false);
     if (n !== "move") setMoveAction(null);
   }, []);
 
@@ -61,7 +57,6 @@ export function V2Provider({ children }: { children: ReactNode }) {
       if (rest.chainId != null) setLastChainId(rest.chainId);
       setMoveAction(action);
       setNavState("move");
-      setSettingsOpen(false);
     },
     []
   );
@@ -70,8 +65,6 @@ export function V2Provider({ children }: { children: ReactNode }) {
     () => ({
       nav,
       setNav,
-      settingsOpen,
-      setSettingsOpen,
       moveAction,
       setMoveAction,
       prefill,
@@ -80,15 +73,7 @@ export function V2Provider({ children }: { children: ReactNode }) {
       setLastChainId,
       goTrade
     }),
-    [
-      nav,
-      setNav,
-      settingsOpen,
-      moveAction,
-      prefill,
-      lastChainId,
-      goTrade
-    ]
+    [nav, setNav, moveAction, prefill, lastChainId, goTrade]
   );
 
   return <V2Context.Provider value={value}>{children}</V2Context.Provider>;

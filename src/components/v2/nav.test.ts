@@ -28,8 +28,10 @@ describe("V2 nav", () => {
       expect(isV2PrimaryNav(id)).toBe(true);
     }
     expect(isV2PrimaryNav("settings")).toBe(false);
+    expect(isV2PrimaryNav("connect")).toBe(false);
     expect(isV2PrimaryNav("social")).toBe(false);
     expect(isV2PrimaryNav("dev")).toBe(false);
+    expect(Object.keys(V2_NAV_LABEL)).not.toContain("settings");
   });
 
   it("Move hub is Send Receive Swap without Bridge", () => {

@@ -1,6 +1,6 @@
 /**
  * @file store.ts
- * @description V2 News IndexedDB accumulate store (#295 G)
+ * @description V2 News IndexedDB accumulate store (#295 G+M) — retention fixed All
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -103,16 +103,19 @@ export async function getNewsMeta(
       }
     );
     await txDone(tx);
-    return value ? { ...DEFAULT_META, ...value } : { ...DEFAULT_META };
+    // Lock M: always All regardless of any legacy prefs value.
+    return { ...(value ? { ...DEFAULT_META, ...value } : { ...DEFAULT_META }), retention: "all" };
   } finally {
     db.close();
   }
 }
 
+/** Retention is hard-locked to All (Design lock M) — no picker. */
 export async function setNewsRetention(
-  retention: NewsRetention,
+  _retention: NewsRetention = "all",
   idb: IdbFactory = indexedDB
 ): Promise<NewsStoreMeta> {
+  void _retention;
   const db = await openDb(idb);
   try {
     const tx = db.transaction(NEWS_IDB_META, "readwrite");
@@ -127,7 +130,7 @@ export async function setNewsRetention(
         );
       req.onerror = () => reject(req.error);
     });
-    const next: NewsStoreMeta = { ...prev, retention };
+    const next: NewsStoreMeta = { ...prev, retention: "all" };
     store.put(next, "prefs");
     await txDone(tx);
     return next;
@@ -182,13 +185,9 @@ export async function listNewsArticles(
   idb: IdbFactory = indexedDB,
   opts?: { retention?: NewsRetention; now?: number }
 ): Promise<StoredNewsArticle[]> {
-  const meta = opts?.retention
-    ? { retention: opts.retention }
-    : await getNewsMeta(idb);
-  const cutoff = retentionCutoffMs(
-    opts?.retention || meta.retention,
-    opts?.now ?? Date.now()
-  );
+  // Lock M: product retention is All; opts.retention only for unit tests of cutoff.
+  const retention: NewsRetention = opts?.retention ?? "all";
+  const cutoff = retentionCutoffMs(retention, opts?.now ?? Date.now());
   const db = await openDb(idb);
   try {
     const tx = db.transaction(NEWS_IDB_STORE, "readonly");

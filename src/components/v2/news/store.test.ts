@@ -1,6 +1,6 @@
 /**
  * @file store.test.ts
- * @description V2 news IndexedDB accumulate + local search (#295 G)
+ * @description V2 news IndexedDB accumulate + local search (#295 G+M)
  */
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -77,10 +77,10 @@ describe("news store", () => {
     expect(one?.title).toContain("Bitcoin");
   });
 
-  it("default retention is All and can be changed", async () => {
+  it("retention is hard-locked to All (Design lock M)", async () => {
     expect((await getNewsMeta()).retention).toBe("all");
     const next = await setNewsRetention("90d");
-    expect(next.retention).toBe("90d");
-    expect((await getNewsMeta()).retention).toBe("90d");
+    expect(next.retention).toBe("all");
+    expect((await getNewsMeta()).retention).toBe("all");
   });
 });

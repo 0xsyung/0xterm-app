@@ -7,7 +7,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAccount, useDisconnect, useSwitchChain } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { useAppKit } from "@reown/appkit/react";
 import { getV2Theme } from "./theme";
 import { V2Provider, useV2 } from "./V2Context";
@@ -21,22 +21,13 @@ import PnlScreen, {
 import MoveScreen from "./screens/MoveScreen";
 import NewsScreen from "./screens/NewsScreen";
 import ReportsScreen from "./screens/ReportsScreen";
-import SettingsScreen from "./screens/SettingsScreen";
 import { isV2Mainnet, v2ChainShortName } from "./networks";
 
 function V2ShellInner() {
   const theme = getV2Theme();
-  const {
-    nav,
-    setNav,
-    settingsOpen,
-    setSettingsOpen,
-    lastChainId,
-    setLastChainId
-  } = useV2();
+  const { nav, setNav, lastChainId, setLastChainId } = useV2();
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
-  const { switchChain } = useSwitchChain();
   const { open } = useAppKit();
 
   const activeChainId =
@@ -50,17 +41,9 @@ function V2ShellInner() {
     void open();
   }, [open]);
 
-  const onSelectChain = useCallback(
-    (id: number) => {
-      setLastChainId(id);
-      try {
-        switchChain?.({ chainId: id });
-      } catch {
-        /* wallet may reject */
-      }
-    },
-    [setLastChainId, switchChain]
-  );
+  const onDisconnect = useCallback(() => {
+    disconnect();
+  }, [disconnect]);
 
   // Day-one: no invented balances when disconnected; connected starts empty
   // until live portfolio wiring fills rows (honest empty > fake data).
@@ -89,28 +72,17 @@ function V2ShellInner() {
         theme={theme}
         nav={nav}
         onNavChange={setNav}
-        settingsOpen={settingsOpen}
-        onOpenSettings={() => setSettingsOpen(true)}
         activeChainId={activeChainId}
         walletAddress={address ?? null}
         isWalletConnected={!!isConnected}
         onWalletOpen={onWalletOpen}
+        onDisconnect={onDisconnect}
       />
       <main
         className="flex-1 min-h-0 overflow-y-auto"
         data-testid="v2-main"
       >
-        {settingsOpen ? (
-          <SettingsScreen
-            theme={theme}
-            isConnected={!!isConnected}
-            address={address ?? null}
-            activeChainId={activeChainId}
-            onDisconnect={() => disconnect()}
-            onSelectChain={onSelectChain}
-            onClose={() => setSettingsOpen(false)}
-          />
-        ) : nav === "holdings" ? (
+        {nav === "holdings" ? (
           <HoldingsScreen
             theme={theme}
             isConnected={!!isConnected}

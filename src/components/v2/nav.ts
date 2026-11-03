@@ -13,8 +13,8 @@ export type V2PrimaryNav =
   | "news"
   | "reports";
 
-/** Overlay / chrome destinations (not primary strip peers with SOCIAL/DEV). */
-export type V2ChromeNav = "settings" | "connect";
+/** Chrome destinations (Connect in header; Settings removed — lock M). */
+export type V2ChromeNav = "connect";
 
 export type V2NavId = V2PrimaryNav | V2ChromeNav;
 
@@ -32,7 +32,6 @@ export const V2_NAV_LABEL: Record<V2NavId, string> = {
   move: "Move",
   news: "News",
   reports: "Reports",
-  settings: "Settings",
   connect: "Connect"
 };
 

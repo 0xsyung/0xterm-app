@@ -14,7 +14,7 @@ import {
   type Chain
 } from "viem/chains";
 
-/** Day-one mainnets only — FAIL if testnets appear in V2 Connect/Settings/Receive. */
+/** Day-one mainnets only — FAIL if testnets appear in V2 Connect/Move/Receive. */
 export const V2_MAINNET_CHAINS: readonly Chain[] = [
   mainnet,
   arbitrum,
