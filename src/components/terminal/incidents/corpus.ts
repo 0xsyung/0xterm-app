@@ -1,6 +1,6 @@
 /**
  * @file corpus.ts
- * @description Soft ACK #301 ZachXBT EU CEX unauthorized-withdrawals corpus append + Soft ACK #296 b14g / Core hard-fork recovery Update + Soft ACK #291 BTCPay IR Update + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
+ * @description Soft ACK #303 Mercado Bitcoin multi-chain hot-wallet drain corpus append + Soft ACK #301 ZachXBT EU CEX + Soft ACK #296 b14g / Soft ACK #291 BTCPay + Soft ACK #281/#282/#284/#285/#289 hold. Soft ACK #279/#277/#275/#272 hold.
  * Order by occurredAt desc. Every claim cites a verified source URL. Soft-/ops jargon scrubbed Eng 2026-11-03 HKT.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
@@ -9,7 +9,7 @@
 import type { Incident } from "./types";
 
 /**
- * Hardcoded incident corpus. Soft ACK #301 appends Soft ID zachxbt-eu-cex-theft-2026-11-01 (ACTIVE; Background-first; customer-side compromise Soft-frame); Soft ACK #296 prepends b14g / Core recovery Update; Soft ACK #291 Updates Soft ID btcpay-server-hot-wallet-sweeps-2026-11-01; Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
+ * Hardcoded incident corpus. Soft ACK #303 appends Soft ID mercado-bitcoin-drain-2026-11-02 (ACTIVE; Background-first CEX; exchange custody/signing Soft-frame; distinct from Soft ACK #301 Soft ID zachxbt-eu-cex-theft-2026-11-01); Soft ACK #301 ZachXBT EU CEX hold; Soft ACK #296 b14g / Soft ACK #291 BTCPay + Soft ACK #281/#282/#284/#285/#289 hold; Soft ACK #279 Talis + Soft ACK #277 VergeX + Soft ACK #275 Flap/Kintsu + Soft ACK #272 Binance + Soft ACK #270 four backfill IDs hold.
  * List order: occurredAt descending. Do not invent facts or unsourced size metrics. App report bodies stay professional (no Soft-/ops jargon).
  */
 export const incidents: Incident[] = [
@@ -265,6 +265,344 @@ export const incidents: Incident[] = [
           {
             text: "Near-term user risk: phishing / fake recovery sites while recovered CORE sits undistributed. Residual ~29M CORE may already include mixed service/exchange paths; freezes are not the same as recovery. Distribution formula, eligibility, timeline, and recovery-wallet custody remain unpublished.",
             sourceIds: ["b14g-recovery-x", "bitquery-b14g", "tokenpost-b14g"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "mercado-bitcoin-drain-2026-11-02",
+    title: "Mercado Bitcoin — multi-chain hot-wallet drain (~$40–49M, Nov 2)",
+    occurredAt: "2026-11-02T06:19:00.000Z",
+    status: "ACTIVE",
+    amountSummary:
+      "Active — Brazilian exchange’s multi-chain wallets drained; deposits and withdrawals paused; exchange says customers are covered; tracing and freezes ongoing.",
+    chains: [
+      "Multi-chain (~10–17 chains; ETH / BTC / SOL / Tron / Polygon / Arbitrum / Avalanche / BSC / Stellar / others)",
+      "Ethereum (hot wallet + deposit-address sweeps)",
+      "Bitcoin / Solana / Stellar / Tron (published attacker destinations)"
+    ],
+    background: {
+      protocolType: "CEX",
+      sizeMetrics: [
+        {
+          label: "Independent loss range",
+          value: "~$40–49M across ~10–17 chains",
+          asOf: "2026-11-02–03 independent tallies",
+          confidence: "estimate",
+          sourceIds: ["coindesk-mb", "chainalysis-mb", "bitquery-mb", "hypernative-press"]
+        },
+        {
+          label: "Exchange figure (Mercado Bitcoin)",
+          value: "~$38M",
+          asOf: "2026-11-02 MB statements / partner update",
+          confidence: "estimate",
+          sourceIds: ["mb-update-1", "tokenpost-mb", "exame-mb"]
+        },
+        {
+          label: "Chainalysis tally",
+          value: "~$49M across 17 chains",
+          asOf: "2026-11-02 Chainalysis response",
+          confidence: "estimate",
+          sourceIds: ["chainalysis-mb", "defiant-mb"]
+        },
+        {
+          label: "Bitquery on-chain tally",
+          value: "$48.5M on 10 chains ($47.2M ex thin-priced EVA)",
+          asOf: "2026-11-02 Bitquery investigation",
+          confidence: "confirmed",
+          sourceIds: ["bitquery-mb"]
+        },
+        {
+          label: "Partner freezes (so far)",
+          value: "~$9–11M (Tether / Circle / Paxos / BRL1 / Chainalysis coordination)",
+          asOf: "2026-11-02 MB + Chainalysis updates",
+          confidence: "estimate",
+          sourceIds: ["tokenpost-mb", "chainalysis-mb", "lookonchain-mb"]
+        }
+      ],
+      notes: [
+        {
+          text: "Mercado Bitcoin is Brazil’s largest crypto exchange. This report covers an exchange custody / unauthorized-signing incident: attackers moved funds out of wallets the exchange controls (hot wallets and later deposit addresses) via plain signed outflows — not a published smart-contract exploit, and not the concurrent unnamed European entity exchange-account case.",
+          sourceIds: ["mb-update-1", "bitquery-mb", "coindesk-mb", "chainalysis-mb"]
+        }
+      ]
+    },
+    sources: [
+      {
+        id: "mb-update-1",
+        title: "Mercado Bitcoin help center — overnight security incident update (contained claim; customers covered; no data leak; deps/withdrawals paused)",
+        url: "https://central.ajuda.mercadobitcoin.com.br/wiki/spaces/TF/pages/2965274628/9+56hs+09+11+2026+-+Atualiza+o"
+      },
+      {
+        id: "mb-destinations",
+        title: "Mercado Bitcoin help center — published attacker destination addresses (EVM / BTC / SOL / XLM / TRON)",
+        url: "https://central.ajuda.mercadobitcoin.com.br/wiki/spaces/TF/pages/2965176322/11+56hs+02+11+2026+-+Atualiza+o"
+      },
+      {
+        id: "mb-x-1",
+        title: "Mercado Bitcoin (@MercadoBitcoin) — X statement on overnight security incident",
+        url: "https://x.com/MercadoBitcoin/status/2117239507263132056"
+      },
+      {
+        id: "mb-x-2",
+        title: "Mercado Bitcoin (@MercadoBitcoin) — X follow-up with destination addresses / tracking",
+        url: "https://x.com/MercadoBitcoin/status/2117395627529089233"
+      },
+      {
+        id: "chainalysis-mb",
+        title: "Chainalysis — response to Mercado Bitcoin (~$49M / 17 chains; freeze coordination ~$10M class)",
+        url: "https://www.chainalysis.com/blog/chainalysis-response-mercado-bitcoin/"
+      },
+      {
+        id: "bitquery-mb",
+        title: "Bitquery — Mercado Bitcoin hack investigation ($48.5M / 10 chains; deposit sweeps; freezes)",
+        url: "https://bitquery.io/investigations/mercado-bitcoin-hack"
+      },
+      {
+        id: "coindesk-mb",
+        title: "CoinDesk — Brazil’s Mercado Bitcoin halts withdrawals after ~$40M drained across 10 chains",
+        url: "https://www.coindesk.com/business/2026/11/02/brazil-s-mercado-bitcoin-halts-withdrawals-after-usd40-million-drained-across-10-chains"
+      },
+      {
+        id: "defiant-mb",
+        title: "The Defiant — Chainalysis puts Mercado Bitcoin hack at $49 million across 17 chains",
+        url: "https://thedefiant.io/news/hacks/chainalysis-puts-mercado-bitcoin-hack-at-49-million-across-17-chains"
+      },
+      {
+        id: "tokenpost-mb",
+        title: "TokenPost — Mercado Bitcoin partner freeze update (~$11M; Tether / Circle / Paxos / BRL1 / Chainalysis)",
+        url: "https://www.tokenpost.com/news/technology/47206"
+      },
+      {
+        id: "lookonchain-mb",
+        title: "Lookonchain — Mercado Bitcoin attacker holdings / freeze follow-up",
+        url: "https://x.com/lookonchain/status/2117430326880579833"
+      },
+      {
+        id: "lookonchain-feed-mb",
+        title: "Lookonchain feed — residual altcoin holdings attributed to Mercado Bitcoin attackers",
+        url: "https://www.lookonchain.com/feeds/80066"
+      },
+      {
+        id: "slowmist-mb",
+        title: "SlowMist Hacked — Mercado Bitcoin entry (~$49M listed; attack method unknown)",
+        url: "https://hacked.slowmist.io/en/"
+      },
+      {
+        id: "exame-mb",
+        title: "Exame — Mercado Bitcoin sofre ataque hacker (Brazilian press restatement)",
+        url: "https://exame.com/future-of-money/mercado-bitcoin-sofre-ataque-hacker-estimado-em-r-2177-milhoes/"
+      },
+      {
+        id: "hypernative-press",
+        title: "CoinDesk / Hypernative early flag — plain-transfer outflows >$40M across ≥10 chains",
+        url: "https://www.coindesk.com/business/2026/11/02/brazil-s-mercado-bitcoin-halts-withdrawals-after-usd40-million-drained-across-10-chains"
+      }
+    ],
+    sections: [
+      {
+        id: "what",
+        title: "What happened / how",
+        claims: [
+          {
+            text: "On November 2, 2026, Mercado Bitcoin, Brazil’s largest crypto exchange, reported a security incident in which attackers moved cryptocurrency out of wallets the exchange controls across many blockchains. Independent estimates put the loss near $40–49 million. Transfers look like unauthorized signing of ordinary withdrawals, not a smart-contract bug. The exchange paused deposits and withdrawals, says customers will not lose funds and no personal data was leaked, and is working with partners who have frozen roughly $9–11 million so far. How the attackers obtained signing access has not been published. This case is separate from a concurrent report of large unauthorized withdrawals from an unnamed European entity’s accounts at other exchanges.",
+            sourceIds: ["mb-update-1", "mb-x-1", "coindesk-mb", "bitquery-mb", "chainalysis-mb", "tokenpost-mb"]
+          },
+          {
+            text: "Reading: exchange custody / signing compromise — hot wallets on many chains paid a shared attacker destination per chain, and later customer deposit addresses on Ethereum (and some Bitcoin deposits) also signed out balances. That pattern implies access to deposit key material or the signing pipeline, not only a single hot key, and is not a published smart-contract exploit.",
+            sourceIds: ["bitquery-mb", "coindesk-mb", "chainalysis-mb"]
+          },
+          {
+            text: "No public evidence tying this incident to the late-October Binance / TraderTraitor event was found this Eng pass; CoinDesk coverage likewise does not establish that link. Root cause (hot-wallet key leak, custody vendor, insider, deposit-derivation master key, payout-system compromise, or other) remains unpublished.",
+            sourceIds: ["coindesk-mb", "mb-update-1", "bitquery-mb", "slowmist-mb"]
+          }
+        ]
+      },
+      {
+        id: "timeline",
+        title: "Timeline",
+        claims: [],
+        bullets: [
+          {
+            text: "Late 1 Nov / early 2 Nov UTC: Bitquery notes some older Mercado Bitcoin Bitcoin addresses emptied; staging addresses funded on ETH/Tron the evening of 1 Nov.",
+            sourceIds: ["bitquery-mb"]
+          },
+          {
+            text: "2 Nov 2026 ~06:19–06:53 UTC (~14:19–14:53 HKT): main hot-wallet drain wave (~25–34 min) across ETH, SOL, Tron, Polygon, Arbitrum, Avalanche, BSC, Stellar, and others.",
+            sourceIds: ["coindesk-mb", "bitquery-mb", "hypernative-press"]
+          },
+          {
+            text: "2 Nov 2026 ~06:24–06:48 UTC: Ethereum hot wallet 0x5cc7787778b4d20a947dcc53b41f593cfd27d548 emptied (~2,852 ETH + USDT/USDC + ~185 other tokens; ~$29.5M class).",
+            sourceIds: ["bitquery-mb"]
+          },
+          {
+            text: "2 Nov ~02:30 AM ET: Mercado Bitcoin director contacts Chainalysis; law-enforcement and issuer freeze coordination begins.",
+            sourceIds: ["chainalysis-mb"]
+          },
+          {
+            text: "2 Nov morning UTC (~10–12 UTC window): early stablecoin freezes begin (Tether Polygon USDT0 ~10:21 UTC; then Tron/ETH; Paxos later).",
+            sourceIds: ["bitquery-mb", "chainalysis-mb"]
+          },
+          {
+            text: "2 Nov 2026 ~12:56 UTC (~20:56 HKT): Mercado Bitcoin official statement — identified and contained overnight; no customer harm; no data leak; deposits and withdrawals paused.",
+            sourceIds: ["mb-update-1", "mb-x-1"]
+          },
+          {
+            text: "2 Nov afternoon UTC (after 12:00): Ethereum deposit-address sweeps continue (Bitquery: 35,853 addresses emptied by ~15:44 UTC; ~$261k) — more than two hours after the “contained” claim.",
+            sourceIds: ["bitquery-mb"]
+          },
+          {
+            text: "2 Nov afternoon: Mercado Bitcoin publishes destination addresses (EVM / BTC / SOL / XLM / TRON) for ecosystem tracking.",
+            sourceIds: ["mb-destinations", "mb-x-2"]
+          },
+          {
+            text: "Later 2 Nov: Mercado Bitcoin update via press — partners froze ~$11M; named Tether, Circle, Paxos, BRL1, Chainalysis; more freezable funds identified.",
+            sourceIds: ["tokenpost-mb", "chainalysis-mb"]
+          },
+          {
+            text: "Through 3 Nov ~11:54 HKT Eng pass: deposits/withdrawals still reported paused; no public root-cause post-mortem; no attribution; majority of non-stable value still in attacker wallets.",
+            sourceIds: ["mb-update-1", "bitquery-mb", "coindesk-mb", "slowmist-mb"]
+          }
+        ]
+      },
+      {
+        id: "orgs",
+        title: "Organization reactions",
+        claims: [
+          {
+            text: "Mercado Bitcoin: primary official acknowledgment — overnight security incident identified and claimed contained; customers will not lose funds (exchange absorbs the hit); no personal data leak; deposits and withdrawals paused; destination addresses published for monitoring; partner freeze coordination ongoing.",
+            sourceIds: ["mb-update-1", "mb-destinations", "mb-x-1", "mb-x-2", "tokenpost-mb"]
+          },
+          {
+            text: "Chainalysis: published response putting the loss near ~$49M across 17 chains and describing freeze coordination in the nearly-$10M class after Mercado Bitcoin contact.",
+            sourceIds: ["chainalysis-mb", "defiant-mb"]
+          },
+          {
+            text: "Bitquery: published independent on-chain investigation ($48.5M / 10 chains; Ethereum ~61%; deposit-address mass sweeps; freeze snapshots).",
+            sourceIds: ["bitquery-mb"]
+          },
+          {
+            text: "Stablecoin issuers and partners (Tether, Circle, Paxos, BRL1 per Mercado Bitcoin / TokenPost restatement) participated in freezes totaling roughly $9–11M depending on snapshot; Bitquery’s earlier afternoon snapshot showed Circle freezes still open at that moment.",
+            sourceIds: ["tokenpost-mb", "chainalysis-mb", "bitquery-mb"]
+          }
+        ]
+      },
+      {
+        id: "news",
+        title: "News / security firms",
+        claims: [
+          {
+            text: "CoinDesk covers the halt of withdrawals after ~$40M drained across ~10 chains and notes Hypernative’s early plain-transfer outflow flag; The Defiant restates Chainalysis’s ~$49M / 17-chain figure.",
+            sourceIds: ["coindesk-mb", "defiant-mb", "hypernative-press"]
+          },
+          {
+            text: "Lookonchain tracks attacker holdings and residual altcoins; SlowMist lists the incident (~$49M; attack method unknown); Exame and TokenPost restate Brazilian-exchange and partner-freeze updates.",
+            sourceIds: ["lookonchain-mb", "lookonchain-feed-mb", "slowmist-mb", "exame-mb", "tokenpost-mb"]
+          },
+          {
+            text: "Press coverage does not establish a confirmed link to the late-October Binance incident; treat any “shared vendor / BitMart” hypotheses from pre-drain non-MB outflows as unconfirmed.",
+            sourceIds: ["coindesk-mb", "bitquery-mb"]
+          }
+        ]
+      },
+      {
+        id: "status",
+        title: "Status",
+        claims: [
+          {
+            text: "Status ACTIVE — not CONTAINED and not RESOLVED: root cause and attribution unpublished; deposits and withdrawals still paused; deposit-address sweeps continued after the exchange’s “contained” statement; partner freezes cover only a minority (~$9–11M) while the majority of stolen value (BTC / ETH / SOL / XLM / AVAX / alts) remains in attacker-controlled wallets.",
+            sourceIds: ["mb-update-1", "bitquery-mb", "tokenpost-mb", "chainalysis-mb", "coindesk-mb"]
+          },
+          {
+            text: "Keep ACTIVE until (a) an official root-cause / post-mortem, (b) deposits and withdrawals resume with deposit-address rotation, (c) material additional freezes or law-enforcement seizures covering residual value, or (d) a closed recovery outcome. Do not merge this report with the concurrent unnamed European entity exchange-account case.",
+            sourceIds: ["mb-update-1", "bitquery-mb", "coindesk-mb", "chainalysis-mb"]
+          }
+        ]
+      },
+      {
+        id: "money",
+        title: "Money",
+        claims: [
+          {
+            text: "Dollar tallies cluster around ~$40–49M: Mercado Bitcoin cites ~$38M; Hypernative early flag >$40M; Arkham/Lookonchain ~$46–46.5M class; Chainalysis ~$49M across 17 chains; Bitquery $48.5M on 10 chains (ETH ~$29.5M / ~61%). Treat exchange vs independent figures as separately labeled estimates vs on-chain confirmed where noted.",
+            sourceIds: ["mb-update-1", "coindesk-mb", "chainalysis-mb", "bitquery-mb", "lookonchain-mb", "defiant-mb"]
+          },
+          {
+            text: "Partner freezes are roughly $9–11M (MB ~$11M claim; Chainalysis nearly $10M facilitated; Lookonchain >$9M). About 75–85% of stolen value sits in non-issuer-freezable assets, so freeze progress is not full recovery.",
+            sourceIds: ["tokenpost-mb", "chainalysis-mb", "lookonchain-mb", "bitquery-mb"]
+          }
+        ],
+        figures: [
+          {
+            label: "Independent loss range",
+            amount: "~$40–49M (multi-chain)",
+            confidence: "estimate",
+            sourceIds: ["coindesk-mb", "chainalysis-mb", "bitquery-mb"]
+          },
+          {
+            label: "Exchange figure (Mercado Bitcoin)",
+            amount: "~$38M",
+            confidence: "estimate",
+            sourceIds: ["mb-update-1", "tokenpost-mb", "exame-mb"]
+          },
+          {
+            label: "Chainalysis tally",
+            amount: "~$49M across 17 chains",
+            confidence: "estimate",
+            sourceIds: ["chainalysis-mb", "defiant-mb"]
+          },
+          {
+            label: "Bitquery on-chain tally",
+            amount: "$48.5M on 10 chains ($47.2M ex thin-priced EVA)",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-mb"]
+          },
+          {
+            label: "Ethereum hot-wallet drain (Bitquery)",
+            amount: "~$29.5M from 0x5cc7…d548 (~2,852 ETH + stables + ~185 tokens)",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-mb"]
+          },
+          {
+            label: "Partner freezes (so far)",
+            amount: "~$9–11M (Tether / Circle / Paxos / BRL1 / Chainalysis)",
+            confidence: "estimate",
+            sourceIds: ["tokenpost-mb", "chainalysis-mb", "lookonchain-mb"]
+          },
+          {
+            label: "Ethereum deposit-address sweeps (post-statement)",
+            amount: "~$261k across 35,853 addresses by ~15:44 UTC 2 Nov",
+            confidence: "confirmed",
+            sourceIds: ["bitquery-mb"]
+          }
+        ]
+      },
+      {
+        id: "chains",
+        title: "Chains / assets",
+        claims: [
+          {
+            text: "Impact spans roughly 10–17 blockchains depending on tally method (Bitquery 10; Chainalysis 17), with Ethereum the largest single slice, then Bitcoin, plus SOL, Tron, Polygon, Arbitrum, Avalanche, BSC, Stellar, and others. Pattern is plain signed outflows from exchange-controlled wallets, not a chain-level consensus failure.",
+            sourceIds: ["bitquery-mb", "chainalysis-mb", "coindesk-mb"]
+          },
+          {
+            text: "Mercado Bitcoin published attacker destinations for tracking: EVM 0xe485e7A70b1131216Cb47CA4555c4Bbb2C742478; BTC 19qGpsHvzh1t6pVi526XNNkh6hW6prDZp; SOL 3YX6WHncP1Ra4AotE9YLawFt4nPmxyux288FWXkEW97J; XLM GDXYRI6IONQA5YTGRLQ603FGJ2BWXPJTTQPUXFPSEXSRKBZLFKMZSOLP; TRON TEX3HuDRHRa3tnYpy96M4UfSx62VhDyA5L. Bitquery additionally names drained Ethereum hot wallet 0x5cc7787778b4d20a947dcc53b41f593cfd27d548; analysts track many follow-on wallets beyond the five published destinations.",
+            sourceIds: ["mb-destinations", "mb-x-2", "bitquery-mb", "lookonchain-mb"]
+          }
+        ]
+      },
+      {
+        id: "people",
+        title: "People / market reaction",
+        claims: [
+          {
+            text: "Labels: Mercado Bitcoin · Brazil’s largest crypto exchange · multi-chain hot-wallet + deposit drain · ~$40–49M independent / ~$38M exchange · plain signed withdrawals / exchange custody · deps/withdrawals paused · customers covered claim · no data leak claim · ~$9–11M freezes · distinct from unnamed EU entity exchange-account case · ACTIVE.",
+            sourceIds: ["mb-update-1", "coindesk-mb", "bitquery-mb", "chainalysis-mb", "tokenpost-mb"]
+          },
+          {
+            text: "Near-term user risk: phishing and fake recovery offers while deposits/withdrawals stay paused and residual BTC/ETH/SOL piles remain liquid. Do not invent a root cause or merge this case with the concurrent European entity exchange-account report. Watch for post-mortem, address rotation, additional freezes, and large dumps or bridge exits.",
+            sourceIds: ["mb-update-1", "bitquery-mb", "coindesk-mb", "lookonchain-mb"]
           }
         ]
       }
