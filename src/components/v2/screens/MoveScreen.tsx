@@ -66,7 +66,7 @@ export default function MoveScreen({
           type="button"
           data-testid="v2-move-connect"
           onClick={onConnect}
-          className={btnClass({ theme, variant: "primary", size: "lg", block: true })}
+          className={btnClass({ theme, variant: "primary", size: "lg" })}
           style={{ background: theme.phosphor, color: "#000" }}
         >
           Connect
@@ -246,7 +246,7 @@ export default function MoveScreen({
         <button
           type="button"
           data-testid="v2-move-review"
-          className={btnClass({ theme, variant: "primary", size: "lg", block: true })}
+          className={btnClass({ theme, variant: "primary", size: "lg" })}
           style={{ background: theme.phosphor, color: "#000" }}
           onClick={() => setConfirmOpen(true)}
         >
@@ -286,7 +286,7 @@ export default function MoveScreen({
           <button
             type="button"
             data-testid="v2-move-confirm-cta"
-            className={btnClass({ theme, variant: "primary", size: "lg", block: true })}
+            className={btnClass({ theme, variant: "primary", size: "lg" })}
             style={{ background: theme.phosphor, color: "#000" }}
           >
             Confirm {action}

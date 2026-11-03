@@ -314,7 +314,7 @@ describe("finance theme (#295 V2)", () => {
     expect(t.bg).toContain("#0b0d10");
     expect(t.phosphor).toBe("#6ee7b7");
     expect(t.hasScanlines).toBe(false);
-    expect(t.hasGrid).toBe(true);
+    expect(t.hasGrid).toBe(false);
     expect(t.gridColor).toBe("#1f2933");
     expect(t.rounded).toBe("rounded-md");
     expect(t.font).toContain("tracking-tight");

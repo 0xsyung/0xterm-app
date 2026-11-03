@@ -97,7 +97,7 @@ export default function HoldingsScreen({
           type="button"
           data-testid="v2-holdings-connect"
           onClick={onConnect}
-          className={btnClass({ theme, variant: "primary", size: "lg", block: true })}
+          className={btnClass({ theme, variant: "primary", size: "lg" })}
           style={{ background: theme.phosphor, color: "#000" }}
         >
           Connect

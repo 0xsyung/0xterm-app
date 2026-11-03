@@ -84,7 +84,7 @@ export default function PnlScreen({
           type="button"
           data-testid="v2-pnl-connect"
           onClick={onConnect}
-          className={btnClass({ theme, variant: "primary", size: "lg", block: true })}
+          className={btnClass({ theme, variant: "primary", size: "lg" })}
           style={{ background: theme.phosphor, color: "#000" }}
         >
           Connect
