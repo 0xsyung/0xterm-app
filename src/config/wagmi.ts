@@ -1,29 +1,31 @@
 /**
  * @file wagmi.ts
- * @description Wagmi & AppKit configuration
+ * @description Wagmi & AppKit — V2 mainnets + MetaMask / WalletConnect (#295)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
 import { createAppKit } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { mainnet, arbitrum, base, polygon, optimism, sepolia, arbitrumSepolia, baseSepolia, polygonAmoy, optimismSepolia, hyperliquid, hyperliquidEvmTestnet } from '@reown/appkit/networks'
+import {
+  mainnet,
+  arbitrum,
+  base,
+  polygon,
+  optimism,
+  hyperliquid
+} from '@reown/appkit/networks'
 import type { AppKitNetwork } from '@reown/appkit/networks'
 
 const projectId = '5b2bbdbe0deaa155601b8aaa96f96aaf'
 
+/** Day-one mainnets only (HyperEVM via AppKit hyperliquid network id 999). */
 const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   mainnet as AppKitNetwork,
-  sepolia as AppKitNetwork,
   arbitrum as AppKitNetwork,
-  arbitrumSepolia as AppKitNetwork,
   base as AppKitNetwork,
-  baseSepolia as AppKitNetwork,
   polygon as AppKitNetwork,
-  polygonAmoy as AppKitNetwork,
   optimism as AppKitNetwork,
-  optimismSepolia as AppKitNetwork,
-  hyperliquid as AppKitNetwork,
-  hyperliquidEvmTestnet as AppKitNetwork
+  hyperliquid as AppKitNetwork
 ]
 
 const wagmiAdapter = new WagmiAdapter({
@@ -33,10 +35,14 @@ const wagmiAdapter = new WagmiAdapter({
 
 const metadata = {
   name: '0xTERM',
-  description: 'Full On-Chain DeFi Terminal Suite',
+  description: 'Multi-chain portfolio manager',
   url: 'https://app.0xterm.xyz',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
+
+/** MetaMask — WalletConnect QR remains available via AppKit protocol path. */
+const METAMASK_ID =
+  'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96'
 
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
@@ -44,8 +50,13 @@ export const modal = createAppKit({
   projectId,
   metadata,
   themeMode: 'dark',
+  featuredWalletIds: [METAMASK_ID],
+  includeWalletIds: [METAMASK_ID],
+  allWallets: 'HIDE',
   features: {
-    analytics: false
+    analytics: false,
+    email: false,
+    socials: false
   }
 })
 

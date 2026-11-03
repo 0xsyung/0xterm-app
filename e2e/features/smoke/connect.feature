@@ -1,11 +1,12 @@
 @smoke @readonly @mobile
-Feature: CONNECT sheet
-  CONNECT opens the wallet sheet then dismisses — no wallet connect or txs.
+Feature: V2 Connect sheet
+  Connect opens the wallet sheet then dismisses — no wallet connect or txs.
 
-  Scenario: CONNECT opens sheet then dismiss
-    Given the app is open on the terminal surface
-    When the user opens the CONNECT sheet
+  Scenario: Connect opens sheet then dismiss
+    Given I open the V2 app at viewport 390×844
+    When the shell finishes initializing
+    And the user opens the Connect sheet
     Then the wallet sheet is visible
     When the user dismisses the wallet sheet
     Then the wallet sheet is closed
-    And the CONNECT control is visible
+    And the Connect control is visible

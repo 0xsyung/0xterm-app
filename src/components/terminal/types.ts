@@ -8,6 +8,7 @@ import type React from 'react'
 import type { Address, Chain } from 'viem'
 
 export type ThemeMode =
+  | 'finance'
   | 'matrix'
   | 'amber'
   | 'ibm3270'

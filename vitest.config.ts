@@ -77,6 +77,11 @@ export default defineConfig({
         // plan intent builder (#24) — live RPC/quote; pure serialize/drift/swapRebuild tested
         "src/components/terminal/plan/buildIntent.ts",
         "src/components/terminal/plan/vaultRebuild.ts",
+        // V2 presentational chrome (#295) — logic in v2/nav|networks|theme|news/store tests
+        "src/components/v2/V2Shell.tsx",
+        "src/components/v2/V2Header.tsx",
+        "src/components/v2/V2Context.tsx",
+        "src/components/v2/screens/**",
         // wagmi provider/app glue + GA4 adapter — thin entry chrome (#6)
         "src/config/wagmi.ts",
         "src/app/layout.tsx",

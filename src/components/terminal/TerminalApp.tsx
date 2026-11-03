@@ -1,6 +1,6 @@
 /**
  * @file TerminalApp.tsx
- * @description Terminal workstation shell entry (shared by /app and app host /)
+ * @description App entry — V2 portfolio shell (#295)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -12,29 +12,21 @@ import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { config } from "@/config/wagmi";
 import { isCoarsePointer } from "@/components/terminal/viewport";
-import type { ThemeMode } from "@/components/terminal/types";
 
 function Splash() {
   return (
-    <div className="w-full h-full bg-black text-[#00ff66] font-mono flex flex-col items-center justify-center gap-4">
+    <div className="w-full h-full bg-[#0b0d10] text-[#6ee7b7] font-plex tracking-tight flex flex-col items-center justify-center gap-4">
       <img
         src="/logo.svg"
         alt="0xTERM"
         className="h-14 w-14"
         draggable={false}
       />
-      <div>INITIALIZING 0xTERM</div>
+      <div>Loading 0xTERM</div>
     </div>
   );
 }
 
-// Software keyboard: when the visual viewport shrinks below the layout
-// viewport, pin the shell's height to the visual viewport so the prompt
-// rides above the keyboard instead of under it. Height only — a transform
-// would create a containing block for the fixed rain overlay.
-// Coarse-pointer gate: on desktop (devtools docked, browser chrome) the
-// visual viewport can also be < innerHeight and would squash the shell for
-// no benefit — only touch devices have a software keyboard.
 function useVisualViewportHeight(): number | null {
   const [height, setHeight] = useState<number | null>(null);
 
@@ -61,22 +53,20 @@ function useVisualViewportHeight(): number | null {
   return height;
 }
 
-const TerminalShell = dynamic(
-  () => import("@/components/terminal/TerminalShell"),
-  { ssr: false }
-);
+const V2Shell = dynamic(() => import("@/components/v2/V2Shell"), {
+  ssr: false
+});
 
 const queryClient = new QueryClient();
 
 export default function TerminalApp() {
-  const [currentThemeKey, setCurrentThemeKey] = useState<ThemeMode>("matrix");
   const [shellReady, setShellReady] = useState(false);
   const [minHoldDone, setMinHoldDone] = useState(false);
   const vvHeight = useVisualViewportHeight();
 
   useEffect(() => {
     const hold = window.setTimeout(() => setMinHoldDone(true), 1000);
-    import("@/components/terminal/TerminalShell").then(() => {
+    import("@/components/v2/V2Shell").then(() => {
       setShellReady(true);
     });
     return () => window.clearTimeout(hold);
@@ -96,10 +86,7 @@ export default function TerminalApp() {
               <Splash />
             </div>
           )}
-          <TerminalShell
-            currentThemeKey={currentThemeKey}
-            onThemeChange={setCurrentThemeKey}
-          />
+          <V2Shell />
         </main>
       </QueryClientProvider>
     </WagmiProvider>

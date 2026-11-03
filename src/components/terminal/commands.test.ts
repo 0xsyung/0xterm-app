@@ -230,12 +230,12 @@ describe("buildThemeLog", () => {
   it("cycles next and wraps around the end", () => {
     const deps = themeDeps({ currentThemeKey: "hyperliquid" });
     const res = buildThemeLog(["theme", "next"], deps);
-    expect(deps.handleThemeSwitch).toHaveBeenCalledWith("matrix");
-    expect(res.text).toBe("[✓] Theme switched to Matrix");
+    expect(deps.handleThemeSwitch).toHaveBeenCalledWith("finance");
+    expect(res.text).toBe("[✓] Theme switched to Finance");
   });
 
   it("wraps prev from the first theme to the last", () => {
-    const deps = themeDeps({ currentThemeKey: "matrix" });
+    const deps = themeDeps({ currentThemeKey: "finance" });
     const res = buildThemeLog(["theme", "prev"], deps);
     expect(deps.handleThemeSwitch).toHaveBeenCalledWith("hyperliquid");
     expect(res.text).toBe("[✓] Theme switched to Hyperliquid");

@@ -1,6 +1,6 @@
 /**
  * @file playwright.config.ts
- * @description Playwright + playwright-bdd config for PR-A e2e (mobile gate).
+ * @description Playwright + playwright-bdd config for V2 #295 e2e (mobile gate).
  * Tablet/desktop projects reserved for PR-A.1 — not required green here.
  */
 import { defineConfig, devices } from "@playwright/test";
