@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>0xterm e2e fixture</title>
+    <item>
+      <title>Bitcoin blockchain research high</title>
+      <link>https://example.com/btc</link>
+      <pubDate>Mon, 03 Nov 2026 00:00:00 GMT</pubDate>
+      <description>Fixture headline for NEWS smoke.</description>
+    </item>
+    <item>
+      <title>DeFi staking yields update</title>
+      <link>https://example.com/defi</link>
+      <pubDate>Mon, 03 Nov 2026 01:00:00 GMT</pubDate>
+      <description>Fixture DeFi headline.</description>
+    </item>
+    <item>
+      <title>Market volatility watch</title>
+      <link>https://example.com/mkt</link>
+      <pubDate>Mon, 03 Nov 2026 02:00:00 GMT</pubDate>
+      <description>Fixture market headline.</description>
+    </item>
+  </channel>
+</rss>

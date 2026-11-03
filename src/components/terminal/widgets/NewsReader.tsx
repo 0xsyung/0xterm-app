@@ -262,7 +262,7 @@ export default function NewsReader({
       tabIndex={0}
       data-retain-focus=""
       data-testid="news-reader"
-      className={`relative group ${embedded ? "my-0" : "my-3"} p-2 md:p-3 ${
+      className={`relative group min-w-0 w-full max-w-full ${embedded ? "my-0" : "my-3"} p-2 md:p-3 ${
         embedded
           ? ""
           : `border ${theme.border} ${theme.cardBg} ${theme.rounded} ${theme.glow}`
@@ -311,9 +311,11 @@ export default function NewsReader({
         </div>
       </div>
 
-      {/* Taxonomy pills */}
+      {/* Taxonomy pills — min-w-0 + max-w-full so overflow-x-auto scrolls on ~390 mobile
+          (otherwise flex ancestors grow to content and clip DeFi+ with no scroll). */}
       <div
-        className="flex flex-row gap-2 pb-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-testid="news-category-tabs"
+        className="flex flex-nowrap flex-row gap-2 pb-2 min-w-0 w-full max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="News categories"
       >

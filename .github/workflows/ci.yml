@@ -23,3 +23,22 @@ jobs:
       # Coverage gate is enforced by vitest.config.ts thresholds (#6) —
       # a below-gate run makes test:coverage exit non-zero and fails this job.
       - run: npm run test:coverage
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Static export to out/ (next.config output: "export") for Playwright.
+      - name: Next build (static export)
+        run: npm run build
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Playwright BDD e2e mobile
+        run: npm run test:e2e:mobile
+        env:
+          CI: true
