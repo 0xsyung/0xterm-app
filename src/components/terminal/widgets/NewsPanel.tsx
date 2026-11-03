@@ -123,7 +123,7 @@ export default function NewsPanel({
 
   return (
     <div
-      className={`w-full min-h-full flex flex-col gap-3 ${INVEST_PANEL_CHAT_GUTTER_CLASS} ${
+      className={`w-full min-w-0 min-h-full flex flex-col gap-3 ${INVEST_PANEL_CHAT_GUTTER_CLASS} ${
         frameless ? "" : `p-3 md:p-4 border ${theme.border} ${theme.cardBg} ${theme.rounded}`
       }`}
       data-testid="news-panel"

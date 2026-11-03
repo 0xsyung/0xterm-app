@@ -77,6 +77,10 @@ describe("NewsReader", () => {
     expect(screen.getByRole("tab", { name: "Blockchain" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Market" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "DeFi" })).toBeTruthy();
+    const chips = screen.getByTestId("news-category-tabs");
+    expect(chips.className).toMatch(/overflow-x-auto/);
+    expect(chips.className).toMatch(/min-w-0/);
+    expect(chips.className).toMatch(/flex-nowrap/);
     expect(screen.getByRole("tab", { name: "AI" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Regulation" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Sentiment" })).toBeTruthy();
