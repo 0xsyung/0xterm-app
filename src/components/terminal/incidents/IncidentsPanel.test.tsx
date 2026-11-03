@@ -20,8 +20,8 @@ function makeExtra(n: number): Incident[] {
   }));
 }
 
-describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291/#296)", () => {
-  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (12 > page size 8; Soft ACK #291 BTCPay ACTIVE Update)", () => {
+describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291/#296/#301)", () => {
+  it("renders Soft Design A′ list: page-1 rows, b14g first, pagination shown (13 > page size 8; Soft ACK #301 ZachXBT EU CEX ACTIVE)", () => {
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     expect(screen.getByTestId("incidents-panel")).toBeTruthy();
@@ -52,6 +52,12 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
       ).textContent
     ).toMatch(/CONTAINED/i);
     expect(
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("incident-status-zachxbt-eu-cex-theft-2026-11-01").textContent
+    ).toMatch(/ACTIVE/i);
+    expect(
       screen.getByTestId("incident-row-talis-protocol-injective-nft-exploit-2026-10-31")
     ).toBeTruthy();
     expect(
@@ -65,20 +71,18 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
         "incident-row-threshold-tbtc-mint-redeem-pause-cve-2026-98432-2026-10-30"
       )
     ).toBeTruthy();
-    expect(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
-    ).toBeTruthy();
-    // Soft Design A′: 12 > page size 8 → page 1 shows 8; polymarket+older on page 2
+    // Soft Design A′: 13 > page size 8 → page 1 shows 8; binance+older on page 2
+    expect(screen.queryByTestId("incident-row-binance-hot-wallet-2026-10-30")).toBeNull();
     expect(screen.queryByTestId("incident-row-polymarket-debugbear-rum-2026-10-29")).toBeNull();
     expect(screen.queryByTestId("incident-row-hifi-finance-governance-2026-10-28")).toBeNull();
-    expect(screen.getByText(/12 reports/i)).toBeTruthy();
+    expect(screen.getByText(/13 reports/i)).toBeTruthy();
     expect(screen.getByTestId("incident-pagination")).toBeTruthy();
   });
 
   it("opens detail with Soft sections and source URLs; BACK returns to list", () => {
     render(<IncidentsPanel theme={theme} onClose={vi.fn()} />);
     fireEvent.click(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
     );
     const detail = screen.getByTestId("incident-detail");
     expect(detail).toBeTruthy();
@@ -156,7 +160,7 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     fireEvent.click(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
     );
     expect(screen.getByTestId("incident-detail")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
@@ -180,7 +184,7 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
   it("money Soft-figures expose confirmed vs estimate labels", () => {
     render(<IncidentsPanel theme={theme} onClose={vi.fn()} />);
     fireEvent.click(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
     );
     const money = screen.getByTestId("incident-section-money");
     expect(within(money).getAllByText(/confirmed/i).length).toBeGreaterThan(0);
@@ -215,7 +219,7 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
   it("source Soft-cite stopPropagation does not leave list when clicked on detail", () => {
     render(<IncidentsPanel theme={theme} onClose={vi.fn()} />);
     fireEvent.click(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
     );
     const cite = screen.getAllByTestId(/incident-source-/)[0];
     fireEvent.click(cite);
@@ -225,7 +229,7 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
   it("Soft ACK #283 detail type Soft-scale Soft-locks (≥ text-xs body; muted source chips)", () => {
     render(<IncidentsPanel theme={theme} onClose={vi.fn()} />);
     fireEvent.click(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
     );
     const what = screen.getByTestId("incident-section-what");
     const claim = what.querySelector("p");
@@ -250,7 +254,7 @@ describe("IncidentsPanel (#268/#270/#275/#277/#279/#281/#282/#284/#283/#285/#291
     const onClose = vi.fn();
     render(<IncidentsPanel theme={theme} onClose={onClose} />);
     fireEvent.click(
-      screen.getByTestId("incident-row-binance-hot-wallet-2026-10-30")
+      screen.getByTestId("incident-row-zachxbt-eu-cex-theft-2026-11-01")
     );
     // DigPanelShell listens on window keydown
     fireEvent.keyDown(window, { key: "Escape" });
