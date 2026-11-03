@@ -10,8 +10,10 @@ import { useCallback, useEffect, useState } from "react";
 import type { ThemeConfig } from "@/components/terminal/types";
 import { BTN_TOUCH, btnClass } from "@/components/terminal/ui/buttonClasses";
 import {
+  NEWS_READER_CATEGORIES,
+  categoryOf,
   fetchNewsHeadlines,
-  type NewsItem
+  type NewsReaderCategoryFilter
 } from "@/components/terminal/news";
 import {
   getNewsArticle,
@@ -20,21 +22,7 @@ import {
   upsertNewsArticles,
   type StoredNewsArticle
 } from "../news/store";
-
-function toStored(items: NewsItem[]): Omit<
-  StoredNewsArticle,
-  "searchText" | "ingestedAt"
->[] {
-  return items.map((it) => ({
-    id: it.id,
-    title: it.title,
-    summary: it.title,
-    body: it.title,
-    sourceName: it.sourceId,
-    url: it.url,
-    publishedAt: it.publishedAt || Date.now()
-  }));
-}
+import { toStoredArticles } from "../news/ingest";
 
 function formatTime(ts: number): string {
   try {
@@ -51,6 +39,8 @@ function formatTime(ts: number): string {
 
 export default function NewsScreen({ theme }: { theme: ThemeConfig }) {
   const [query, setQuery] = useState("");
+  const [category, setCategory] =
+    useState<NewsReaderCategoryFilter>("All");
   const [articles, setArticles] = useState<StoredNewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -75,7 +65,7 @@ export default function NewsScreen({ theme }: { theme: ThemeConfig }) {
         const fetched = await fetchNewsHeadlines();
         if (cancelled) return;
         if (fetched.items?.length) {
-          await upsertNewsArticles(toStored(fetched.items));
+          await upsertNewsArticles(toStoredArticles(fetched.items));
           await refreshLocal();
         }
         setError(null);
@@ -109,7 +99,11 @@ export default function NewsScreen({ theme }: { theme: ThemeConfig }) {
     };
   }, [selectedId]);
 
-  const results = searchNewsArticles(articles, query);
+  const searched = searchNewsArticles(articles, query);
+  const results =
+    category === "All"
+      ? searched
+      : searched.filter((a) => categoryOf(a.title) === category);
   const searching = query.trim().length > 0;
 
   if (detail) {
@@ -147,6 +141,47 @@ export default function NewsScreen({ theme }: { theme: ThemeConfig }) {
   return (
     <section data-testid="v2-news" className={`flex flex-col gap-3 p-4 ${theme.text}`}>
       <h1 className={`text-lg font-bold ${theme.primary}`}>News</h1>
+      {/*
+        Category chips — horizontal scroll on ~390 so DeFi+ stay reachable
+        (PR-A / Frank regression lock; mirrors V1 NewsReader taxonomy).
+      */}
+      <div
+        role="tablist"
+        aria-label="News categories"
+        data-testid="v2-news-category-tabs"
+        className="flex items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:thin]"
+      >
+        {NEWS_READER_CATEGORIES.map((pill) => {
+          const active = category === pill;
+          return (
+            <button
+              key={pill}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              data-testid={`v2-news-cat-${pill.toLowerCase()}`}
+              onClick={() => setCategory(pill)}
+              className={`shrink-0 min-h-[44px] px-3 text-[10px] uppercase tracking-widest whitespace-nowrap border ${theme.rounded} ${BTN_TOUCH} ${
+                active
+                  ? "font-bold border-transparent"
+                  : `${theme.border} ${theme.muted} bg-transparent`
+              }`}
+              style={
+                active
+                  ? { background: theme.phosphor, color: "#000" }
+                  : undefined
+              }
+            >
+              {pill}
+            </button>
+          );
+        })}
+        <span
+          aria-hidden
+          className="shrink-0 w-3 h-11"
+          data-testid="v2-news-cat-scroll-pad"
+        />
+      </div>
       <label className="flex flex-col gap-1">
         <span className={`text-[10px] uppercase tracking-widest ${theme.muted}`}>
           Search local archive
