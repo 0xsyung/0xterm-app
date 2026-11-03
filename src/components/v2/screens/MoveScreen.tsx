@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { getAddress, isAddress } from "viem";
 import { useAccount } from "wagmi";
 import type { ThemeConfig } from "@/components/terminal/types";
@@ -46,16 +46,14 @@ export default function MoveScreen({
 
   const action: V2MoveAction | null = moveAction;
 
-  const feeEstimate = useMemo(() => {
-    if (!amount || Number(amount) <= 0) return null;
-    return "~$1.20 network fee";
-  }, [amount]);
-
-  const quote = useMemo(() => {
-    if (!amount || Number(amount) <= 0) return null;
-    const n = Number(amount) * 0.997;
-    return n.toFixed(6);
-  }, [amount]);
+  const amountReady = !!amount && Number(amount) > 0;
+  /** Live fee/quote not wired yet — never invent a dollar figure. */
+  const feeEstimateLabel = amountReady
+    ? "Fee estimate unavailable until quote is wired"
+    : null;
+  const quoteLabel = amountReady
+    ? "Quote unavailable until swap routing is wired"
+    : null;
 
   if (!isConnected) {
     return (
@@ -233,14 +231,14 @@ export default function MoveScreen({
           />
         </label>
       )}
-      {feeEstimate && (
+      {feeEstimateLabel && (
         <p className={`text-[11px] ${theme.muted}`} data-testid="v2-move-fee">
-          Fee estimate: {feeEstimate}
+          {feeEstimateLabel}
         </p>
       )}
-      {action === "swap" && quote && (
+      {action === "swap" && quoteLabel && (
         <p className={`text-[11px] ${theme.muted}`} data-testid="v2-move-quote">
-          Quote ≈ {quote} {tokenOut}
+          {quoteLabel}
         </p>
       )}
 
@@ -273,14 +271,17 @@ export default function MoveScreen({
           )}
           {action === "swap" && (
             <>
-              <div className="text-sm">Min out ≈ {quote || "—"} {tokenOut}</div>
+              <div className="text-sm">
+                Min out: unavailable until swap routing is wired ({tokenOut})
+              </div>
               <div className={`text-[11px] ${theme.muted}`}>
-                Fee {feeEstimate || "—"} · Slippage {slippage}%
+                {feeEstimateLabel || "Fee estimate unavailable"} · Slippage{" "}
+                {slippage}%
               </div>
             </>
           )}
-          {action === "send" && feeEstimate && (
-            <div className={`text-[11px] ${theme.muted}`}>Fee {feeEstimate}</div>
+          {action === "send" && feeEstimateLabel && (
+            <div className={`text-[11px] ${theme.muted}`}>{feeEstimateLabel}</div>
           )}
           <button
             type="button"

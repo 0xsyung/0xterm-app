@@ -61,7 +61,7 @@ export default function V2Header({
       className={`shrink-0 z-30 flex flex-col gap-2 px-[calc(0.75rem_+_env(safe-area-inset-left))] pr-[calc(0.75rem_+_env(safe-area-inset-right))] pt-[calc(0.5rem_+_env(safe-area-inset-top))] pb-2 ${theme.primary}`}
       style={{ borderBottom: `2px solid ${theme.phosphor}` }}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
         <div
           className="flex items-center gap-2 shrink-0"
           data-testid="v2-brand"
@@ -74,13 +74,17 @@ export default function V2Header({
             className="w-7 h-7 shrink-0"
             draggable={false}
           />
-          <span className={`font-bold text-[11px] tracking-widest hidden sm:inline ${theme.primary}`}>
+          <span
+            className={`font-bold text-[11px] tracking-widest hidden sm:inline ${theme.primary}`}
+          >
             0xTERM
           </span>
         </div>
-        <span className={`tabular-nums text-[10px] ${theme.muted}`}>{clock}</span>
+        <span className={`tabular-nums text-[10px] shrink-0 ${theme.muted}`}>
+          {clock}
+        </span>
         <div
-          className="flex items-center gap-2 ml-auto shrink-0"
+          className="flex items-center gap-1.5 ml-auto shrink-0 min-w-0"
           data-testid="v2-wallet-cluster"
         >
           <button
@@ -92,7 +96,7 @@ export default function V2Header({
               theme,
               variant: settingsOpen ? "primary" : "secondary",
               size: "md",
-              className: "uppercase tracking-widest"
+              className: "uppercase tracking-widest px-3"
             })}
             style={
               settingsOpen
@@ -104,7 +108,7 @@ export default function V2Header({
           </button>
           <span
             data-testid="v2-network-chip"
-            className={`inline-flex items-center h-9 min-h-[44px] px-3 text-[10px] uppercase tracking-widest border ${theme.border} ${theme.muted} ${theme.rounded}`}
+            className={`inline-flex items-center h-9 min-h-[44px] px-2.5 text-[10px] uppercase tracking-widest border ${theme.border} ${theme.muted} ${theme.rounded}`}
           >
             {netLabel}
           </span>
@@ -117,7 +121,7 @@ export default function V2Header({
               theme,
               variant: "secondary",
               size: "md",
-              className: `font-mono tabular-nums ${theme.primary}`
+              className: `font-mono tabular-nums px-3 ${theme.primary}`
             })}
           >
             {connected ? truncateAddress(walletAddress!) : "Connect"}
@@ -125,11 +129,16 @@ export default function V2Header({
         </div>
       </div>
 
+      {/*
+        Mobile-first (#295 I): wrap + horizontal scroll so every primary label
+        (incl. Reports) stays fully readable/reachable at ~390px. shrink-0 keeps
+        chip borders intact; end spacer lets the last chip scroll fully into view.
+      */}
       <nav
         role="tablist"
         aria-label="Primary"
         data-testid="v2-nav-strip"
-        className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex flex-wrap items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:thin]"
       >
         {V2_PRIMARY_NAV.map((id) => {
           const active = !settingsOpen && nav === id;
@@ -141,7 +150,7 @@ export default function V2Header({
               aria-selected={active}
               data-testid={`v2-nav-${id}`}
               onClick={() => onNavChange(id)}
-              className={`btn-base btn-hug btn-md relative inline-flex items-center justify-center shrink-0 min-h-[44px] h-11 px-4 cursor-pointer ${BTN_TOUCH} text-[10px] uppercase tracking-widest ${theme.rounded} ${
+              className={`btn-base btn-hug btn-md relative inline-flex items-center justify-center shrink-0 min-h-[44px] h-11 px-3 sm:px-4 cursor-pointer ${BTN_TOUCH} text-[10px] uppercase tracking-widest whitespace-nowrap ${theme.rounded} ${
                 active
                   ? "btn-primary border border-transparent font-bold"
                   : `btn-secondary border ${theme.border} ${theme.muted} bg-transparent`
@@ -156,6 +165,12 @@ export default function V2Header({
             </button>
           );
         })}
+        {/* Scroll end pad — last chip (Reports) can fully enter the viewport. */}
+        <span
+          aria-hidden
+          className="hidden max-md:block shrink-0 w-3 h-11"
+          data-testid="v2-nav-scroll-pad"
+        />
       </nav>
     </header>
   );
