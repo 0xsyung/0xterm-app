@@ -22,6 +22,26 @@ import { namehash, parseAbi, type Address, type Chain } from 'viem'
 import type { DexProtocol, ThemeConfig, ThemeMode, VaultEntry } from './types'
 
 export const THEMES: Record<ThemeMode, ThemeConfig> = {
+  // V2 day-one sole theme (#295) — professional finance chrome
+  finance: {
+    name: 'Finance',
+    bg: 'bg-[#0b0d10]',
+    cardBg: 'bg-[#12151a]/95',
+    text: 'text-[#d7dde5]',
+    primary: 'text-[#6ee7b7]',
+    border: 'border-white/10',
+    glow: 'shadow-[0_0_0_1px_rgba(110,231,183,0.12)]',
+    font: 'font-plex tracking-tight',
+    rounded: 'rounded-md',
+    promptSymbol: '›',
+    hasScanlines: false,
+    hasGrid: true,
+    warn: 'text-[#f0a060] border-[#f0a060]/50 bg-[#f0a060]/10',
+    muted: 'text-white/40',
+    phosphor: '#6ee7b7',
+    scanlineAlpha: '0',
+    gridColor: '#1f2933'
+  },
   matrix: {
     name: 'Matrix',
     bg: 'bg-black',
@@ -217,6 +237,7 @@ export const THEMES: Record<ThemeMode, ThemeConfig> = {
 }
 
 export const THEME_ORDER: ThemeMode[] = [
+  'finance',
   'matrix',
   'amber',
   'ibm3270',
@@ -230,6 +251,8 @@ export const THEME_ORDER: ThemeMode[] = [
 ]
 
 export const THEME_ALIASES: Record<string, ThemeMode> = {
+  fin: 'finance',
+  pro: 'finance',
   mac: 'macintosh',
   vantablack: 'void',
   whatsapp: 'matrix',
@@ -294,7 +317,7 @@ export function chainFullName(chain: { id: number; name: string }): string {
 }
 
 export function resolveThemeKey(raw?: string | null): ThemeMode {
-  if (!raw) return 'matrix'
+  if (!raw) return 'finance'
   if (Object.prototype.hasOwnProperty.call(THEMES, raw)) return raw as ThemeMode
   if (Object.prototype.hasOwnProperty.call(THEME_ALIASES, raw)) {
     return THEME_ALIASES[raw]
@@ -306,7 +329,7 @@ export function resolveThemeKey(raw?: string | null): ThemeMode {
     (k) => k.toLowerCase() === lower
   )
   if (aliasKey) return THEME_ALIASES[aliasKey]
-  return 'matrix'
+  return 'finance'
 }
 
 export function isKnownThemeInput(raw: string): boolean {

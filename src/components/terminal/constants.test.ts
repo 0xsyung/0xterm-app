@@ -45,12 +45,12 @@ describe("resolveThemeKey", () => {
     expect(resolveThemeKey(alias)).toBe(expected);
   });
 
-  it("maps unknown input to matrix", () => {
-    expect(resolveThemeKey("nonsense-theme")).toBe("matrix");
+  it("maps unknown input to finance", () => {
+    expect(resolveThemeKey("nonsense-theme")).toBe("finance");
   });
 
-  it.each([[null], [undefined], [""]])("maps %s to matrix", (raw) => {
-    expect(resolveThemeKey(raw as string | null)).toBe("matrix");
+  it.each([[null], [undefined], [""]])("maps %s to finance", (raw) => {
+    expect(resolveThemeKey(raw as string | null)).toBe("finance");
   });
 
   it("resolves case-insensitive aliases", () => {
@@ -74,8 +74,8 @@ describe("isKnownThemeInput", () => {
 });
 
 describe("THEME_ORDER", () => {
-  it("has 10 themes matching the THEMES map keys", () => {
-    expect(THEME_ORDER).toHaveLength(10);
+  it("has 11 themes matching the THEMES map keys", () => {
+    expect(THEME_ORDER).toHaveLength(11);
     expect(THEME_ORDER.every((k) => k in THEMES)).toBe(true);
     expect(Object.keys(THEMES).sort()).toEqual([...THEME_ORDER].sort());
   });
@@ -295,5 +295,28 @@ describe("PRO_PASS_CONTRACT Soft ACK #139", () => {
     expect(proPassAbi.some((e) => "name" in e && e.name === "purchase")).toBe(
       true
     );
+  });
+});
+
+
+describe("finance theme (#295 V2)", () => {
+  it("is first in THEME_ORDER and resolves by key + aliases", () => {
+    expect(THEME_ORDER[0]).toBe("finance");
+    expect(resolveThemeKey("finance")).toBe("finance");
+    expect(resolveThemeKey("FINANCE")).toBe("finance");
+    expect(resolveThemeKey("fin")).toBe("finance");
+    expect(resolveThemeKey("pro")).toBe("finance");
+  });
+
+  it("matches Design finance tokens", () => {
+    const t = THEMES.finance;
+    expect(t.name).toBe("Finance");
+    expect(t.bg).toContain("#0b0d10");
+    expect(t.phosphor).toBe("#6ee7b7");
+    expect(t.hasScanlines).toBe(false);
+    expect(t.hasGrid).toBe(true);
+    expect(t.gridColor).toBe("#1f2933");
+    expect(t.rounded).toBe("rounded-md");
+    expect(t.font).toContain("tracking-tight");
   });
 });
