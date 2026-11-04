@@ -6,11 +6,16 @@ html {
 
 html,
 body {
+  /* #314 — paint Finance bg + dvh so iOS keyboard resize never flashes white */
   height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
   width: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: #0b0d10;
+  color: #d7dde5;
 }
 
 .term-glow {

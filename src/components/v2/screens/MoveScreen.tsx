@@ -98,11 +98,11 @@ export default function MoveScreen({
   }
 
   const chainSelect = (
-    <label className="flex flex-col gap-1 text-[11px]">
-      <span className={theme.muted}>Chain</span>
+    <label className="flex flex-col gap-1">
+      <span className={`text-[11px] ${theme.muted}`}>Chain</span>
       <select
         data-testid="v2-move-chain"
-        className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+        className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
         value={chainId}
         onChange={(e) => {
           const id = Number(e.target.value);
@@ -173,42 +173,42 @@ export default function MoveScreen({
         {action}
       </h2>
       {chainSelect}
-      <label className="flex flex-col gap-1 text-[11px]">
-        <span className={theme.muted}>Asset</span>
+      <label className="flex flex-col gap-1">
+        <span className={`text-[11px] ${theme.muted}`}>Asset</span>
         <input
           data-testid="v2-move-asset"
-          className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+          className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
           value={asset}
           onChange={(e) => setAsset(e.target.value)}
         />
       </label>
       {action === "swap" && (
-        <label className="flex flex-col gap-1 text-[11px]">
-          <span className={theme.muted}>Token out</span>
+        <label className="flex flex-col gap-1">
+          <span className={`text-[11px] ${theme.muted}`}>Token out</span>
           <input
             data-testid="v2-move-token-out"
-            className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+            className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
             value={tokenOut}
             onChange={(e) => setTokenOut(e.target.value)}
           />
         </label>
       )}
-      <label className="flex flex-col gap-1 text-[11px]">
-        <span className={theme.muted}>Amount</span>
+      <label className="flex flex-col gap-1">
+        <span className={`text-[11px] ${theme.muted}`}>Amount</span>
         <input
           data-testid="v2-move-amount"
           inputMode="decimal"
-          className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+          className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
       </label>
       {action === "send" && (
-        <label className="flex flex-col gap-1 text-[11px]">
-          <span className={theme.muted}>Recipient</span>
+        <label className="flex flex-col gap-1">
+          <span className={`text-[11px] ${theme.muted}`}>Recipient</span>
           <input
             data-testid="v2-move-recipient"
-            className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+            className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
             placeholder="0x… or ENS"
@@ -221,11 +221,11 @@ export default function MoveScreen({
         </label>
       )}
       {action === "swap" && (
-        <label className="flex flex-col gap-1 text-[11px]">
-          <span className={theme.muted}>Slippage %</span>
+        <label className="flex flex-col gap-1">
+          <span className={`text-[11px] ${theme.muted}`}>Slippage %</span>
           <input
             data-testid="v2-move-slippage"
-            className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+            className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
             value={slippage}
             onChange={(e) => setSlippage(e.target.value)}
           />
