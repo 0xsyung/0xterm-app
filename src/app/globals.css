@@ -2,11 +2,13 @@
 
 html {
   font-size: 112.5%; /* Soft ACK #283 — ~18px root when browser 16px → 1.125 rem scale */
+  /* #317 — opaque Finance floor behind glass (absolute no-white fallback) */
+  background-color: #0b0d10;
 }
 
 html,
 body {
-  /* #314 — paint Finance bg + dvh so iOS keyboard resize never flashes white */
+  /* #314/#316 — dvh + overflow so iOS keyboard resize never flashes white */
   height: 100%;
   min-height: 100%;
   min-height: 100dvh;
@@ -14,8 +16,26 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #0b0d10;
   color: #d7dde5;
+}
+
+body {
+  /* #317 — solid Finance fallback; glass when backdrop-filter supported */
+  background-color: #0b0d10;
+}
+
+/* #317 — Finance glass on keyboard-uncovered / bottom overflow band */
+.finance-keyboard-glass {
+  background-color: #0b0d10;
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body,
+  .finance-keyboard-glass {
+    background-color: rgba(11, 13, 16, 0.62);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+  }
 }
 
 .term-glow {

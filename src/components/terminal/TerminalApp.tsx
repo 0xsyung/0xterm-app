@@ -79,7 +79,7 @@ export default function TerminalApp() {
       <QueryClientProvider client={queryClient}>
         <main
           data-testid="v2-viewport-root"
-          className="w-full h-dvh min-h-0 overflow-hidden relative bg-[#0b0d10]"
+          className="w-full h-dvh min-h-0 overflow-hidden relative finance-keyboard-glass"
           style={vvHeight ? { height: vvHeight } : undefined}
         >
           {showSplash && (
