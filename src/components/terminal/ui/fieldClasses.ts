@@ -1,6 +1,7 @@
 /**
  * @file fieldClasses.ts
  * @description Shared V2 / terminal form field width tokens (#313)
+ * px caps (not rem) so html font-size 112.5% (#283) cannot inflate past Design 320/448.
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -12,11 +13,11 @@ export type FieldWidth = "default" | "address";
 /** Touch + chrome shared by selects / inputs. */
 export const FIELD_BASE = "min-h-[44px] px-3 text-base border";
 
-/** Default short fields — 20rem / 320px cap. */
-export const FIELD_WIDTH_DEFAULT = "w-full max-w-xs";
+/** Default short fields — Design 320px cap (px, not rem/max-w-xs). */
+export const FIELD_WIDTH_DEFAULT = "w-full max-w-[320px]";
 
-/** Long address / recipient / mono address — 28rem / 448px cap. */
-export const FIELD_WIDTH_ADDRESS = "w-full max-w-md";
+/** Long address / recipient / mono address — Design 448px cap (px, not rem/max-w-md). */
+export const FIELD_WIDTH_ADDRESS = "w-full max-w-[448px]";
 
 export const FIELD_WIDTH: Record<FieldWidth, string> = {
   default: FIELD_WIDTH_DEFAULT,
@@ -25,7 +26,7 @@ export const FIELD_WIDTH: Record<FieldWidth, string> = {
 
 export type FieldClassOpts = {
   theme: ThemeConfig;
-  /** default = max-w-xs; address = max-w-md */
+  /** default = max-w-[320px]; address = max-w-[448px] */
   width?: FieldWidth;
   className?: string;
 };
@@ -49,6 +50,6 @@ export function fieldClass(opts: FieldClassOpts): string {
 /** Label stack width follows the field cap; start-aligned under the label. */
 export function fieldLabelClass(width: FieldWidth = "default"): string {
   return `flex flex-col gap-1 text-[11px] w-full ${
-    width === "address" ? "max-w-md" : "max-w-xs"
+    width === "address" ? "max-w-[448px]" : "max-w-[320px]"
   }`;
 }
