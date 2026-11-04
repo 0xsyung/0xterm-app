@@ -10,6 +10,10 @@ import { useCallback, useEffect, useState } from "react";
 import type { ThemeConfig } from "@/components/terminal/types";
 import { BTN_TOUCH, btnClass } from "@/components/terminal/ui/buttonClasses";
 import {
+  fieldClass,
+  fieldLabelClass
+} from "@/components/terminal/ui/fieldClasses";
+import {
   NEWS_READER_CATEGORIES,
   categoryOf,
   fetchNewsHeadlines,
@@ -182,13 +186,13 @@ export default function NewsScreen({ theme }: { theme: ThemeConfig }) {
           data-testid="v2-news-cat-scroll-pad"
         />
       </div>
-      <label className="flex flex-col gap-1">
-        <span className={`text-[10px] uppercase tracking-widest ${theme.muted}`}>
+      <label className={`${fieldLabelClass()} text-[10px]`}>
+        <span className={`uppercase tracking-widest ${theme.muted}`}>
           Search local archive
         </span>
         <input
           data-testid="v2-news-search"
-          className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+          className={fieldClass({ theme })}
           placeholder="Search titles, sources…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

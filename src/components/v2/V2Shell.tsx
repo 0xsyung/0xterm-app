@@ -21,7 +21,7 @@ import PnlScreen, {
 import MoveScreen from "./screens/MoveScreen";
 import NewsScreen from "./screens/NewsScreen";
 import ReportsScreen from "./screens/ReportsScreen";
-import { isV2Mainnet, v2ChainShortName } from "./networks";
+import { isV2Mainnet } from "./networks";
 import {
   STALE_SESSION_BANNER,
   shouldClearStaleSession
@@ -29,13 +29,10 @@ import {
 
 function V2ShellInner() {
   const theme = getV2Theme();
-  const { nav, setNav, lastChainId, setLastChainId } = useV2();
+  const { nav, setNav, setLastChainId } = useV2();
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { open, close } = useAppKit();
-
-  const activeChainId =
-    chainId && isV2Mainnet(chainId) ? chainId : lastChainId;
 
   useEffect(() => {
     if (chainId && isV2Mainnet(chainId)) setLastChainId(chainId);
@@ -97,7 +94,6 @@ function V2ShellInner() {
         theme={theme}
         nav={nav}
         onNavChange={setNav}
-        activeChainId={activeChainId}
         walletAddress={address ?? null}
         isWalletConnected={!!isConnected}
         onWalletOpen={onWalletOpen}
@@ -153,10 +149,6 @@ function V2ShellInner() {
           <ReportsScreen theme={theme} />
         )}
       </main>
-      {/* Prefetch short name helper usage for tree-shake safety in tests */}
-      <span className="sr-only" aria-hidden>
-        {activeChainId != null ? v2ChainShortName(activeChainId) : ""}
-      </span>
     </div>
   );
 }
