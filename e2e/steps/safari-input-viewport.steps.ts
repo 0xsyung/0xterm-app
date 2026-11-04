@@ -9,9 +9,12 @@ Then(
       const body = getComputedStyle(document.body).backgroundColor;
       return { html, body };
     });
-    // rgb(11, 13, 16) === #0b0d10
+    // html stays opaque rgb(11, 13, 16) === #0b0d10 (no-white floor)
     expect(colors.html).toMatch(/rgb\(\s*11,\s*13,\s*16\s*\)/);
-    expect(colors.body).toMatch(/rgb\(\s*11,\s*13,\s*16\s*\)/);
+    // body is Finance glass when backdrop-filter is supported
+    expect(colors.body).toMatch(
+      /rgba\(\s*11,\s*13,\s*16,\s*0\.6[0-9]+\s*\)/
+    );
   }
 );
 
@@ -21,7 +24,8 @@ Then("the viewport root paints Finance background", async ({ page }) => {
   const bg = await root.evaluate(
     (el: HTMLElement) => getComputedStyle(el).backgroundColor
   );
-  expect(bg).toMatch(/rgb\(\s*11,\s*13,\s*16\s*\)/);
+  // glass rgba(11, 13, 16, ~0.62) on v2-viewport-root (#317)
+  expect(bg).toMatch(/rgba\(\s*11,\s*13,\s*16,\s*0\.6[0-9]+\s*\)/);
 });
 
 
