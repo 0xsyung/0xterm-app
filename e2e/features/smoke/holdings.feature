@@ -7,3 +7,4 @@ Feature: V2 Holdings disconnected
     When the shell finishes initializing
     Then the Holdings screen shows disconnected empty state
     And the Connect control is visible
+    And the header has no network chip

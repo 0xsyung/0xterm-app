@@ -1,6 +1,6 @@
 /**
  * @file V2Header.tsx
- * @description V2 mobile-first header — primary nav + network + Connect (#295 I/M)
+ * @description V2 mobile-first header — primary nav + Connect / account (#312 drops network chip)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -15,7 +15,6 @@ import {
   V2_PRIMARY_NAV,
   type V2PrimaryNav
 } from "./nav";
-import { v2ChainShortName } from "./networks";
 
 const FILL_FG = "#000000";
 
@@ -28,7 +27,6 @@ export default function V2Header({
   theme,
   nav,
   onNavChange,
-  activeChainId,
   walletAddress,
   isWalletConnected,
   onWalletOpen,
@@ -37,7 +35,6 @@ export default function V2Header({
   theme: ThemeConfig;
   nav: V2PrimaryNav;
   onNavChange: (n: V2PrimaryNav) => void;
-  activeChainId: number | null;
   walletAddress: string | null;
   isWalletConnected: boolean;
   onWalletOpen: () => void;
@@ -50,8 +47,6 @@ export default function V2Header({
   }, []);
 
   const connected = !!(isWalletConnected && walletAddress);
-  const netLabel =
-    activeChainId != null ? v2ChainShortName(activeChainId) : "NETWORK";
 
   return (
     <header
@@ -85,12 +80,6 @@ export default function V2Header({
           className="flex items-center gap-1.5 ml-auto shrink-0 min-w-0"
           data-testid="v2-wallet-cluster"
         >
-          <span
-            data-testid="v2-network-chip"
-            className={`inline-flex items-center h-9 min-h-[44px] px-2.5 text-[10px] uppercase tracking-widest border ${theme.border} ${theme.muted} ${theme.rounded}`}
-          >
-            {netLabel}
-          </span>
           {connected ? (
             <>
               <button

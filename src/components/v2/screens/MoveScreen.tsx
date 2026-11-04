@@ -11,6 +11,10 @@ import { getAddress, isAddress } from "viem";
 import { useAccount } from "wagmi";
 import type { ThemeConfig } from "@/components/terminal/types";
 import { BTN_TOUCH, btnClass } from "@/components/terminal/ui/buttonClasses";
+import {
+  fieldClass,
+  fieldLabelClass
+} from "@/components/terminal/ui/fieldClasses";
 import { V2_MOVE_ACTIONS, type V2MoveAction } from "../nav";
 import { V2_MAINNET_CHAINS, v2ChainShortName } from "../networks";
 import { useV2 } from "../V2Context";
@@ -98,11 +102,11 @@ export default function MoveScreen({
   }
 
   const chainSelect = (
-    <label className="flex flex-col gap-1">
-      <span className={`text-[11px] ${theme.muted}`}>Chain</span>
+    <label className={fieldLabelClass()}>
+      <span className={theme.muted}>Chain</span>
       <select
         data-testid="v2-move-chain"
-        className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+        className={fieldClass({ theme })}
         value={chainId}
         onChange={(e) => {
           const id = Number(e.target.value);
@@ -121,7 +125,7 @@ export default function MoveScreen({
 
   if (action === "receive") {
     return (
-      <section data-testid="v2-move-receive" className={`flex flex-col gap-3 p-4 ${theme.text}`}>
+      <section data-testid="v2-move-receive" className={`flex flex-col items-start gap-3 p-4 ${theme.text}`}>
         <button
           type="button"
           className={btnClass({ theme, variant: "ghost", size: "md" })}
@@ -157,7 +161,7 @@ export default function MoveScreen({
   return (
     <section
       data-testid={`v2-move-${action}`}
-      className={`flex flex-col gap-3 p-4 ${theme.text}`}
+      className={`flex flex-col items-start gap-3 p-4 ${theme.text}`}
     >
       <button
         type="button"
@@ -173,42 +177,42 @@ export default function MoveScreen({
         {action}
       </h2>
       {chainSelect}
-      <label className="flex flex-col gap-1">
-        <span className={`text-[11px] ${theme.muted}`}>Asset</span>
+      <label className={fieldLabelClass()}>
+        <span className={theme.muted}>Asset</span>
         <input
           data-testid="v2-move-asset"
-          className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+          className={fieldClass({ theme })}
           value={asset}
           onChange={(e) => setAsset(e.target.value)}
         />
       </label>
       {action === "swap" && (
-        <label className="flex flex-col gap-1">
-          <span className={`text-[11px] ${theme.muted}`}>Token out</span>
+        <label className={fieldLabelClass()}>
+          <span className={theme.muted}>Token out</span>
           <input
             data-testid="v2-move-token-out"
-            className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+            className={fieldClass({ theme })}
             value={tokenOut}
             onChange={(e) => setTokenOut(e.target.value)}
           />
         </label>
       )}
-      <label className="flex flex-col gap-1">
-        <span className={`text-[11px] ${theme.muted}`}>Amount</span>
+      <label className={fieldLabelClass()}>
+        <span className={theme.muted}>Amount</span>
         <input
           data-testid="v2-move-amount"
           inputMode="decimal"
-          className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+          className={fieldClass({ theme })}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
       </label>
       {action === "send" && (
-        <label className="flex flex-col gap-1">
-          <span className={`text-[11px] ${theme.muted}`}>Recipient</span>
+        <label className={fieldLabelClass("address")}>
+          <span className={theme.muted}>Recipient</span>
           <input
             data-testid="v2-move-recipient"
-            className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+            className={fieldClass({ theme, width: "address" })}
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
             placeholder="0x… or ENS"
@@ -221,11 +225,11 @@ export default function MoveScreen({
         </label>
       )}
       {action === "swap" && (
-        <label className="flex flex-col gap-1">
-          <span className={`text-[11px] ${theme.muted}`}>Slippage %</span>
+        <label className={fieldLabelClass()}>
+          <span className={theme.muted}>Slippage %</span>
           <input
             data-testid="v2-move-slippage"
-            className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+            className={fieldClass({ theme })}
             value={slippage}
             onChange={(e) => setSlippage(e.target.value)}
           />
