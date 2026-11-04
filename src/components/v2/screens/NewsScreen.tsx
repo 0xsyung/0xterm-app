@@ -188,7 +188,7 @@ export default function NewsScreen({ theme }: { theme: ThemeConfig }) {
         </span>
         <input
           data-testid="v2-news-search"
-          className={`min-h-[44px] px-3 border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
+          className={`min-h-[44px] px-3 text-base border ${theme.border} ${theme.bg} ${theme.text} ${theme.rounded}`}
           placeholder="Search titles, sources…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

@@ -78,7 +78,8 @@ export default function TerminalApp() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <main
-          className="w-full h-dvh min-h-0 overflow-hidden relative"
+          data-testid="v2-viewport-root"
+          className="w-full h-dvh min-h-0 overflow-hidden relative bg-[#0b0d10]"
           style={vvHeight ? { height: vvHeight } : undefined}
         >
           {showSplash && (
