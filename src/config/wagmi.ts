@@ -1,6 +1,6 @@
 /**
  * @file wagmi.ts
- * @description Wagmi & AppKit — V2 mainnets + MetaMask / WalletConnect (#295)
+ * @description Wagmi & AppKit — V2 mainnets + MetaMask / WalletConnect (#295 #310)
  * @license Proprietary / All Rights Reserved
  * © 2026 0xTERM. All rights reserved. Unauthorized copying or distribution is strictly prohibited.
  */
@@ -15,6 +15,7 @@ import {
   hyperliquid
 } from '@reown/appkit/networks'
 import type { AppKitNetwork } from '@reown/appkit/networks'
+import { V2_ALLOW_UNSUPPORTED_CHAIN } from './wagmi.flags'
 
 const projectId = '5b2bbdbe0deaa155601b8aaa96f96aaf'
 
@@ -53,6 +54,9 @@ export const modal = createAppKit({
   featuredWalletIds: [METAMASK_ID],
   includeWalletIds: [METAMASK_ID],
   allWallets: 'HIDE',
+  // #310: stop UnsupportedChain modal trap on iOS Safari after failed WC switch.
+  // Stale sessions are cleared in V2Shell (disconnect + dismissible banner).
+  allowUnsupportedChain: V2_ALLOW_UNSUPPORTED_CHAIN,
   features: {
     analytics: false,
     email: false,
