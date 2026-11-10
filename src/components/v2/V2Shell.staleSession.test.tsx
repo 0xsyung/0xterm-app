@@ -21,9 +21,16 @@ let accountState: {
   chainId: undefined
 };
 
+const wagmiConfigStub = {};
+
 vi.mock("wagmi", () => ({
   useAccount: () => accountState,
-  useDisconnect: () => ({ disconnect: disconnectMock })
+  useDisconnect: () => ({ disconnect: disconnectMock }),
+  useConfig: () => wagmiConfigStub
+}));
+
+vi.mock("./holdingsGateway", () => ({
+  loadV2Holdings: vi.fn(async () => [])
 }));
 
 vi.mock("@reown/appkit/react", () => ({

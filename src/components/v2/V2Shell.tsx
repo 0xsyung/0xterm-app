@@ -7,12 +7,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useConfig, useDisconnect } from "wagmi";
 import { useAppKit } from "@reown/appkit/react";
 import { getV2Theme } from "./theme";
 import { V2Provider, useV2 } from "./V2Context";
 import V2Header from "./V2Header";
 import HoldingsScreen, { type V2HoldingRow } from "./screens/HoldingsScreen";
+import { loadV2Holdings } from "./holdingsGateway";
 import PnlScreen, {
   type V2CostBasisRow,
   type V2PnlHistoryRow,
@@ -33,6 +34,7 @@ function V2ShellInner() {
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { open, close } = useAppKit();
+  const wagmiConfig = useConfig();
 
   useEffect(() => {
     if (chainId && isV2Mainnet(chainId)) setLastChainId(chainId);
@@ -67,9 +69,28 @@ function V2ShellInner() {
     setStaleBanner(STALE_SESSION_BANNER);
   }, [isConnected, chainId, disconnect, close]);
 
-  // Day-one: no invented balances when disconnected; connected starts empty
-  // until live portfolio wiring fills rows (honest empty > fake data).
-  const [holdings] = useState<V2HoldingRow[]>([]);
+  // Live portfolio: empty when disconnected or while a fetch is in flight.
+  // Never invent balances — rows come from fetchPortfolioHoldings only.
+  const [holdings, setHoldings] = useState<V2HoldingRow[]>([]);
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setHoldings((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+    let cancelled = false;
+    setHoldings((prev) => (prev.length === 0 ? prev : []));
+    void loadV2Holdings(address, wagmiConfig).then(
+      (rows) => {
+        if (!cancelled) setHoldings(rows);
+      },
+      () => {
+        if (!cancelled) setHoldings([]);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [isConnected, address, chainId, wagmiConfig]);
   const summary: V2PnlSummary = useMemo(
     () => ({ unrealizedUsd: null, realizedUsd: null, totalUsd: null }),
     []

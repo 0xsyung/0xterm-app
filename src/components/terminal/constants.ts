@@ -369,7 +369,9 @@ export const WRAPPED_NATIVE: Record<number, Address> = {
   // DEX_REGISTRY[80002] after the fork is broadcast.
   // 80002: '<WETH9 from fork deploy>',
   10: '0x4200000000000000000000000000000000000006',
-  11155420: '0x4200000000000000000000000000000000000006'
+  11155420: '0x4200000000000000000000000000000000000006',
+  // Canonical WHYPE system contract (Hyperliquid docs: 0x555...5).
+  999: '0x5555555555555555555555555555555555555555'
 }
 
 // DexScreener `pairs[].chainId` values keyed by 0xterm chain id. viem's
@@ -549,6 +551,9 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
     ETH: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'ETH', name: 'Base Ether' },
     WETH: { address: '0x4200000000000000000000000000000000000006', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6, symbol: 'USDC', name: 'USD Coin' },
+    USDT: { address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals: 6, symbol: 'USDT', name: 'Tether USD' },
+    DAI: { address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', decimals: 18, symbol: 'DAI', name: 'Dai Stablecoin' },
+    WBTC: { address: '0x1ceA84203673764244E05693e42E6Ace62bE9BA5', decimals: 8, symbol: 'WBTC', name: 'Wrapped BTC' },
     cbBTC: { address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', decimals: 8, symbol: 'cbBTC', name: 'Coinbase Wrapped BTC' },
     cbETH: { address: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22', decimals: 18, symbol: 'cbETH', name: 'Coinbase Wrapped Staked ETH' },
     cbDOGE: { address: '0xcbD06E5A2B0C65597161de254AA074E489dEb510', decimals: 8, symbol: 'cbDOGE', name: 'Coinbase Wrapped DOGE' },
@@ -564,6 +569,9 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
     WETH: { address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', decimals: 6, symbol: 'USDC', name: 'USD Coin' },
     'USDC.E': { address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', decimals: 6, symbol: 'USDC.E', name: 'Bridged USDC' },
+    USDT: { address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', decimals: 6, symbol: 'USDT', name: 'Tether USD' },
+    DAI: { address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', decimals: 18, symbol: 'DAI', name: 'Dai Stablecoin' },
+    WBTC: { address: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f', decimals: 8, symbol: 'WBTC', name: 'Wrapped BTC' },
     cbBTC: { address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', decimals: 8, symbol: 'cbBTC', name: 'Coinbase Wrapped BTC' },
     cbETH: { address: '0x1DEBd73E752bEaf79865fd6446b0c970eAe7732f', decimals: 18, symbol: 'cbETH', name: 'Coinbase Wrapped Staked ETH' }
   },
@@ -571,9 +579,13 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
   // Polygon PoS
   137: {
     POL: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'POL', name: 'Polygon POL' },
+    WPOL: { address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', decimals: 18, symbol: 'WPOL', name: 'Wrapped POL' },
     WETH: { address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals: 6, symbol: 'USDC', name: 'USD Coin' },
     'USDC.E': { address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', decimals: 6, symbol: 'USDC.E', name: 'Bridged USDC' },
+    USDT: { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6, symbol: 'USDT', name: 'Tether USD' },
+    DAI: { address: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063', decimals: 18, symbol: 'DAI', name: 'Dai Stablecoin' },
+    WBTC: { address: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', decimals: 8, symbol: 'WBTC', name: 'Wrapped BTC' },
     cbETH: { address: '0x4b4327db1600B8b1440163f667e199ceF35385F5', decimals: 18, symbol: 'fxcbETH', name: 'Coinbase Wrapped Staked ETH (FXERC20)' },
     pUSD: { address: '0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB', decimals: 6, symbol: 'pUSD', name: 'Polymarket USD' }
   },
@@ -583,6 +595,9 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
     ETH: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'ETH', name: 'Optimism Ether' },
     WETH: { address: '0x4200000000000000000000000000000000000006', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', decimals: 6, symbol: 'USDC', name: 'USD Coin' },
+    USDT: { address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', decimals: 6, symbol: 'USDT', name: 'Tether USD' },
+    DAI: { address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', decimals: 18, symbol: 'DAI', name: 'Dai Stablecoin' },
+    WBTC: { address: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', decimals: 8, symbol: 'WBTC', name: 'Wrapped BTC' },
     cbETH: { address: '0xaddb6a0412de1ba0f936dcaeb8aaa24578dcf3b2', decimals: 18, symbol: 'cbETH', name: 'Coinbase Wrapped Staked ETH' }
   },
 
@@ -599,6 +614,7 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
   // Arbitrum Sepolia
   421614: {
     ETH: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'ETH', name: 'Arbitrum Sepolia Ether' },
+    WETH: { address: '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', decimals: 6, symbol: 'USDC', name: 'USD Coin' }
   },
 
@@ -611,12 +627,30 @@ export const COMMON_TOKENS: Record<number, Record<string, { address: Address; de
   },
 
   // Polygon Amoy
-  80002: { POL: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'POL', name: 'Polygon Amoy POL' } },
+  80002: {
+    POL: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'POL', name: 'Polygon Amoy POL' },
+    USDC: { address: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582', decimals: 6, symbol: 'USDC', name: 'USD Coin' }
+  },
 
   // Optimism Sepolia
   11155420: {
     ETH: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'ETH', name: 'Optimism Sepolia Ether' },
+    WETH: { address: '0x4200000000000000000000000000000000000006', decimals: 18, symbol: 'WETH', name: 'Wrapped Ether' },
     USDC: { address: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', decimals: 6, symbol: 'USDC', name: 'USD Coin' }
+  },
+
+  // HyperEVM — only issuer-documented tokens (Circle USDC, USDT0, canonical WHYPE).
+  999: {
+    HYPE: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'HYPE', name: 'HYPE' },
+    WHYPE: { address: '0x5555555555555555555555555555555555555555', decimals: 18, symbol: 'WHYPE', name: 'Wrapped HYPE' },
+    USDC: { address: '0xb88339CB7199b77E23DB6E890353E22632Ba630f', decimals: 6, symbol: 'USDC', name: 'USD Coin' },
+    USDT0: { address: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb', decimals: 6, symbol: 'USDT0', name: 'USDT0' }
+  },
+
+  // Hyperliquid EVM Testnet — Circle official testnet USDC only.
+  998: {
+    HYPE: { address: NATIVE_TOKEN_ADDRESS, decimals: 18, symbol: 'HYPE', name: 'Hyperliquid Testnet HYPE' },
+    USDC: { address: '0x2B3370eE501B4a559b57D449569354196457D8Ab', decimals: 6, symbol: 'USDC', name: 'USD Coin' }
   }
 }
 

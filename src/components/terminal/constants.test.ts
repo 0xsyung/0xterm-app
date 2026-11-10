@@ -7,6 +7,8 @@
 import { describe, expect, it } from "vitest";
 import {
   COMMON_TOKENS,
+  WRAPPED_NATIVE,
+  SUPPORTED_CHAINS,
   DEX_REGISTRY,
   THEMES,
   THEME_ALIASES,
@@ -318,5 +320,94 @@ describe("finance theme (#295 V2)", () => {
     expect(t.gridColor).toBe("#1f2933");
     expect(t.rounded).toBe("rounded-md");
     expect(t.font).toContain("tracking-tight");
+  });
+});
+
+describe("COMMON_TOKENS curated allowlist (V2 Holdings live wire)", () => {
+  const wethChains = [1, 8453, 42161, 137, 10, 11155111, 421614, 84532, 11155420];
+
+  it("lists WETH on every ETH-native and Polygon mainnet/testnet with a known wrapper", () => {
+    for (const id of wethChains) {
+      expect(COMMON_TOKENS[id]?.WETH?.symbol).toBe("WETH");
+      expect(COMMON_TOKENS[id]?.WETH?.decimals).toBe(18);
+      expect(COMMON_TOKENS[id]?.WETH?.address).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    }
+    expect(COMMON_TOKENS[1]?.WETH?.address).toBe(WRAPPED_NATIVE[1]);
+    expect(COMMON_TOKENS[421614]?.WETH?.address).toBe(WRAPPED_NATIVE[421614]);
+    expect(COMMON_TOKENS[11155420]?.WETH?.address).toBe(WRAPPED_NATIVE[11155420]);
+  });
+
+  it("adds official native stables and BTC wrappers on L2 mainnets", () => {
+    expect(COMMON_TOKENS[8453]?.USDT?.address).toBe(
+      "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+    );
+    expect(COMMON_TOKENS[8453]?.DAI?.address).toBe(
+      "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
+    );
+    expect(COMMON_TOKENS[8453]?.WBTC?.address).toBe(
+      "0x1ceA84203673764244E05693e42E6Ace62bE9BA5"
+    );
+    expect(COMMON_TOKENS[42161]?.USDT?.address).toBe(
+      "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"
+    );
+    expect(COMMON_TOKENS[42161]?.DAI?.address).toBe(
+      "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
+    );
+    expect(COMMON_TOKENS[42161]?.WBTC?.address).toBe(
+      "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"
+    );
+    expect(COMMON_TOKENS[137]?.WPOL?.address).toBe(WRAPPED_NATIVE[137]);
+    expect(COMMON_TOKENS[137]?.USDT?.address).toBe(
+      "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+    );
+    expect(COMMON_TOKENS[137]?.DAI?.address).toBe(
+      "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
+    );
+    expect(COMMON_TOKENS[137]?.WBTC?.address).toBe(
+      "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6"
+    );
+    expect(COMMON_TOKENS[10]?.USDT?.address).toBe(
+      "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58"
+    );
+    expect(COMMON_TOKENS[10]?.DAI?.address).toBe(
+      "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1"
+    );
+    expect(COMMON_TOKENS[10]?.WBTC?.address).toBe(
+      "0x68f180fcCe6836688e9084f035309E29Bf0A2095"
+    );
+  });
+
+  it("fills HyperEVM with only issuer-documented tokens + canonical WHYPE", () => {
+    expect(COMMON_TOKENS[999]?.USDC?.address).toBe(
+      "0xb88339CB7199b77E23DB6E890353E22632Ba630f"
+    );
+    expect(COMMON_TOKENS[999]?.USDT0?.address).toBe(
+      "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb"
+    );
+    expect(COMMON_TOKENS[999]?.WHYPE?.address).toBe(
+      "0x5555555555555555555555555555555555555555"
+    );
+    expect(WRAPPED_NATIVE[999]).toBe(
+      "0x5555555555555555555555555555555555555555"
+    );
+    expect(COMMON_TOKENS[999]?.WETH).toBeUndefined();
+    expect(COMMON_TOKENS[998]?.USDC?.address).toBe(
+      "0x2B3370eE501B4a559b57D449569354196457D8Ab"
+    );
+    expect(COMMON_TOKENS[80002]?.USDC?.address).toBe(
+      "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582"
+    );
+  });
+
+  it("covers every SUPPORTED_CHAINS id with at least a native or documented token", () => {
+    for (const chain of SUPPORTED_CHAINS) {
+      expect(
+        COMMON_TOKENS[chain.id],
+        `missing COMMON_TOKENS entry for ${chain.name} (${chain.id})`
+      ).toBeDefined();
+      expect(Object.keys(COMMON_TOKENS[chain.id] || {}).length).toBeGreaterThan(
+        0
+      );
+    }
   });
 });
