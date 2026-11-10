@@ -179,7 +179,10 @@ export default function HoldingsScreen({
       data-testid="v2-holdings"
       className={`flex flex-col gap-3 p-4 min-h-0 ${theme.text}`}
     >
-      <div className="flex items-end justify-between gap-2">
+      <div
+        className="flex flex-col items-start gap-2"
+        data-testid="v2-holdings-header"
+      >
         <div>
           <div className={`text-[10px] uppercase tracking-widest ${theme.muted}`}>
             Portfolio
@@ -202,7 +205,12 @@ export default function HoldingsScreen({
         <button
           type="button"
           data-testid="v2-holdings-positions-link"
-          className={btnClass({ theme, variant: "secondary", size: "md" })}
+          className={btnClass({
+            theme,
+            variant: "secondary",
+            size: "md",
+            className: "self-start w-fit min-h-[44px]"
+          })}
           onClick={() => setShowPositions(true)}
         >
           Positions
