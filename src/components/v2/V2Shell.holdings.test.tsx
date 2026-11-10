@@ -8,11 +8,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { V2HoldingRow } from "./screens/HoldingsScreen";
+import type { V2HoldingsFetcher } from "./holdingsGateway";
 
 const openMock = vi.fn(async () => undefined);
 const closeMock = vi.fn(async () => undefined);
 const disconnectMock = vi.fn();
-const loadV2HoldingsMock = vi.fn(async (): Promise<V2HoldingRow[]> => []);
+const loadV2HoldingsMock = vi.fn<V2HoldingsFetcher>(async () => []);
 
 let accountState: {
   address: `0x${string}` | undefined;
@@ -37,7 +38,8 @@ vi.mock("@reown/appkit/react", () => ({
 }));
 
 vi.mock("./holdingsGateway", () => ({
-  loadV2Holdings: (...args: unknown[]) => loadV2HoldingsMock(...args)
+  loadV2Holdings: (...args: Parameters<V2HoldingsFetcher>) =>
+    loadV2HoldingsMock(...args)
 }));
 
 import V2Shell from "./V2Shell";
