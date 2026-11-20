@@ -71,3 +71,75 @@ Then(
     }
   }
 );
+
+Then(
+  "the News masthead is 0xTERM research not Bloomberg uppercase",
+  async ({ page }) => {
+    const masthead = page.getByTestId("v2-news-masthead");
+    await expect(masthead).toBeVisible();
+    const heading = masthead.locator("h1");
+    await expect(heading).toHaveText(/0xTERM research/);
+    const cls = (await heading.getAttribute("class")) || "";
+    expect(cls).not.toMatch(/uppercase/);
+    expect(cls).not.toMatch(/tracking-widest/);
+    expect(cls).toMatch(/font-plex|tracking-tight/);
+    await expect(page.getByTestId("v2-news-as-of")).toHaveText(/^as of /);
+  }
+);
+
+Then(
+  "the News editorial lead supporting and MORE layout is visible",
+  async ({ page }) => {
+    await expect(page.getByTestId("v2-news-lead")).toBeVisible();
+    await expect(page.getByTestId("v2-news-supporting")).toBeVisible();
+    await expect(page.getByTestId("v2-news-more")).toBeVisible();
+    await expect(page.getByTestId("v2-news-more")).toContainText("MORE");
+    const leadCard = page.getByTestId("v2-news-lead").getByTestId("v2-news-card");
+    await expect(leadCard).toBeVisible();
+    await expect(leadCard.getByTestId("v2-news-thumb")).toBeVisible();
+    await expect(leadCard.getByTestId("v2-news-card-tag")).toBeVisible();
+    await expect(leadCard.getByTestId("v2-news-card-meta")).toContainText(/min read/);
+  }
+);
+
+Then(
+  "News cards open the source in one click without a detail stub",
+  async ({ page }) => {
+    const card = page.getByTestId("v2-news-lead").getByTestId("v2-news-card");
+    await expect(card).toHaveAttribute("target", "_blank");
+    await expect(card).toHaveAttribute("rel", "noopener noreferrer");
+    const href = await card.getAttribute("href");
+    expect(href).toMatch(/^https:\/\//);
+    await expect(page.getByTestId("v2-news-detail")).toHaveCount(0);
+    await expect(page.getByText("Open source")).toHaveCount(0);
+  }
+);
+
+Then(
+  "the News search field is capped at 320px with an 11px label",
+  async ({ page }) => {
+    const label = page.getByTestId("v2-news-search-label");
+    await expect(label).toBeVisible();
+    const labelCls = (await label.getAttribute("class")) || "";
+    expect(labelCls).toMatch(/max-w-\[320px\]/);
+    expect(labelCls).toMatch(/text-\[11px\]/);
+    expect(labelCls).not.toMatch(/text-\[10px\]/);
+    expect(labelCls).not.toMatch(/max-w-\[448px\]/);
+    const labelPx = await label.evaluate((el: HTMLElement) =>
+      Number.parseFloat(getComputedStyle(el).fontSize)
+    );
+    expect(labelPx).toBeGreaterThanOrEqual(11);
+    expect(labelPx).toBeLessThan(13);
+
+    const input = page.getByTestId("v2-news-search");
+    const inputCls = (await input.getAttribute("class")) || "";
+    expect(inputCls).toMatch(/max-w-\[320px\]/);
+    expect(inputCls).toMatch(/text-base/);
+    expect(inputCls).toMatch(/min-h-\[44px\]/);
+    expect(inputCls).not.toMatch(/max-w-\[448px\]/);
+    const box = await input.boundingBox();
+    expect(box).toBeTruthy();
+    expect(box!.width).toBeLessThanOrEqual(320);
+  }
+);
+

@@ -6,7 +6,7 @@
  */
 
 export const NEWS_IDB_NAME = "0xterm-v2-news";
-export const NEWS_IDB_VERSION = 1;
+export const NEWS_IDB_VERSION = 2;
 export const NEWS_IDB_STORE = "articles";
 export const NEWS_IDB_META = "meta";
 
@@ -21,6 +21,8 @@ export type StoredNewsArticle = {
   url: string;
   publishedAt: number;
   ingestedAt: number;
+  /** Sanitized feed thumb; empty when missing (monogram fallback). */
+  imageUrl: string;
   /** Lowercased blob for local full-text search. */
   searchText: string;
 };
@@ -66,6 +68,7 @@ function openDb(idb: IdbFactory = indexedDB): Promise<IDBDatabase> {
     const req = idb.open(NEWS_IDB_NAME, NEWS_IDB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
+      // v2 adds imageUrl on article records via put(); no store rebuild.
       if (!db.objectStoreNames.contains(NEWS_IDB_STORE)) {
         const store = db.createObjectStore(NEWS_IDB_STORE, { keyPath: "id" });
         store.createIndex("publishedAt", "publishedAt", { unique: false });

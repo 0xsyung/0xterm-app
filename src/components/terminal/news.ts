@@ -37,6 +37,7 @@ export const NEWS_MEMORY_CAP = 100;
 export const NEWS_RATE_MS = 30_000;
 export const NEWS_REFRESH_SEC = 60;
 export const NEWS_TITLE_CAP = 180;
+export const NEWS_EXCERPT_CAP = 400;
 
 export type NewsItem = {
   id: string;
@@ -46,6 +47,8 @@ export type NewsItem = {
   publishedAt: number | null;
   /** Sanitized https thumb from feed; null/omitted → monogram (#126). */
   imageUrl?: string | null;
+  /** Capped plain-text description excerpt; empty if missing or a title echo. */
+  excerpt?: string;
 };
 
 export type NewsPrefs = {
@@ -125,6 +128,59 @@ export const sanitizeHeadline = (raw: string): string => {
   s = s.replace(/\s+/g, " ").trim();
   if (s.length > NEWS_TITLE_CAP) s = s.slice(0, NEWS_TITLE_CAP);
   return s;
+};
+
+const decodeNewsEntities = (raw: string): string => {
+  let s = String(raw ?? "");
+  s = s.replace(/&#(\d+);/g, (_, n) => {
+    const code = parseInt(n, 10);
+    return Number.isFinite(code) ? String.fromCodePoint(code) : "";
+  });
+  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_, h) => {
+    const code = parseInt(h, 16);
+    return Number.isFinite(code) ? String.fromCodePoint(code) : "";
+  });
+  s = s.replace(/&([a-zA-Z]+);/g, (m, name) => ENTITY_MAP[name.toLowerCase()] ?? m);
+  return s;
+};
+
+/**
+ * Plain-text excerpt from an RSS / rss2json description.
+ * Strips HTML, takes the first paragraph, caps at NEWS_EXCERPT_CAP.
+ * Empty or a title echo → "". Never uses content:encoded.
+ */
+export const extractNewsExcerpt = (
+  raw: string | null | undefined,
+  title = ""
+): string => {
+  let s = decodeNewsEntities(String(raw ?? ""));
+  if (!s.trim()) return "";
+  s = s.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+  s = s.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "");
+  s = s.replace(/<\s*br\s*\/?\s*>/gi, "\n");
+  s = s.replace(
+    /<\s*\/\s*(p|div|h[1-6]|li|blockquote|tr|section|article)\s*>/gi,
+    "\n\n"
+  );
+  s = s.replace(/<[^>]*>/g, "");
+  const para =
+    s
+      .split(/\n\s*\n/)
+      .map((p) => p.replace(/\s+/g, " ").trim())
+      .find(Boolean) ?? "";
+  if (!para) return "";
+  const titleNorm = decodeNewsEntities(String(title ?? ""))
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  const paraNorm = para.toLowerCase();
+  if (titleNorm && paraNorm === titleNorm) return "";
+  if (titleNorm && paraNorm.startsWith(titleNorm)) {
+    const rest = paraNorm.slice(titleNorm.length).trim();
+    if (!rest || /^[.:;,\-–—…]+$/.test(rest)) return "";
+  }
+  if (para.length > NEWS_EXCERPT_CAP) return para.slice(0, NEWS_EXCERPT_CAP).trimEnd();
+  return para;
 };
 
 export const isAllowedNewsUrl = (url: string): boolean => {
@@ -380,8 +436,17 @@ export const parseNewsDate = (raw: string | null | undefined): number | null => 
   return Number.isFinite(t) ? t : null;
 };
 
+const descriptionRawOf = (node: Element): string => {
+  const el = firstChild(node, "description") || firstChild(node, "summary");
+  if (!el) return "";
+  const html = "innerHTML" in el ? String((el as HTMLElement).innerHTML || "") : "";
+  return html || textContentOf(el);
+};
+
 /**
- * Parse RSS XML with DOMParser. Ignores description/content HTML.
+ * Parse RSS XML with DOMParser.
+ * Extracts a capped plain-text excerpt from description / atom summary.
+ * Leaves content:encoded out of the body / excerpt.
  * Returns items for a known allowlist source.
  */
 export const parseRss = (
@@ -426,6 +491,7 @@ export const parseRss = (
     }
 
     const imageUrl = extractRssImageUrl(node);
+    const excerpt = extractNewsExcerpt(descriptionRawOf(node), title);
 
     out.push({
       id: newsItemId(sourceId, link),
@@ -433,7 +499,8 @@ export const parseRss = (
       title,
       url: link,
       publishedAt,
-      imageUrl
+      imageUrl,
+      excerpt
     });
   }
   return out;
@@ -441,7 +508,7 @@ export const parseRss = (
 
 /**
  * Parse rss2json JSON. Take title/link/pubDate + sanitized thumbnail (#126).
- * Ignore description/content HTML.
+ * Excerpt comes from description only (capped plain text); content is left out.
  */
 export const parseRss2Json = (
   json: unknown,
@@ -460,6 +527,7 @@ export const parseRss2Json = (
       pubDate?: unknown;
       thumbnail?: unknown;
       enclosure?: unknown;
+      description?: unknown;
     };
     const title = sanitizeHeadline(String(it.title ?? ""));
     if (!title) continue;
@@ -470,13 +538,18 @@ export const parseRss2Json = (
       publishedAt = parseNewsDate(String(it.pubDate));
     }
     const imageUrl = extractRss2JsonImageUrl(it);
+    const excerpt = extractNewsExcerpt(
+      it.description == null ? "" : String(it.description),
+      title
+    );
     out.push({
       id: newsItemId(sourceId, link),
       sourceId,
       title,
       url: link,
       publishedAt,
-      imageUrl
+      imageUrl,
+      excerpt
     });
   }
   return out;
