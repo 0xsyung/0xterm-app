@@ -35,6 +35,7 @@ function article(
     sourceName: partial.sourceName || "wire",
     url: partial.url || `https://example.com/${partial.id}`,
     publishedAt: partial.publishedAt || Date.now(),
+    imageUrl: partial.imageUrl ?? "",
     ...partial
   };
 }
@@ -82,5 +83,24 @@ describe("news store", () => {
     const next = await setNewsRetention("90d");
     expect(next.retention).toBe("all");
     expect((await getNewsMeta()).retention).toBe("all");
+  });
+
+  it("persists imageUrl and lets search match an excerpt", async () => {
+    await upsertNewsArticles([
+      article({
+        id: "3",
+        title: "Solana throughput",
+        summary: "Validators report a jump in daily fees.",
+        body: "",
+        sourceName: "decrypt",
+        imageUrl: "https://cdn.decrypt.co/wp-content/uploads/eth.png"
+      })
+    ]);
+    const one = await getNewsArticle("3");
+    expect(one?.imageUrl).toBe(
+      "https://cdn.decrypt.co/wp-content/uploads/eth.png"
+    );
+    const all = await listNewsArticles();
+    expect(searchNewsArticles(all, "daily fees").map((h) => h.id)).toEqual(["3"]);
   });
 });

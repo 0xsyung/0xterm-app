@@ -5,20 +5,32 @@
     <item>
       <title>Bitcoin blockchain research high</title>
       <link>https://example.com/btc</link>
-      <pubDate>Mon, 03 Nov 2026 00:00:00 GMT</pubDate>
-      <description>Fixture headline for NEWS smoke.</description>
+      <pubDate>Mon, 03 Nov 2026 04:00:00 GMT</pubDate>
+      <description>Hash rate commentary for the NEWS editorial smoke.</description>
     </item>
     <item>
       <title>DeFi staking yields update</title>
       <link>https://example.com/defi</link>
-      <pubDate>Mon, 03 Nov 2026 01:00:00 GMT</pubDate>
-      <description>Fixture DeFi headline.</description>
+      <pubDate>Mon, 03 Nov 2026 03:00:00 GMT</pubDate>
+      <description>Fixture DeFi headline with a real excerpt.</description>
     </item>
     <item>
       <title>Market volatility watch</title>
       <link>https://example.com/mkt</link>
       <pubDate>Mon, 03 Nov 2026 02:00:00 GMT</pubDate>
-      <description>Fixture market headline.</description>
+      <description>Fixture market headline with a real excerpt.</description>
+    </item>
+    <item>
+      <title>AI models price crypto risk</title>
+      <link>https://example.com/ai</link>
+      <pubDate>Mon, 03 Nov 2026 01:00:00 GMT</pubDate>
+      <description>Fixture AI headline with a real excerpt.</description>
+    </item>
+    <item>
+      <title>Regulation hearing on ETFs</title>
+      <link>https://example.com/reg</link>
+      <pubDate>Mon, 03 Nov 2026 00:00:00 GMT</pubDate>
+      <description>Fixture regulation headline with a real excerpt.</description>
     </item>
   </channel>
 </rss>

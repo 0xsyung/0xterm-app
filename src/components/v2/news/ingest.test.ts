@@ -1,6 +1,6 @@
 /**
  * @file ingest.test.ts
- * @description News toStored mapping — honest title-only vs richer fields
+ * @description News toStored mapping — honest excerpts, imageUrl, no title echo
  */
 import { describe, expect, it } from "vitest";
 import { toStoredArticle, toStoredArticles } from "./ingest";
@@ -14,11 +14,12 @@ const base = {
 };
 
 describe("toStoredArticle", () => {
-  it("keeps summary/body empty when ingest is title-only (no title echo)", () => {
+  it("keeps summary/body/imageUrl empty when ingest is title-only (no title echo)", () => {
     const row = toStoredArticle(base);
     expect(row.title).toBe("Ethereum upgrade lands");
     expect(row.summary).toBe("");
     expect(row.body).toBe("");
+    expect(row.imageUrl).toBe("");
     expect(row.sourceName).toBe("coindesk");
   });
 
@@ -36,11 +37,31 @@ describe("toStoredArticle", () => {
     const row = toStoredArticle({
       ...base,
       summary: "Ethereum upgrade lands",
-      body: "Ethereum upgrade lands"
+      body: "Ethereum upgrade lands",
+      excerpt: "Ethereum upgrade lands"
     });
-    // Identical to title → store empty rather than redundant echo for search quality
     expect(row.summary).toBe("");
     expect(row.body).toBe("");
+  });
+
+  it("maps excerpt onto summary and persists a sanitized imageUrl", () => {
+    const row = toStoredArticle({
+      ...base,
+      excerpt: "Validators finalize the hard fork on mainnet.",
+      imageUrl: "https://www.coindesk.com/image.jpg"
+    });
+    expect(row.summary).toBe("Validators finalize the hard fork on mainnet.");
+    expect(row.imageUrl).toBe("https://www.coindesk.com/image.jpg");
+  });
+
+  it("drops an unsafe imageUrl and a title-echo excerpt", () => {
+    const row = toStoredArticle({
+      ...base,
+      excerpt: "Ethereum upgrade lands.",
+      imageUrl: "https://evil.test/pwn.png"
+    });
+    expect(row.summary).toBe("");
+    expect(row.imageUrl).toBe("");
   });
 
   it("maps lists via toStoredArticles", () => {

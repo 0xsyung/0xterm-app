@@ -29,6 +29,8 @@ import {
   parseNewsDate,
   parseRss,
   parseRss2Json,
+  extractNewsExcerpt,
+  NEWS_EXCERPT_CAP,
   sanitizeHeadline,
   sanitizeNewsImageUrl,
   isAllowedNewsThumbHost,
@@ -68,6 +70,28 @@ describe("sanitizeHeadline", () => {
     expect(sanitizeHeadline("A &amp; B   &lt;C&gt;")).toBe("A & B <C>");
     const long = "x".repeat(200);
     expect(sanitizeHeadline(long).length).toBe(180);
+  });
+});
+
+describe("extractNewsExcerpt", () => {
+  it("strips HTML, takes the first paragraph, and caps length", () => {
+    expect(
+      extractNewsExcerpt(
+        "<p>Hello &amp; welcome.</p><p>Second paragraph.</p>",
+        "Other title"
+      )
+    ).toBe("Hello & welcome.");
+    const long = "x".repeat(NEWS_EXCERPT_CAP + 80);
+    const out = extractNewsExcerpt(long, "Unrelated");
+    expect(out.length).toBe(NEWS_EXCERPT_CAP);
+    expect(out).not.toMatch(/</);
+  });
+
+  it("returns empty for missing copy or a title echo", () => {
+    expect(extractNewsExcerpt("", "A title")).toBe("");
+    expect(extractNewsExcerpt("A title", "A title")).toBe("");
+    expect(extractNewsExcerpt("A title.", "A title")).toBe("");
+    expect(extractNewsExcerpt("<script>alert(1)</script>", "A title")).toBe("");
   });
 });
 
@@ -250,6 +274,17 @@ describe("parseRss", () => {
       "https://cdn.sanity.io/images/demo/cover.png"
     );
   });
+
+  it("extracts a capped description excerpt and ignores content:encoded", () => {
+    const items = parseRss(fixtureXml, "cointelegraph");
+    const btc = items.find((i) => i.url.includes("bitcoin-ath"));
+    expect(btc?.excerpt).toBe("Should be ignored");
+    expect(btc?.excerpt).not.toMatch(/script|onerror|Evil HTML|<p>/i);
+    const sol = items.find((i) => /solana/i.test(i.title));
+    expect(sol?.excerpt).toBe("");
+    const enc = items.find((i) => i.url.includes("enclosure-ok"));
+    expect(enc?.excerpt).toBe("");
+  });
 });
 
 describe("parseRss2Json", () => {
@@ -300,6 +335,34 @@ describe("parseRss2Json", () => {
       "https://cdn.sanity.io/images/s3y3vcno/production/x.jpg?fm=jpg&w=1920"
     );
     expect(items[2].imageUrl).toBeNull();
+    expect(items[0].excerpt).toBe("");
+  });
+
+  it("reads a real description excerpt and skips content / title echoes", () => {
+    const items = parseRss2Json(
+      {
+        status: "ok",
+        items: [
+          {
+            title: "Hello ETH",
+            link: "https://decrypt.co/excerpt-ok",
+            pubDate: "Sun, 13 Sep 2026 11:00:00 +0000",
+            description: "<p>First paragraph of the story.</p><p>Second stays out.</p>",
+            content: "Full HTML dump that must not become the excerpt."
+          },
+          {
+            title: "Title Echo Case",
+            link: "https://decrypt.co/echo",
+            pubDate: "Sun, 13 Sep 2026 10:00:00 +0000",
+            description: "Title Echo Case"
+          }
+        ]
+      },
+      "decrypt"
+    );
+    expect(items[0].excerpt).toBe("First paragraph of the story.");
+    expect(items[0].excerpt).not.toMatch(/Full HTML dump/i);
+    expect(items[1].excerpt).toBe("");
   });
 });
 
